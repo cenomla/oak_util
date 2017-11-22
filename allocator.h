@@ -1,14 +1,20 @@
 #pragma once
 
-#include "types.h"
+#include <cstddef>
+#include <cinttypes>
 
 namespace oak {
+
+	struct MemBlock {
+		void *next;
+		size_t size;
+	};
 
 	struct IAllocator {
 		virtual void* allocate(size_t size) = 0;
 		virtual void deallocate(void *ptr, size_t size) = 0;
 	protected:
-		~IAllocator();
+		virtual ~IAllocator();
 	};
 
 	struct ProxyAllocator : IAllocator {

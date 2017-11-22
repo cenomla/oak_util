@@ -1,6 +1,7 @@
 #pragma once
 
-#include "types.h"
+#include <cstddef>
+#include <cinttypes>
 
 namespace oak::ptrutil {
 
