@@ -20,6 +20,7 @@ namespace oak {
 			UINT64,
 			FLOAT32,
 			FLOAT64,
+			STRING,
 			STRUCT,
 		};
 	};
@@ -126,5 +127,6 @@ namespace oak {
 		{ Type::UINT64, "uint64", 8 },
 		{ Type::FLOAT32, "float32", 4 },
 		{ Type::FLOAT64, "float64", 8 },
+		{ Type::STRING, "string", 16 },
 	};
 } 
