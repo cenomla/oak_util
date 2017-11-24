@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstring>
+
 #include "allocator.h"
 #include "ptr.h"
 
