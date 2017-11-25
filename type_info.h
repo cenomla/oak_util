@@ -63,9 +63,9 @@ namespace oak {
 					}
 					inline Iterator& operator++() { 
 						if (var->flags & VarFlag::POINTER) {
-							ptr = ptrutil::add(ptr, sizeof(void*));
+							ptr = ptr::add(ptr, sizeof(void*));
 						} else {
-							ptr = ptrutil::add(ptr, var->info->size);
+							ptr = ptr::add(ptr, var->info->size);
 						}
 						var++;
 						return *this;

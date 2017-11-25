@@ -26,8 +26,8 @@ namespace oak {
 			auto mem = allocator->allocate(count);
 			std::memset(mem, 0, count);
 			nmap.keys = static_cast<K*>(mem);
-			nmap.values = static_cast<V*>(ptrutil::add(mem, nsize * sizeof(K)));
-			nmap.taken = static_cast<bool*>(ptrutil::add(mem, nsize * (sizeof(K) + sizeof(V))));
+			nmap.values = static_cast<V*>(ptr::add(mem, nsize * sizeof(K)));
+			nmap.taken = static_cast<bool*>(ptr::add(mem, nsize * (sizeof(K) + sizeof(V))));
 			nmap.size = size;
 			nmap.capacity = nsize;
 			nmap.firstIndex = nsize;

@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cinttypes>
 
-namespace oak::ptrutil {
+namespace oak::ptr {
 
 	constexpr inline void* add(void* p, size_t x) {
 		return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(p) + x);

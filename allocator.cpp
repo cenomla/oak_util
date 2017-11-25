@@ -37,12 +37,12 @@ namespace oak {
 
 		numAllocs ++;
 
-		return ptrutil::add(ptr, sizeof(MemBlock));
+		return ptr::add(ptr, sizeof(MemBlock));
 	}
 
 	void ProxyAllocator::deallocate(void *ptr, size_t size) {
 		//search through linked list for ptr - sizeof(memList) then remove from list and deallocate
-		ptr = ptrutil::subtract(ptr, sizeof(MemBlock));
+		ptr = ptr::subtract(ptr, sizeof(MemBlock));
 
 		MemBlock *p = memList;
 		MemBlock *prev = nullptr;
@@ -76,7 +76,7 @@ namespace oak {
 		header->size = totalPageSize;
 		//fill in the rest of the struct
 		pagePtr = start;
-		pos = ptrutil::add(start, sizeof(MemBlock));
+		pos = ptr::add(start, sizeof(MemBlock));
 	}
 
 	void LinearAllocator::destroy() {
@@ -98,7 +98,7 @@ namespace oak {
 	void* LinearAllocator::allocate(size_t size) {
 		assert(size != 0 && size <= pageSize);
 
-		uint32_t adjustment = ptrutil::align_offset(pos, alignment);
+		uint32_t adjustment = ptr::align_offset(pos, alignment);
 		uintptr_t alignedAddress = reinterpret_cast<uintptr_t>(pos) + adjustment;
 		MemBlock *header = static_cast<MemBlock*>(pagePtr);
 
@@ -107,8 +107,8 @@ namespace oak {
 				grow();
 			}
 			pagePtr = header->next;
-			pos = ptrutil::add(pagePtr, sizeof(MemBlock));
-			adjustment = ptrutil::align_offset(pos, alignment);
+			pos = ptr::add(pagePtr, sizeof(MemBlock));
+			adjustment = ptr::align_offset(pos, alignment);
 			alignedAddress = reinterpret_cast<uintptr_t>(pos) + adjustment;
 		}
 
@@ -120,7 +120,7 @@ namespace oak {
 
 	void LinearAllocator::clear() {
 		pagePtr = start;
-		pos = ptrutil::add(pagePtr, sizeof(MemBlock));
+		pos = ptr::add(pagePtr, sizeof(MemBlock));
 	}
 
 	void LinearAllocator::grow() {
@@ -166,7 +166,7 @@ namespace oak {
 
 		while (p) {
 			//Calculate adjustment needed to keep object correctly aligned
-			uint32_t adjustment = ptrutil::align_offset_with_header(p, alignment, sizeof(AllocationHeader));
+			uint32_t adjustment = ptr::align_offset_with_header(p, alignment, sizeof(AllocationHeader));
 
 			size_t totalSize = size + adjustment;
 
@@ -192,7 +192,7 @@ namespace oak {
 				}
 			} else {
 				//else create a new FreeBlock containing remaining memory
-				MemBlock* next = static_cast<MemBlock*>(ptrutil::add(p, totalSize));
+				MemBlock* next = static_cast<MemBlock*>(ptr::add(p, totalSize));
 				next->size = p->size - totalSize;
 				next->next = p->next;
 
@@ -210,7 +210,7 @@ namespace oak {
 			header->size = totalSize;
 			header->adjustment = adjustment;
 
-			assert(ptrutil::align_offset(reinterpret_cast<void*>(alignedAddress), alignment) == 0);
+			assert(ptr::align_offset(reinterpret_cast<void*>(alignedAddress), alignment) == 0);
 
 			return reinterpret_cast<void*>(alignedAddress);
 		}
@@ -221,7 +221,7 @@ namespace oak {
 	void FreelistAllocator::deallocate(void *ptr, size_t size) {
 		assert(ptr != nullptr);
 
-		AllocationHeader* header = static_cast<AllocationHeader*>(ptrutil::subtract(ptr, sizeof(AllocationHeader)));
+		AllocationHeader* header = static_cast<AllocationHeader*>(ptr::subtract(ptr, sizeof(AllocationHeader)));
 
 		uintptr_t   blockStart = reinterpret_cast<uintptr_t>(ptr) - header->adjustment;
 		size_t blockSize = header->size;
@@ -302,15 +302,15 @@ namespace oak {
 		header->size = totalPageSize;
 
 		//make sure the size is aligned
-		objectSize = ptrutil::align_size(objectSize, alignment);
+		objectSize = ptr::align_size(objectSize, alignment);
 		size_t count = (pageSize & ~(alignment-1)) / objectSize;
 
-		freeList = static_cast<void**>(ptrutil::add(start, sizeof(MemBlock)));
+		freeList = static_cast<void**>(ptr::add(start, sizeof(MemBlock)));
 
 		void **p = freeList;
 
 		for (size_t i = 0; i < count - 1; i++) {
-			*p = ptrutil::add(p, objectSize);
+			*p = ptr::add(p, objectSize);
 			p = static_cast<void**>(*p);
 		}
 
@@ -375,12 +375,12 @@ namespace oak {
 
 		size_t count = (pageSize & ~(alignment-1)) / objectSize;
 
-		*prev = ptrutil::add(ptr, sizeof(MemBlock));
+		*prev = ptr::add(ptr, sizeof(MemBlock));
 
 		p = static_cast<void**>(*prev);
 
 		for (size_t i = 0; i < count - 1; i++) {
-			*p = ptrutil::add(p, objectSize);
+			*p = ptr::add(p, objectSize);
 			p = static_cast<void**>(*p);
 		}
 
