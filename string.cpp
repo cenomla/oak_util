@@ -85,7 +85,12 @@ namespace oak {
 	bool operator==(const String& lhs, const String& rhs) {
 		if (lhs.size != rhs.size) { return false; }	
 		if (lhs.size == 0) { return true; }
-		return std::memcmp(lhs.data, rhs.data, lhs.size) == 0;
+		for (size_t i = 0; i < lhs.size; i++) {
+			if (lhs.data[i] != rhs.data[i]) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 }
