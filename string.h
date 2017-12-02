@@ -2,6 +2,8 @@
 
 #include <cstddef>
 
+#include "allocator.h"
+
 namespace oak {
 
 	constexpr size_t c_str_len(const char *str) {
@@ -32,6 +34,7 @@ namespace oak {
 		void splitstr(String delimeters, Array<String>& tokens) const;
 		bool is_c_str() const;
 		const char* as_c_str() const;
+		String clone(IAllocator *allocator = &listAlloc) const;
 
 		inline char* begin() { return data; }
 		inline char* end() { return data + size; }

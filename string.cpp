@@ -82,6 +82,12 @@ namespace oak {
 		return cStringStorage.data;
 	}
 
+	String String::clone(IAllocator *allocator) const {
+		String nStr{ static_cast<char*>(allocator->allocate(size)), size };	
+		memcpy(nStr.data, data, size);
+		return nStr;
+	}
+
 	bool operator==(const String& lhs, const String& rhs) {
 		if (lhs.size != rhs.size) { return false; }	
 		if (lhs.size == 0) { return true; }
