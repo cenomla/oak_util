@@ -40,10 +40,11 @@ namespace oak {
 		}
 
 		Array clone() {
-			Array nmap{ allocator };
-			nmap.resize(size);
-			std::memcpy(nmap.data, data, capacity * sizeof(T));
-			return nmap;
+			Array narry{ allocator };
+			narry.reserve(capacity);
+			narry.size = size;
+			std::memcpy(narry.data, data, capacity * sizeof(T));
+			return narry;
 		}
 
 		void destroy() {

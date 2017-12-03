@@ -59,7 +59,7 @@ namespace oak {
 		do {
 			pos = find_first_of(delimeters, prev);
 			if (pos > prev) {
-				tokens.push(substr(prev, pos-prev));
+				tokens.push(substr(prev, pos));
 			}
 			prev = pos + 1;
 		} while(pos != npos);
@@ -83,7 +83,7 @@ namespace oak {
 	}
 
 	String String::clone(IAllocator *allocator) const {
-		String nStr{ static_cast<char*>(allocator->allocate(size)), size };	
+		String nStr{ static_cast<char*>(allocator->allocate(size)), size };
 		memcpy(nStr.data, data, size);
 		return nStr;
 	}
