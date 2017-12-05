@@ -389,7 +389,7 @@ namespace oak {
 
 	ProxyAllocator proxyAlloc;
 	FreelistAllocator listAlloc{ 100000000, 64, &proxyAlloc };
-	LinearAllocator frameAlloc{ 1000000, 8, &listAlloc };
+	LinearAllocator frameAlloc{ 100000000, 8, &proxyAlloc };
 
 	void init_allocators() {
 		listAlloc.init();
