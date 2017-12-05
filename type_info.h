@@ -5,6 +5,8 @@
 #include "string.h"
 #include "ptr.h"
 
+#include "../conf.h"
+
 namespace oak {
 
 	struct Type {
@@ -29,6 +31,7 @@ namespace oak {
 		Type::Enum type;
 		String name;
 		size_t size;
+		size_t align;
 	};
 
 	struct VarFlag { 
@@ -42,6 +45,7 @@ namespace oak {
 	struct Var {
 		const TypeInfo *info;
 		String name;
+		uint32_t version = 0; //first version this var appeared in
 		uint32_t flags = 0;
 		uint32_t count = 0; //greater than zero if var is an array
 	};
@@ -68,6 +72,15 @@ namespace oak {
 							ptr = ptr::add(ptr, var->info->size);
 						}
 						var++;
+						if (var && var->info) {
+							size_t a;
+							if (var->flags & VarFlag::POINTER) {
+								a = alignof(void*);
+							} else {
+								a = var->info->align;
+							}
+							ptr = ptr::align_address(ptr, a);
+						}
 						return *this;
 					}
 
@@ -103,30 +116,30 @@ namespace oak {
 	template<typename T>
 	constexpr StructInfo make_struct_info(size_t id, const String& name) {
 		return StructInfo { 
-			{ Type::STRUCT, name, sizeof(T) }, id
+			{ Type::STRUCT, name, sizeof(T), alignof(T) }, id
 		};
 	}
 
 	template<typename T, size_t N>
 	constexpr StructInfo make_struct_info(size_t id, const String& name, const Var (&array)[N]) {
 		return StructInfo { 
-			{ Type::STRUCT, name, sizeof(T) }, id,
+			{ Type::STRUCT, name, sizeof(T), alignof(T) }, id,
 			{ &array[0], N }
 		};
 	}
 
 	inline TypeInfo types[] = {
-		{ Type::VOID, "void", 0 },
-		{ Type::INT8, "int8", 1 },
-		{ Type::INT16, "int16", 2 },
-		{ Type::INT32, "int32", 4 },
-		{ Type::INT64, "int64", 8 },
-		{ Type::UINT8, "uint8", 1 },
-		{ Type::UINT16, "uint16", 2 },
-		{ Type::UINT32, "uint32", 4 },
-		{ Type::UINT64, "uint64", 8 },
-		{ Type::FLOAT32, "float32", 4 },
-		{ Type::FLOAT64, "float64", 8 },
-		{ Type::STRING, "string", 16 },
+		{ Type::VOID, "void", 0, 0 },
+		{ Type::INT8, "int8", 1, alignof(int8_t) },
+		{ Type::INT16, "int16", 2, alignof(int16_t) },
+		{ Type::INT32, "int32", 4, alignof(int32_t) },
+		{ Type::INT64, "int64", 8, alignof(int64_t) },
+		{ Type::UINT8, "uint8", 1, alignof(uint8_t) },
+		{ Type::UINT16, "uint16", 2, alignof(uint16_t) },
+		{ Type::UINT32, "uint32", 4, alignof(uint32_t) },
+		{ Type::UINT64, "uint64", 8, alignof(uint64_t) },
+		{ Type::FLOAT32, "float32", 4, alignof(float) },
+		{ Type::FLOAT64, "float64", 8, alignof(double) },
+		{ Type::STRING, "string", 16, alignof(String) },
 	};
 } 
