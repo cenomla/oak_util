@@ -12,6 +12,8 @@
 #define _reflect(x)
 #endif
 
+#define STRUCT_INFO(T) static_cast<const oak::StructInfo*>(oak::type_info<T>())
+
 namespace oak {
 
 	enum class TypeKind {
@@ -63,6 +65,7 @@ namespace oak {
 		struct MemberList {
 			struct Iterator {
 				const VarInfo *var;
+				const VarInfo *end;
 				void *ptr;
 
 				inline Any operator*() const {
@@ -72,7 +75,7 @@ namespace oak {
 				inline Iterator& operator++() {
 					ptr = ptr::add(ptr, var->type->size);
 					var++;
-					if (var && var->type) {
+					if (var != end) {
 						ptr = ptr::align_address(ptr, var->type->align);
 					}
 					return *this;
@@ -87,8 +90,8 @@ namespace oak {
 			size_t count;
 			void *ptr;
 
-			inline Iterator begin() const { return { var, ptr }; }
-			inline Iterator end() const { return { var + count, ptr }; }
+			inline Iterator begin() const { return { var, var + count, ptr }; }
+			inline Iterator end() const { return { var + count, var + count, ptr }; }
 		};
 
 		const VarInfo *members = nullptr;
@@ -115,5 +118,7 @@ namespace oak {
 			return members + memberCount; 
 		}
 	};
+
+	template<typename T> const TypeInfo* type_info();
 
 }

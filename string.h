@@ -4,6 +4,12 @@
 
 #include "allocator.h"
 
+#ifdef __OSIG__
+#define _reflect(x) __attribute__((annotate("reflect:"#x)))
+#else
+#define _reflect(x)
+#endif
+
 namespace oak {
 
 	constexpr size_t c_str_len(const char *str) {
@@ -17,7 +23,7 @@ namespace oak {
 	template<class T>
 	struct Array;
 
-	struct String {
+	struct _reflect("builtin") String {
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
 
 		constexpr String() = default;
@@ -31,6 +37,7 @@ namespace oak {
 		size_t find_char(char c, size_t start = 0) const;
 		size_t find_first_of(String delimeters, size_t start = 0) const;
 		size_t find_first_not_of(String delimeters, size_t start = 0) const;
+		size_t find_last_of(String delimeters, size_t start = 0) const;
 		void splitstr(String delimeters, Array<String>& tokens) const;
 		bool is_c_str() const;
 		const char* as_c_str() const;

@@ -1,6 +1,7 @@
 #include "string.h"
 
 #include <cstring>
+#include <cstdio>
 
 #include "array.h"
 #include "allocator.h"
@@ -54,6 +55,17 @@ namespace oak {
 		return npos;
 	}
 
+	size_t String::find_last_of(String delimeters, size_t start) const {
+		for (size_t i = size; i > start; i--) {
+			for (size_t j = 0; j < delimeters.size; j++) {
+				if (data[i - 1] == delimeters.data[j]) {
+					return i - 1;
+				}
+			}
+		}
+		return npos;
+	}
+
 	void String::splitstr(String delimeters, Array<String>& tokens) const {
 		size_t prev = 0, pos;
 		do {
@@ -83,6 +95,7 @@ namespace oak {
 	}
 
 	String String::clone(IAllocator *allocator) const {
+		if (!size) { return {}; }
 		String nStr{ static_cast<char*>(allocator->allocate(size)), size };
 		memcpy(nStr.data, data, size);
 		return nStr;
