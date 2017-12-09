@@ -18,6 +18,7 @@ namespace oak {
 
 	enum class TypeKind {
 		VOID,
+		BOOL,
 		UINT8,
 		UINT16,
 		UINT32,
@@ -120,5 +121,9 @@ namespace oak {
 	};
 
 	template<typename T> const TypeInfo* type_info();
+
+	template<typename T> size_t type_tid() {
+		return STRUCT_INFO(T)->tid;
+	}
 
 }
