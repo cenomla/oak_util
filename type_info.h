@@ -122,7 +122,7 @@ namespace oak {
 
 	template<typename T> const TypeInfo* type_info();
 
-	template<typename T> size_t type_tid() {
+	template<typename T> size_t type_id() {
 		return STRUCT_INFO(T)->tid;
 	}
 
