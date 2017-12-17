@@ -85,6 +85,24 @@ namespace oak {
 		void* allocate(size_t size) override;
 		void deallocate(void *ptr, size_t size) override;
 		void grow();
+		size_t count();
+	};
+
+	template<typename T>
+	void* allocate(T *alloc, size_t size);
+	template<typename T>
+	void deallocate(T *alloc, void *ptr, size_t size);
+
+	struct Allocator {
+		void *data;
+		void* (*fpalloc)(void*, size_t);
+		void (*fpfree)(void*, void*, size_t);
+
+		template<typename T>
+		Allocator(T *d) : data{ d }, fpalloc{ allocate<T> }, fpfree{ deallocate<T> } {}
+
+		void* alloc(size_t size);
+		void free(void *ptr, size_t size);
 	};
 
 	extern ProxyAllocator proxyAlloc;

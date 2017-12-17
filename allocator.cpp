@@ -303,13 +303,12 @@ namespace oak {
 
 		//make sure the size is aligned
 		objectSize = ptr::align_size(objectSize, alignment);
-		size_t count = (pageSize & ~(alignment-1)) / objectSize;
 
 		freeList = static_cast<void**>(ptr::add(start, sizeof(MemBlock)));
 
 		void **p = freeList;
 
-		for (size_t i = 0; i < count - 1; i++) {
+		for (size_t i = 0; i < count() - 1; i++) {
 			*p = ptr::add(p, objectSize);
 			p = static_cast<void**>(*p);
 		}
@@ -373,18 +372,36 @@ namespace oak {
 		header->next = nullptr;
 		header->size = totalPageSize;
 
-		size_t count = (pageSize & ~(alignment-1)) / objectSize;
-
 		*prev = ptr::add(ptr, sizeof(MemBlock));
 
 		p = static_cast<void**>(*prev);
 
-		for (size_t i = 0; i < count - 1; i++) {
+		for (size_t i = 0; i < count() - 1; i++) {
 			*p = ptr::add(p, objectSize);
 			p = static_cast<void**>(*p);
 		}
 
 		*p = nullptr;
+	}
+
+	size_t PoolAllocator::count() {
+		return (pageSize & ~(alignment-1)) / objectSize;
+	}
+
+	template<> void* allocate<PoolAllocator>(PoolAllocator *data, size_t size) {
+		return data->allocate(size);
+	}
+
+	template<> void deallocate<PoolAllocator>(PoolAllocator *data, void *ptr, size_t size) {
+		data->deallocate(ptr, size);
+	}
+
+	void *Allocator::alloc(size_t size) {
+		return fpalloc(data, size);
+	}
+
+	void Allocator::free(void *ptr, size_t size) {
+		fpfree(data, ptr, size);
 	}
 
 	ProxyAllocator proxyAlloc;
