@@ -2,10 +2,16 @@
 
 #include <cstring>
 #include <cassert>
+#include <type_traits>
 
 #include "allocator.h"
 
 namespace oak {
+
+	template<typename T>
+	inline bool operator==(const T& lhs, const T& rhs) {
+		return std::memcmp(&lhs, &rhs, sizeof(T)) == 0;
+	}
 
 	template<class T>
 	struct Array {
@@ -66,7 +72,7 @@ namespace oak {
 
 		size_t find(const T& v) {
 			for (size_t i = 0; i < size; i++) {
-				if (std::memcmp(data + i, &v, sizeof(T)) == 0) {
+				if (data[i] == v) {
 					return i;
 				}
 			}
