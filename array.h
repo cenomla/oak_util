@@ -13,7 +13,7 @@ namespace oak {
 		return std::memcmp(&lhs, &rhs, sizeof(T)) == 0;
 	}
 
-	template<class T>
+	template<typename T>
 	struct Array {
 
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
