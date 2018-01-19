@@ -96,6 +96,9 @@ namespace oak {
 		}
 
 		V* put(const K& key, const V& value) {
+			if (size == capacity) {
+				resize(capacity == 0 ? 4 : capacity * 2);
+			}
 			auto idx = get_index(key);
 			for (uint32_t d = 0; d < capacity; d++) {
 				auto ridx = (idx + d) % capacity;
