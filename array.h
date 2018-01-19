@@ -6,6 +6,12 @@
 
 #include "allocator.h"
 
+#ifdef __OSIG__
+#define _reflect(x) __attribute__((annotate("reflect:"#x)))
+#else
+#define _reflect(x)
+#endif
+
 namespace oak {
 
 	template<typename T>
@@ -14,8 +20,7 @@ namespace oak {
 	}
 
 	template<typename T>
-	struct Array {
-
+	struct _reflect("builtin") Array {
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
 
 		typedef T value_type; 
@@ -23,10 +28,10 @@ namespace oak {
 		void reserve(size_t nsize) {
 			assert(allocator);
 			if (nsize <= capacity) { return; }
-			auto mem = static_cast<T*>(allocator->allocate(nsize * sizeof(T)));
+			auto mem = static_cast<T*>(allocator->alloc(nsize * sizeof(T)));
 			if (data) {
 				std::memcpy(mem, data, capacity * sizeof(T));
-				allocator->deallocate(data, capacity * sizeof(T));
+				allocator->free(data, capacity * sizeof(T));
 			}
 			data = mem;
 			capacity = nsize;
@@ -55,7 +60,7 @@ namespace oak {
 
 		void destroy() {
 			if (data) {
-				allocator->deallocate(data, capacity * sizeof(T));
+				allocator->free(data, capacity * sizeof(T));
 				data = nullptr;
 			}
 			size = 0;
@@ -92,7 +97,7 @@ namespace oak {
 		inline T* begin() { return data; }
 		inline T* end() { return data + size; }
 
-		IAllocator *allocator = nullptr;
+		Allocator *allocator = nullptr;
 		T *data = nullptr;
 		size_t size = 0;
 		size_t capacity = 0;

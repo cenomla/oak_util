@@ -8,8 +8,6 @@
 
 namespace oak {
 
-	IAllocator::~IAllocator() {}
-
 	void ProxyAllocator::destroy() {
 		//free memory
 		if (numAllocs > 0) {
@@ -20,7 +18,7 @@ namespace oak {
 		MemBlock *next = nullptr;
 		while (p != nullptr) {
 			next = static_cast<MemBlock*>(p->next);
-			free(p);
+			::free(p);
 			p = next;
 			numAllocs --;
 		}
@@ -28,7 +26,7 @@ namespace oak {
 		assert(numAllocs == 0);
 	}
 
-	void* ProxyAllocator::allocate(size_t size) {
+	void* ProxyAllocator::alloc(size_t size) {
 		void *ptr = aligned_alloc(64, size + sizeof(MemBlock));
 		MemBlock *l = static_cast<MemBlock*>(ptr);
 		l->next = memList;
@@ -40,7 +38,7 @@ namespace oak {
 		return ptr::add(ptr, sizeof(MemBlock));
 	}
 
-	void ProxyAllocator::deallocate(void *ptr, size_t size) {
+	void ProxyAllocator::free(const void *ptr, size_t size) {
 		//search through linked list for ptr - sizeof(memList) then remove from list and deallocate
 		ptr = ptr::subtract(ptr, sizeof(MemBlock));
 
@@ -54,7 +52,7 @@ namespace oak {
 					memList = static_cast<MemBlock*>(p->next);
 				}
 				numAllocs--;
-				free(p);
+				::free(p);
 				break;
 			}
 			prev = p;
@@ -68,7 +66,7 @@ namespace oak {
 		assert(parent);
 		//allocate first page
 		size_t totalPageSize = pageSize + sizeof(MemBlock);
-		start = parent->allocate(totalPageSize);
+		start = parent->alloc(totalPageSize);
 		assert(start);
 		//fill in page header
 		MemBlock *header = static_cast<MemBlock*>(start);
@@ -86,7 +84,7 @@ namespace oak {
 		while (p) {
 			prev = p;
 			p = static_cast<MemBlock*>(p->next);
-			parent->deallocate(prev, prev->size);
+			parent->free(prev, prev->size);
 		}
 		//make sure we don't have pointers to invalid memory
 		start = nullptr;
@@ -95,7 +93,7 @@ namespace oak {
 	}
 
 
-	void* LinearAllocator::allocate(size_t size) {
+	void* LinearAllocator::alloc(size_t size) {
 		assert(size != 0 && size <= pageSize);
 
 		uint32_t adjustment = ptr::align_offset(pos, alignment);
@@ -116,7 +114,7 @@ namespace oak {
 		return reinterpret_cast<void*>(alignedAddress);
 	}
 
-	void LinearAllocator::deallocate(void *ptr, size_t size) {}
+	void LinearAllocator::free(const void *ptr, size_t size) {}
 
 	void LinearAllocator::clear() {
 		pagePtr = start;
@@ -125,7 +123,7 @@ namespace oak {
 
 	void LinearAllocator::grow() {
 		size_t totalPageSize = pageSize + sizeof(MemBlock);
-		void *ptr = parent->allocate(totalPageSize);
+		void *ptr = parent->alloc(totalPageSize);
 		assert(ptr != nullptr);
 		MemBlock *header = static_cast<MemBlock*>(pagePtr);
 		header->next = ptr;
@@ -138,7 +136,7 @@ namespace oak {
 		assert(pageSize > sizeof(MemBlock));
 		assert(parent);
 		size_t totalPageSize = pageSize + sizeof(MemBlock);
-		start = parent->allocate(totalPageSize);
+		start = parent->alloc(totalPageSize);
 		assert(start);
 		MemBlock *header = static_cast<MemBlock*>(start);
 		header->next = nullptr;
@@ -155,11 +153,11 @@ namespace oak {
 		while (p) {
 			prev = p;
 			p = static_cast<MemBlock*>(p->next);
-			parent->deallocate(prev, prev->size);
+			parent->free(prev, prev->size);
 		}
 	}
 
-	void* FreelistAllocator::allocate(size_t size) {
+	void* FreelistAllocator::alloc(size_t size) {
 		assert(size != 0 && size <= pageSize);
 		MemBlock *prev = nullptr;
 		MemBlock *p = freeList;
@@ -218,10 +216,10 @@ namespace oak {
 		return nullptr;
 	}
 
-	void FreelistAllocator::deallocate(void *ptr, size_t size) {
+	void FreelistAllocator::free(const void *ptr, size_t size) {
 		assert(ptr != nullptr);
 
-		AllocationHeader* header = static_cast<AllocationHeader*>(ptr::subtract(ptr, sizeof(AllocationHeader)));
+		const AllocationHeader* header = static_cast<const AllocationHeader*>(ptr::subtract(ptr, sizeof(AllocationHeader)));
 
 		uintptr_t   blockStart = reinterpret_cast<uintptr_t>(ptr) - header->adjustment;
 		size_t blockSize = header->size;
@@ -276,7 +274,7 @@ namespace oak {
 		//after loop prev = end of free list
 
 		//create new memory block and append it to the used block list
-		void *ptr = parent->allocate(pageSize + sizeof(MemBlock));
+		void *ptr = parent->alloc(pageSize + sizeof(MemBlock));
 		assert(ptr != nullptr);
 		prevHeader->next = ptr;
 		header = static_cast<MemBlock*>(ptr);
@@ -295,7 +293,7 @@ namespace oak {
 		assert(pageSize > sizeof(MemBlock));
 		assert(parent);
 		size_t totalPageSize = pageSize + sizeof(MemBlock);
-		start = parent->allocate(totalPageSize);
+		start = parent->alloc(totalPageSize);
 		assert(start);
 		MemBlock *header = static_cast<MemBlock*>(start);
 		header->next = nullptr;
@@ -322,11 +320,11 @@ namespace oak {
 		while (p) {
 			prev = p;
 			p = static_cast<MemBlock*>(p->next);
-			parent->deallocate(prev, prev->size);
+			parent->free(prev, prev->size);
 		}
 	}
 
-	void* PoolAllocator::allocate(size_t size) {
+	void* PoolAllocator::alloc(size_t size) {
 		if (*freeList == nullptr) {
 			grow();
 		}
@@ -337,9 +335,10 @@ namespace oak {
 		return p;
 	}
 
-	void PoolAllocator::deallocate(void *p, size_t size) {
-		*static_cast<void**>(p) = freeList;
-		freeList = static_cast<void**>(p);
+	void PoolAllocator::free(const void *p, size_t size) {
+		auto ptr = const_cast<void*>(p);
+		*static_cast<void**>(ptr) = freeList;
+		freeList = static_cast<void**>(ptr);
 	}
 
 	void PoolAllocator::grow() {
@@ -365,7 +364,7 @@ namespace oak {
 
 		//create new memory block and append it to the used block list
 		size_t totalPageSize = pageSize + sizeof(MemBlock);
-		void *ptr = parent->allocate(totalPageSize);
+		void *ptr = parent->alloc(totalPageSize);
 		assert(ptr != nullptr);
 		prevHeader->next = ptr;
 		header = static_cast<MemBlock*>(ptr);
@@ -388,35 +387,13 @@ namespace oak {
 		return (pageSize & ~(alignment-1)) / objectSize;
 	}
 
-	template<> void* allocate<PoolAllocator>(PoolAllocator *data, size_t size) {
-		return data->allocate(size);
-	}
-
-	template<> void deallocate<PoolAllocator>(PoolAllocator *data, void *ptr, size_t size) {
-		data->deallocate(ptr, size);
-	}
-
 	void *Allocator::alloc(size_t size) {
 		return fpalloc(data, size);
 	}
 
-	void Allocator::free(void *ptr, size_t size) {
+	void Allocator::free(const void *ptr, size_t size) {
 		fpfree(data, ptr, size);
 	}
 
 	ProxyAllocator proxyAlloc;
-	FreelistAllocator listAlloc{ 100000000, 64, &proxyAlloc };
-	LinearAllocator frameAlloc{ 100000000, 8, &proxyAlloc };
-
-	void init_allocators() {
-		listAlloc.init();
-		frameAlloc.init();
-	}
-
-	void destroy_allocators() {
-		frameAlloc.destroy();
-		listAlloc.destroy();
-		proxyAlloc.destroy();
-	}
-
 }

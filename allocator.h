@@ -3,6 +3,12 @@
 #include <cstddef>
 #include <cinttypes>
 
+#ifdef __OSIG__
+#define _reflect(x) __attribute__((annotate("reflect:"#x)))
+#else
+#define _reflect(x)
+#endif
+
 namespace oak {
 
 	struct MemBlock {
@@ -10,43 +16,60 @@ namespace oak {
 		size_t size;
 	};
 
-	struct IAllocator {
-		virtual void* allocate(size_t size) = 0;
-		virtual void deallocate(void *ptr, size_t size) = 0;
-	protected:
-		virtual ~IAllocator();
+	template<typename T>
+	void* falloc(void *data, size_t size) {
+		return static_cast<T*>(data)->alloc(size);
+	}
+
+	template<typename T>
+	void ffree(void *data, const void *ptr, size_t size) {
+		static_cast<T*>(data)->free(ptr, size);
+	}
+
+	struct _reflect("memory") Allocator {
+		void *data;
+		void* (*fpalloc)(void*, size_t);
+		void (*fpfree)(void*, const void*, size_t);
+
+		template<typename T>
+		Allocator(T *d) : data{ d }, fpalloc{ falloc<T> }, fpfree{ ffree<T> } {}
+
+		void* alloc(size_t size);
+		void free(const void *ptr, size_t size);
 	};
 
-	struct ProxyAllocator : IAllocator {
+	struct ProxyAllocator : Allocator {
 		MemBlock *memList = nullptr;
 		size_t numAllocs = 0;
 
+		ProxyAllocator() : Allocator{ this } {}
+
 		void destroy();
-		void* allocate(size_t size) override;
-		void deallocate(void *ptr, size_t size) override;
+		void* alloc(size_t size);
+		void free(const void *ptr, size_t size);
 
 	};	
 
-	struct LinearAllocator : IAllocator {
+	struct LinearAllocator : Allocator {
 		size_t pageSize = 0;
 		size_t alignment = 8;
-		IAllocator *parent = nullptr;
+		Allocator *parent = nullptr;
 		void *start = nullptr;
 		void *pagePtr = nullptr;
 		void *pos = nullptr;
 
-		LinearAllocator(size_t a, size_t b, IAllocator *c) :
-			pageSize{ a }, alignment{ b }, parent{ c } {}
+		LinearAllocator(size_t a, size_t b, Allocator *c) :
+			Allocator{ this }, pageSize{ a }, alignment{ b }, parent{ c } {}
 
 		void init();
 		void destroy();
-		void* allocate(size_t size) override;
-		void deallocate(void *ptr, size_t size) override;
+		void* alloc(size_t size);
+		void free(const void *ptr, size_t size);
 		void clear();
 		void grow();
 	};
 
-	struct FreelistAllocator : IAllocator {
+	struct FreelistAllocator : Allocator {
 		struct AllocationHeader {
 			size_t size;
 			uint32_t adjustment;
@@ -54,62 +77,40 @@ namespace oak {
 
 		size_t pageSize = 0;
 		size_t alignment = 8;
-		IAllocator *parent = nullptr;
+		Allocator *parent = nullptr;
 		void *start = nullptr;
 		MemBlock *freeList = nullptr;
 
-		FreelistAllocator(size_t a, size_t b, IAllocator *c) : 
-			pageSize{ a }, alignment{ b }, parent{ c } {}
+		FreelistAllocator(size_t a, size_t b, Allocator *c) : 
+			Allocator{ this }, pageSize{ a }, alignment{ b }, parent{ c } {}
 
 		void init();
 		void destroy();
 
-		void* allocate(size_t size) override;
-		void deallocate(void *ptr, size_t size) override;
+		void* alloc(size_t size);
+		void free(const void *ptr, size_t size);
 		void grow(MemBlock *lastNode);
 	};
 
-	struct PoolAllocator : IAllocator {
+	struct PoolAllocator : Allocator {
 		size_t pageSize = 0;
 		size_t objectSize = 0;
 		size_t alignment = 8;
-		IAllocator *parent = nullptr;
+		Allocator *parent = nullptr;
 		void *start;
 		void **freeList = nullptr;
 
-		PoolAllocator(size_t a, size_t b, size_t c, IAllocator *d) :
-			pageSize{ a }, objectSize{ b }, alignment{ c }, parent{ d } {}
+		PoolAllocator(size_t a, size_t b, size_t c, Allocator *d) :
+			Allocator{ this }, pageSize{ a },
+			objectSize{ b }, alignment{ c }, parent{ d } {}
 
 		void init();
 		void destroy();
-		void* allocate(size_t size) override;
-		void deallocate(void *ptr, size_t size) override;
+		void* alloc(size_t size);
+		void free(const void *ptr, size_t size);
 		void grow();
 		size_t count();
 	};
 
-	template<typename T>
-	void* allocate(T *alloc, size_t size);
-	template<typename T>
-	void deallocate(T *alloc, void *ptr, size_t size);
-
-	struct Allocator {
-		void *data;
-		void* (*fpalloc)(void*, size_t);
-		void (*fpfree)(void*, void*, size_t);
-
-		template<typename T>
-		Allocator(T *d) : data{ d }, fpalloc{ allocate<T> }, fpfree{ deallocate<T> } {}
-
-		void* alloc(size_t size);
-		void free(void *ptr, size_t size);
-	};
-
 	extern ProxyAllocator proxyAlloc;
-	extern FreelistAllocator listAlloc;
-	extern LinearAllocator frameAlloc;
-
-	void init_allocators();
-	void destroy_allocators();
-
 }

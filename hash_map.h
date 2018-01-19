@@ -24,7 +24,7 @@ namespace oak {
 
 			HashMap nmap{ allocator };
 			auto count = nsize * (sizeof(K) + sizeof(V) + sizeof(bool)); 
-			auto mem = allocator->allocate(count);
+			auto mem = allocator->alloc(count);
 			std::memset(mem, 0, count);
 			nmap.keys = static_cast<K*>(mem);
 			nmap.values = static_cast<V*>(ptr::add(mem, nsize * sizeof(K)));
@@ -60,7 +60,7 @@ namespace oak {
 
 		void destroy() {
 			if (keys) {
-				allocator->deallocate(keys, capacity * (sizeof(K) + sizeof(V) + sizeof(bool)));
+				allocator->free(keys, capacity * (sizeof(K) + sizeof(V) + sizeof(bool)));
 				keys = nullptr;
 				values = nullptr;
 				taken = nullptr;
@@ -103,6 +103,7 @@ namespace oak {
 				if (taken[ridx]) {
 					if (keys[ridx] == key) {
 						values[ridx] = value;
+						return values + ridx;
 					}
 				} else {
 					keys[ridx] = key;
@@ -155,7 +156,7 @@ namespace oak {
 		inline Iterator begin() { return Iterator{ this, firstIndex }; }
 		inline Iterator end() { return Iterator{ this, capacity }; }
 
-		IAllocator *allocator = nullptr;
+		Allocator *allocator = nullptr;
 		K *keys = nullptr;
 		V *values = nullptr;
 		bool *taken = nullptr;

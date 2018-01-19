@@ -17,6 +17,7 @@
 namespace oak {
 
 	enum class TypeKind {
+		NONE,
 		VOID,
 		BOOL,
 		UINT8,
@@ -42,6 +43,18 @@ namespace oak {
 		size_t align = 0;
 	};
 
+	struct VarInfo {
+		String name;
+		const TypeInfo *type = nullptr;
+		size_t offset = 0;
+		uint32_t flags = 0;
+		uint64_t version = 0;
+	};
+
+	struct Any : VarInfo {
+		void *ptr = nullptr;
+	};
+
 	struct PtrInfo : TypeInfo {
 		const TypeInfo *of = nullptr;
 	};
@@ -51,57 +64,10 @@ namespace oak {
 		size_t count = 0;
 	};
 
-	struct VarInfo {
-		const TypeInfo *type = nullptr;
-		String name;
-		uint32_t flags = 0;
-		uint64_t version = 0;
-	};
-
-	struct Any : VarInfo {
-		void *ptr = nullptr;
-	};
-
 	struct StructInfo : TypeInfo {
-		struct MemberList {
-			struct Iterator {
-				const VarInfo *var;
-				const VarInfo *end;
-				void *ptr;
-
-				inline Any operator*() const {
-					return { { *var }, ptr };
-				}
-
-				inline Iterator& operator++() {
-					ptr = ptr::add(ptr, var->type->size);
-					var++;
-					if (var != end) {
-						ptr = ptr::align_address(ptr, var->type->align);
-					}
-					return *this;
-				}
-
-				inline bool operator!=(const Iterator& other) {
-					return var != other.var;
-				}
-			};
-
-			const VarInfo *var;
-			size_t count;
-			void *ptr;
-
-			inline Iterator begin() const { return { var, var + count, ptr }; }
-			inline Iterator end() const { return { var + count, var + count, ptr }; }
-		};
-
 		const VarInfo *members = nullptr;
 		size_t memberCount = 0;
 		size_t tid = 0;
-
-		MemberList operator()(void *ptr) const {
-			return { members, memberCount, ptr };
-		}
 
 		inline const VarInfo* begin() const { return members; }
 		inline const VarInfo* end() const { return members + memberCount; }

@@ -2,8 +2,6 @@
 
 #include <cstddef>
 
-#include "allocator.h"
-
 #ifdef __OSIG__
 #define _reflect(x) __attribute__((annotate("reflect:"#x)))
 #else
@@ -11,6 +9,8 @@
 #endif
 
 namespace oak {
+
+	struct Allocator;
 
 	constexpr size_t c_str_len(const char *str) {
 		const char *c = str;
@@ -41,7 +41,8 @@ namespace oak {
 		void splitstr(String delimeters, Array<String>& tokens) const;
 		bool is_c_str() const;
 		const char* as_c_str() const;
-		String clone(IAllocator *allocator = &listAlloc) const;
+		const char* make_c_str(Allocator *allocator) const;
+		String clone(Allocator *allocator) const;
 
 		inline char* begin() { return data; }
 		inline char* end() { return data + size; }

@@ -19,6 +19,7 @@ namespace oak {
 	}
 
 	size_t String::find_char(char c, size_t start) const {
+		if (!data) { return npos; }
 		for (size_t i = start; i < size; i++) {
 			if (data[i] == c) {
 				return i;
@@ -82,9 +83,8 @@ namespace oak {
 		return data + size == 0;
 	}
 
-	static Array<char> cStringStorage{ &proxyAlloc };
-
 	const char* String::as_c_str() const {
+		static Array<char> cStringStorage{ &proxyAlloc };
 		if (is_c_str()) { return data; }
 		if (cStringStorage.size <= size) {
 			cStringStorage.resize(size + 1, 0);
@@ -94,9 +94,17 @@ namespace oak {
 		return cStringStorage.data;
 	}
 
-	String String::clone(IAllocator *allocator) const {
+	const char* String::make_c_str(Allocator *allocator) const {
+		if (!size) { return ""; }
+		auto cstr = static_cast<char*>(allocator->alloc(size + 1));
+		std::memcpy(cstr, data, size);
+		cstr[size] = 0;
+		return cstr;
+	}
+
+	String String::clone(Allocator *allocator) const {
 		if (!size) { return {}; }
-		String nStr{ static_cast<char*>(allocator->allocate(size)), size };
+		String nStr{ static_cast<char*>(allocator->alloc(size)), size };
 		memcpy(nStr.data, data, size);
 		return nStr;
 	}
