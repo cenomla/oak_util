@@ -3,11 +3,7 @@
 #include <cstddef>
 #include <cinttypes>
 
-#ifdef __OSIG__
-#define _reflect(x) __attribute__((annotate("reflect:"#x)))
-#else
-#define _reflect(x)
-#endif
+#include "osig_defs.h"
 
 namespace oak {
 
@@ -26,10 +22,10 @@ namespace oak {
 		static_cast<T*>(data)->free(ptr, size);
 	}
 
-	struct _reflect("memory") Allocator {
+	struct _reflect("util") Allocator {
 		void *data;
-		void* (*fpalloc)(void*, size_t);
-		void (*fpfree)(void*, const void*, size_t);
+		void* (*fpalloc)(void*, size_t) _exclude;
+		void (*fpfree)(void*, const void*, size_t) _exclude;
 
 		template<typename T>
 		Allocator(T *d) : data{ d }, fpalloc{ falloc<T> }, fpfree{ ffree<T> } {}

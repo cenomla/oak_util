@@ -67,6 +67,16 @@ namespace oak {
 		return npos;
 	}
 
+	size_t String::find_string(String str, size_t start) const {
+		if (size < str.size) { return npos; }
+		for (size_t i = start; i <= size - str.size; i++) {
+			if (str == String{ data + i, str.size }) {
+				return i;
+			}
+		}
+		return npos;
+	}
+
 	void String::splitstr(String delimeters, Array<String>& tokens) const {
 		size_t prev = 0, pos;
 		do {

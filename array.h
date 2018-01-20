@@ -5,12 +5,7 @@
 #include <type_traits>
 
 #include "allocator.h"
-
-#ifdef __OSIG__
-#define _reflect(x) __attribute__((annotate("reflect:"#x)))
-#else
-#define _reflect(x)
-#endif
+#include "osig_defs.h"
 
 namespace oak {
 
@@ -20,7 +15,7 @@ namespace oak {
 	}
 
 	template<typename T>
-	struct _reflect("builtin") Array {
+	struct _reflect("util") Array {
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
 
 		typedef T value_type; 

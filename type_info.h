@@ -5,12 +5,7 @@
 
 #include "string.h"
 #include "ptr.h"
-
-#ifdef __OSIG__
-#define _reflect(x) __attribute__((annotate("reflect:"#x)))
-#else
-#define _reflect(x)
-#endif
+#include "osig_defs.h"
 
 #define STRUCT_INFO(T) static_cast<const oak::StructInfo*>(oak::type_info<T>())
 
