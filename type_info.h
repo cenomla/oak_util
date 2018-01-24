@@ -2,6 +2,7 @@
 
 #include <cinttypes>
 #include <cstddef>
+#include <type_traits>
 
 #include "string.h"
 #include "ptr.h"
@@ -81,7 +82,25 @@ namespace oak {
 		}
 	};
 
-	template<typename T> const TypeInfo* type_info();
+	template<typename T> std::enable_if_t<
+		!(std::is_pointer_v<T> || std::is_array_v<T>),
+		const TypeInfo*> type_info();
+
+	template<typename T> std::enable_if_t<std::is_pointer_v<T>, const TypeInfo*> type_info() {
+		static const PtrInfo info{
+			{ TypeKind::PTR, "pointer", sizeof(T), alignof(T) },
+			type_info<std::remove_pointer_t<T>>()
+		};
+		return &info;
+	}
+
+	template<typename T> std::enable_if_t<std::is_array_v<T>, const TypeInfo*> type_info() {
+		static const ArrayInfo info{
+			{ TypeKind::ARRAY, "array", sizeof(T), alignof(T) },
+			type_info<std::remove_extent_t<T>>(), std::extent_v<T>
+		};
+		return &info;
+	}
 
 	template<typename T> size_t type_id() {
 		return STRUCT_INFO(T)->tid;
