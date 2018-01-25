@@ -79,6 +79,7 @@ namespace oak {
 		}
 
 		void remove(size_t index) {
+			assert(index < size);
 			//swap and pop
 			T& v = data[size - 1];
 			data[index] = v;
