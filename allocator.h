@@ -12,60 +12,43 @@ namespace oak {
 		size_t size;
 	};
 
-	template<typename T>
-	void* falloc(void *data, size_t size) {
-		return static_cast<T*>(data)->alloc(size);
-	}
-
-	template<typename T>
-	void ffree(void *data, const void *ptr, size_t size) {
-		static_cast<T*>(data)->free(ptr, size);
-	}
-
-	struct _reflect("util") Allocator {
-		void *data;
-		void* (*fpalloc)(void*, size_t) _exclude;
-		void (*fpfree)(void*, const void*, size_t) _exclude;
-
-		template<typename T>
-		Allocator(T *d) : data{ d }, fpalloc{ falloc<T> }, fpfree{ ffree<T> } {}
-
-		void* alloc(size_t size);
-		void free(const void *ptr, size_t size);
+	struct _reflect("util") IAllocator {
+		virtual void *alloc(size_t size) = 0;
+		virtual void free(const void *ptr, size_t size) = 0;
+		virtual ~IAllocator();
+	protected:
+		IAllocator() = default;
 	};
 
-	struct ProxyAllocator : Allocator {
+	struct ProxyAllocator : IAllocator {
 		MemBlock *memList = nullptr;
 		size_t numAllocs = 0;
 
-		ProxyAllocator() : Allocator{ this } {}
-
 		void destroy();
-		void* alloc(size_t size);
-		void free(const void *ptr, size_t size);
+		void* alloc(size_t size) override;
+		void free(const void *ptr, size_t size) override;
 
 	};	
 
-	struct LinearAllocator : Allocator {
+	struct LinearAllocator : IAllocator {
 		size_t pageSize = 0;
 		size_t alignment = 8;
-		Allocator *parent = nullptr;
+		IAllocator *parent = nullptr;
 		void *start = nullptr;
 		void *pagePtr = nullptr;
 		void *pos = nullptr;
 
-		LinearAllocator(size_t a, size_t b, Allocator *c) :
-			Allocator{ this }, pageSize{ a }, alignment{ b }, parent{ c } {}
+		LinearAllocator(size_t a, size_t b, IAllocator *c);
 
 		void init();
 		void destroy();
-		void* alloc(size_t size);
-		void free(const void *ptr, size_t size);
+		void* alloc(size_t size) override;
+		void free(const void *ptr, size_t size) override;
 		void clear();
 		void grow();
 	};
 
-	struct FreelistAllocator : Allocator {
+	struct FreelistAllocator : IAllocator {
 		struct AllocationHeader {
 			size_t size;
 			uint32_t adjustment;
@@ -73,37 +56,34 @@ namespace oak {
 
 		size_t pageSize = 0;
 		size_t alignment = 8;
-		Allocator *parent = nullptr;
+		IAllocator *parent = nullptr;
 		void *start = nullptr;
 		MemBlock *freeList = nullptr;
 
-		FreelistAllocator(size_t a, size_t b, Allocator *c) : 
-			Allocator{ this }, pageSize{ a }, alignment{ b }, parent{ c } {}
+		FreelistAllocator(size_t a, size_t b, IAllocator *c);
 
 		void init();
 		void destroy();
 
-		void* alloc(size_t size);
-		void free(const void *ptr, size_t size);
+		void* alloc(size_t size) override;
+		void free(const void *ptr, size_t size) override;
 		void grow(MemBlock *lastNode);
 	};
 
-	struct PoolAllocator : Allocator {
+	struct PoolAllocator : IAllocator {
 		size_t pageSize = 0;
 		size_t objectSize = 0;
 		size_t alignment = 8;
-		Allocator *parent = nullptr;
+		IAllocator *parent = nullptr;
 		void *start;
 		void **freeList = nullptr;
 
-		PoolAllocator(size_t a, size_t b, size_t c, Allocator *d) :
-			Allocator{ this }, pageSize{ a },
-			objectSize{ b }, alignment{ c }, parent{ d } {}
+		PoolAllocator(size_t a, size_t b, size_t c, IAllocator *d);
 
 		void init();
 		void destroy();
-		void* alloc(size_t size);
-		void free(const void *ptr, size_t size);
+		void* alloc(size_t size) override;
+		void free(const void *ptr, size_t size) override;
 		void grow();
 		size_t count();
 	};

@@ -9,7 +9,7 @@ namespace oak {
 	struct StringBuilder {
 		Array<char> string;
 
-		StringBuilder(Allocator *allocator) : string{ allocator } {};
+		StringBuilder(IAllocator *allocator) : string{ allocator } {};
 
 		void push(String str);
 	};

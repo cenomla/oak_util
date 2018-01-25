@@ -159,7 +159,7 @@ namespace oak {
 		inline Iterator begin() { return Iterator{ this, firstIndex }; }
 		inline Iterator end() { return Iterator{ this, capacity }; }
 
-		Allocator *allocator = nullptr;
+		IAllocator *allocator = nullptr;
 		K *keys = nullptr;
 		V *values = nullptr;
 		bool *taken = nullptr;

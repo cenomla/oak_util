@@ -2,7 +2,6 @@
 
 #include <cstring>
 #include <cassert>
-#include <type_traits>
 
 #include "allocator.h"
 #include "osig_defs.h"
@@ -15,7 +14,7 @@ namespace oak {
 	}
 
 	template<typename T>
-	struct _reflect("util") Array {
+	struct Array {
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
 
 		typedef T value_type; 
@@ -92,7 +91,7 @@ namespace oak {
 		inline T* begin() { return data; }
 		inline T* end() { return data + size; }
 
-		Allocator *allocator = nullptr;
+		IAllocator *allocator = nullptr;
 		T *data = nullptr;
 		size_t size = 0;
 		size_t capacity = 0;

@@ -8,6 +8,8 @@
 
 namespace oak {
 
+	IAllocator::~IAllocator() {}
+
 	void ProxyAllocator::destroy() {
 		//free memory
 		if (numAllocs > 0) {
@@ -59,6 +61,9 @@ namespace oak {
 			p = static_cast<MemBlock*>(p->next);
 		}
 	}
+
+	LinearAllocator::LinearAllocator(size_t a, size_t b, IAllocator *c) :
+		pageSize{ a }, alignment{ b }, parent{ c } {}
 
 	void LinearAllocator::init() {
 		//we need a page size and parent to continue
@@ -131,6 +136,9 @@ namespace oak {
 		nHeader->next = nullptr;
 		nHeader->size = totalPageSize;
 	}
+
+	FreelistAllocator::FreelistAllocator(size_t a, size_t b, IAllocator *c) :
+		pageSize{ a }, alignment{ b }, parent{ c } {}
 
 	void FreelistAllocator::init() {
 		assert(pageSize > sizeof(MemBlock));
@@ -289,6 +297,9 @@ namespace oak {
 		lastNode->next = newBlock;
 	}
 
+	PoolAllocator::PoolAllocator(size_t a, size_t b, size_t c, IAllocator *d) :
+		pageSize{ a }, objectSize{ b }, alignment{ c }, parent{ d } {}
+
 	void PoolAllocator::init() {
 		assert(pageSize > sizeof(MemBlock));
 		assert(parent);
@@ -385,14 +396,6 @@ namespace oak {
 
 	size_t PoolAllocator::count() {
 		return (pageSize & ~(alignment-1)) / objectSize;
-	}
-
-	void *Allocator::alloc(size_t size) {
-		return fpalloc(data, size);
-	}
-
-	void Allocator::free(const void *ptr, size_t size) {
-		fpfree(data, ptr, size);
 	}
 
 	ProxyAllocator proxyAlloc;

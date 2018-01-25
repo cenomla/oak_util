@@ -6,7 +6,7 @@
 
 namespace oak {
 
-	struct Allocator;
+	struct IAllocator;
 
 	constexpr size_t c_str_len(const char *str) {
 		const char *c = str;
@@ -38,8 +38,8 @@ namespace oak {
 		void splitstr(String delimeters, Array<String>& tokens) const;
 		bool is_c_str() const;
 		const char* as_c_str() const;
-		const char* make_c_str(Allocator *allocator) const;
-		String clone(Allocator *allocator) const;
+		const char* make_c_str(IAllocator *allocator) const;
+		String clone(IAllocator *allocator) const;
 
 		inline char* begin() { return data; }
 		inline char* end() { return data + size; }

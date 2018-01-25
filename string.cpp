@@ -104,7 +104,7 @@ namespace oak {
 		return cStringStorage.data;
 	}
 
-	const char* String::make_c_str(Allocator *allocator) const {
+	const char* String::make_c_str(IAllocator *allocator) const {
 		if (!size) { return ""; }
 		auto cstr = static_cast<char*>(allocator->alloc(size + 1));
 		std::memcpy(cstr, data, size);
@@ -112,7 +112,7 @@ namespace oak {
 		return cstr;
 	}
 
-	String String::clone(Allocator *allocator) const {
+	String String::clone(IAllocator *allocator) const {
 		if (!size) { return {}; }
 		String nStr{ static_cast<char*>(allocator->alloc(size)), size };
 		memcpy(nStr.data, data, size);
