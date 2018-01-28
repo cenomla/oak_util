@@ -127,6 +127,16 @@ namespace oak {
 			auto idx = find(key);
 			if (idx != npos) {
 				taken[idx] = false;
+				size --;
+				if (firstIndex == idx) { //calculate new first index
+					firstIndex = capacity;
+					for (auto i = 0; i < capacity; i++) {
+						if (taken[i]) {
+							firstIndex = i;
+							break;
+						}
+					}
+				}
 			}
 		}
 
