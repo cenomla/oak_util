@@ -130,7 +130,7 @@ namespace oak {
 				size --;
 				if (firstIndex == idx) { //calculate new first index
 					firstIndex = capacity;
-					for (auto i = 0; i < capacity; i++) {
+					for (auto i = 0u; i < capacity; i++) {
 						if (taken[i]) {
 							firstIndex = i;
 							break;
