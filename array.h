@@ -4,7 +4,6 @@
 #include <cassert>
 
 #include "allocator.h"
-#include "osig_defs.h"
 
 namespace oak {
 

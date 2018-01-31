@@ -16,7 +16,7 @@ namespace oak {
 		return static_cast<size_t>(c - str);
 	}
 
-	template<class T>
+	template<typename T>
 	struct Array;
 
 	struct _reflect("util") String {
@@ -48,7 +48,7 @@ namespace oak {
 		size_t size = 0;
 	};
 
-	constexpr size_t hash_string(const String& str) {
+	constexpr size_t hash(const String& str) {
 		size_t hash = 0;
 		
 		for (size_t i = 0; i < str.size; i++) {

@@ -8,15 +8,13 @@
 
 namespace oak {
 
-	template<class K, class V, size_t(*HashFunc)(const K&)>
+	template<class K, class V>
 	struct HashMap {
 
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
 
 		typedef K key_type;
 		typedef V value_type;
-
-		static constexpr size_t(*hash_func)(const K&) = HashFunc;
 
 		void resize(size_t nsize) {
 			assert(allocator);
@@ -141,7 +139,7 @@ namespace oak {
 		}
 
 		inline size_t get_index(const K& key) {
-			return HashFunc(key) % capacity;
+			return hash(key) % capacity;
 		}
 
 		struct Pair {
