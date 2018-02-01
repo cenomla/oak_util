@@ -89,6 +89,7 @@ namespace oak {
 		}
 			
 		V* get(const K& key) {
+			if (capacity == 0) { return nullptr; }
 			auto idx = find(key);
 			return idx != npos ? values + idx : nullptr; 
 		}
