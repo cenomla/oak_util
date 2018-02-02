@@ -75,6 +75,7 @@ namespace oak {
 			resize(size + 1);
 			std::memmove(data + idx + 1, data + idx, size - 1 - idx);
 			data[idx] = v;
+			return data + idx;
 		}
 
 		size_t find(const T& v) {
