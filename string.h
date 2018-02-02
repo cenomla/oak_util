@@ -19,7 +19,7 @@ namespace oak {
 	template<typename T>
 	struct Array;
 
-	struct _reflect("util") String {
+	struct _reflect(oak::catagory::none) String {
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
 
 		constexpr String() = default;

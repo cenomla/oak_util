@@ -68,6 +68,15 @@ namespace oak {
 			return data + size - 1;
 		}
 
+		T* insert(const T& v, size_t idx) {
+			if (idx == npos || idx == size) {
+				return push(v);
+			}
+			resize(size + 1);
+			std::memmove(data + idx + 1, data + idx, size - 1 - idx);
+			data[idx] = v;
+		}
+
 		size_t find(const T& v) {
 			for (size_t i = 0; i < size; i++) {
 				if (data[i] == v) {

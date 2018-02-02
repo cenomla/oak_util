@@ -12,7 +12,7 @@ namespace oak {
 		size_t size;
 	};
 
-	struct _reflect("util") IAllocator {
+	struct _reflect(oak::catagory::none) IAllocator {
 		virtual void *alloc(size_t size) = 0;
 		virtual void free(const void *ptr, size_t size) = 0;
 		virtual ~IAllocator();

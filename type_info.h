@@ -12,6 +12,9 @@
 
 namespace oak {
 
+	template<typename T>
+	struct Array;
+
 	enum class TypeKind {
 		NONE,
 		VOID,
@@ -105,5 +108,8 @@ namespace oak {
 	template<typename T> size_t type_id() {
 		return STRUCT_INFO(T)->tid;
 	}
+
+	template<typename T>
+	Array<const TypeInfo*> types_in_catagory();
 
 }
