@@ -73,7 +73,7 @@ namespace oak {
 				return push(v);
 			}
 			resize(size + 1);
-			std::memmove(data + idx + 1, data + idx, size - 1 - idx);
+			std::memmove(data + idx + 1, data + idx, (size - 1 - idx) * sizeof(T));
 			data[idx] = v;
 			return data + idx;
 		}
@@ -87,16 +87,23 @@ namespace oak {
 			return npos;
 		}
 
-		void remove(size_t index) {
-			assert(index < size);
+		void remove(size_t idx) {
+			assert(idx < size);
 			//swap and pop
 			T& v = data[size - 1];
-			data[index] = v;
+			data[idx] = v;
 			size--;
 		}
 
-		T& operator[](size_t index) { return data[index]; }
-		const T& operator[](size_t index) const { return data[index]; }
+		void remove_ordered(size_t idx) {
+			assert(idx < size);
+			//move the upper portion or the array down one index
+			std::memmove(data + idx, data + idx + 1, (size - 1 - idx) * sizeof(T));
+			size--;
+		}
+
+		T& operator[](size_t idx) { return data[idx]; }
+		const T& operator[](size_t idx) const { return data[idx]; }
 
 		inline T* begin() { return data; }
 		inline T* end() { return data + size; }
