@@ -13,7 +13,7 @@
 namespace oak {
 
 	template<typename T>
-	struct Array;
+	struct ArrayView;
 
 	enum class TypeKind {
 		NONE,
@@ -110,6 +110,6 @@ namespace oak {
 	}
 
 	template<typename T>
-	Array<const TypeInfo*> types_in_catagory();
+	ArrayView<const TypeInfo*> types_in_catagory();
 
 }
