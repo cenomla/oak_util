@@ -64,6 +64,7 @@ namespace oak {
 	};
 
 	struct StructInfo : TypeInfo {
+		void (*construct)(void *) = nullptr;
 		const VarInfo *members = nullptr;
 		size_t memberCount = 0;
 		size_t tid = 0;
