@@ -42,12 +42,12 @@ namespace oak {
 
 	void ProxyAllocator::free(const void *ptr, size_t size) {
 		//search through linked list for ptr - sizeof(memList) then remove from list and deallocate
-		ptr = ptr::subtract(ptr, sizeof(MemBlock));
+		auto memBlock = static_cast<const MemBlock*>(ptr::subtract(ptr, sizeof(MemBlock)));
 
 		MemBlock *p = memList;
 		MemBlock *prev = nullptr;
 		while (p != nullptr) {
-			if (p == ptr) {
+			if (p == memBlock) {
 				if (prev != nullptr) {
 					prev->next = p->next;
 				} else {

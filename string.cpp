@@ -94,14 +94,11 @@ namespace oak {
 	}
 
 	const char* String::as_c_str() const {
-		static Array<char> cStringStorage{ &proxyAlloc };
-		if (is_c_str()) { return data; }
-		if (cStringStorage.size <= size) {
-			cStringStorage.resize(size + 1, 0);
-		}
-		std::memcpy(cStringStorage.data, data, size);
-		cStringStorage[size] = 0;
-		return cStringStorage.data;
+		static char cstr[2048]{ 0 };
+		//if (is_c_str()) { return data; }
+		std::memmove(cstr, data, size);
+		cstr[size] = 0;
+		return cstr;
 	}
 
 	const char* String::make_c_str(IAllocator *allocator) const {
