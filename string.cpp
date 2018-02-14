@@ -78,14 +78,16 @@ namespace oak {
 	}
 
 	void String::splitstr(String delimeters, Array<String>& tokens) const {
-		size_t prev = 0, pos;
+		size_t first = 0, last = 0;
 		do {
-			pos = find_first_of(delimeters, prev);
-			if (pos > prev) {
-				tokens.push(substr(prev, pos));
+			first = find_first_not_of(delimeters, first);
+			if (first == npos) { break; }
+			last = find_first_of(delimeters, first);
+			if (last > first) {
+				tokens.push(substr(first, last));
 			}
-			prev = pos + 1;
-		} while(pos != npos);
+			first = last + 1;
+		} while(last != npos);
 	}
 
 	bool String::is_c_str() const {
