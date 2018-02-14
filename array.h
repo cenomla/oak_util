@@ -44,8 +44,9 @@ namespace oak {
 			size = nsize;
 		}
 
-		Array clone() {
-			Array narry{ allocator };
+		Array clone(IAllocator *nAllocator = nullptr) {
+			if (!nAllocator) { nAllocator = allocator; }
+			Array narry{ nAllocator };
 			narry.reserve(capacity);
 			narry.size = size;
 			std::memcpy(narry.data, data, capacity * sizeof(T));
