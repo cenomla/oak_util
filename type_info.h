@@ -50,10 +50,6 @@ namespace oak {
 		uint64_t version = 0;
 	};
 
-	struct Any : VarInfo {
-		void *ptr = nullptr;
-	};
-
 	struct PtrInfo : TypeInfo {
 		const TypeInfo *of = nullptr;
 	};
@@ -112,5 +108,15 @@ namespace oak {
 
 	template<typename T>
 	ArrayView<const TypeInfo*> types_in_catagory();
+
+	struct Any {
+		void *ptr = nullptr;
+		const TypeInfo *type = nullptr;
+
+		Any() = default;
+		Any(const Any& other) : ptr{ other.ptr }, type{ other.type } {}
+		template<typename T, typename DT = std::decay_t<T>, std::enable_if_t<!std::is_same_v<DT, Any>, int> = 0>
+		Any(T&& thing) : ptr{ &thing }, type{ type_info<DT>() } {}
+	};
 
 }
