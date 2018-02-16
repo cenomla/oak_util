@@ -8,6 +8,10 @@
 
 namespace oak {
 
+	constexpr size_t hash(const size_t& v) {
+		return v;
+	}
+
 	template<class K, class V>
 	struct HashMap {
 
@@ -31,10 +35,11 @@ namespace oak {
 			nmap.capacity = nsize;
 			nmap.firstIndex = nsize;
 			
-			for (size_t i = 0; i < size;) {
+			size_t left = size;
+			for (size_t i = firstIndex; i < capacity && left > 0; i++) {
 				if (taken[i]) {
 					nmap.put(keys[i], values[i]);
-					i++;
+					left--;
 				}
 			}
 
@@ -46,10 +51,11 @@ namespace oak {
 			HashMap nmap{ allocator };
 			nmap.resize(capacity);
 			
-			for (size_t i = 0; i < size;) {
+			size_t left = size;
+			for (size_t i = firstIndex; i < capacity && left > 0; i++) {
 				if (taken[i]) {
 					nmap.put(keys[i], values[i]);
-					i++;
+					left--;
 				}
 			}
 
@@ -69,15 +75,17 @@ namespace oak {
 		}
 
 		size_t find(const K& key) {
+			if (size == 0) { return npos; }
 			auto idx = get_index(key);
+			bool firstTaken = taken[idx];
 			for (uint32_t d = 0; d < capacity; d++) {
 				auto ridx = (idx + d) % capacity; 
 
-				if (!taken[ridx]) {
+				if (firstTaken && !taken[ridx]) {
 					return npos;
 				}
 
-				if (keys[ridx] == key) {
+				if (taken[ridx] && keys[ridx] == key) {
 					return ridx;
 				}
 			}
