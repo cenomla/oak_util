@@ -130,18 +130,16 @@ namespace oak {
 			return nullptr;
 		}
 
-		void remove(const K& key) {
-			auto idx = find(key);
-			if (idx != npos) {
-				taken[idx] = false;
-				size --;
-				if (firstIndex == idx) { //calculate new first index
-					firstIndex = capacity;
-					for (auto i = 0u; i < capacity; i++) {
-						if (taken[i]) {
-							firstIndex = i;
-							break;
-						}
+		void remove(size_t idx) {
+			if (idx == npos) { return; }
+			taken[idx] = false;
+			size --;
+			if (firstIndex == idx) { //calculate new first index
+				firstIndex = capacity;
+				for (auto i = 0u; i < capacity; i++) {
+					if (taken[i]) {
+						firstIndex = i;
+						break;
 					}
 				}
 			}
