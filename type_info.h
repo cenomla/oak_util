@@ -50,6 +50,11 @@ namespace oak {
 		uint64_t version = 0;
 	};
 
+	struct EnumConstant {
+		String name;
+		int64_t value = 0;
+	};
+
 	struct PtrInfo : TypeInfo {
 		const TypeInfo *of = nullptr;
 	};
@@ -70,14 +75,14 @@ namespace oak {
 	};
 
 	struct EnumInfo : TypeInfo {
-		const String *members = nullptr;
+		const EnumConstant *members = nullptr;
 		size_t memberCount = 0;
 
-		inline const String* begin() const {
+		inline const EnumConstant* begin() const {
 			return members;
 		}
 
-		inline const String* end() const {
+		inline const EnumConstant* end() const {
 			return members + memberCount; 
 		}
 	};
