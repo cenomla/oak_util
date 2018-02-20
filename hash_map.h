@@ -31,7 +31,7 @@ namespace oak {
 			nmap.keys = static_cast<K*>(mem);
 			nmap.values = static_cast<V*>(ptr::add(mem, nsize * sizeof(K)));
 			nmap.taken = static_cast<bool*>(ptr::add(mem, nsize * (sizeof(K) + sizeof(V))));
-			nmap.size = size;
+			nmap.size = 0;
 			nmap.capacity = nsize;
 			nmap.firstIndex = nsize;
 			
