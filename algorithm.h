@@ -2,8 +2,10 @@
 
 namespace oak {
 
+	struct IAllocator;
+
 	template<typename T>
-	void merge_sort(Array<T>& array) {
+	void merge_sort(Array<T>& array, IAllocator *allocator) {
 		static auto top_down_merge = [](Array<T>& array, size_t begin,
 				size_t middle, size_t end, Array<T>& buffer) {
 			auto i = begin, j = middle;
@@ -29,7 +31,7 @@ namespace oak {
 			top_down_split_merge(array, middle, end, buffer);
 			top_down_merge(buffer, begin, middle, end, array);
 		};
-		auto temp = array.clone();
+		auto temp = array.clone(allocator);
 		top_down_split_merge(temp, 0, array.size, array);
 	}
 
