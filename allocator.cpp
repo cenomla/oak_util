@@ -65,14 +65,12 @@ namespace oak {
 	bool ProxyAllocator::contains(const void *ptr) {
 		//search through memblocks and check each if they contain ptr
 		auto uintptr = reinterpret_cast<uintptr_t>(ptr);
-		MemBlock *p = memlist;
-		MemBlock *prev = nullptr;
+		MemBlock *p = memList;
 		while (p) {
 			auto uintp = reinterpret_cast<uintptr_t>(p);
 			if (uintptr > uintp && uintptr < uintp + p->size) {
 				return true;
 			}
-			prev = p;
 			p = static_cast<MemBlock*>(p->next);
 		}
 		return false;
@@ -141,13 +139,11 @@ namespace oak {
 		auto uintptr = reinterpret_cast<uintptr_t>(ptr);
 
 		MemBlock *p = static_cast<MemBlock*>(start);
-		MemBlock *prev = nullptr;
 		while (p) {
 			auto uintp = reinterpret_cast<uintptr_t>(p);
 			if (uintptr > uintp && uintptr < uintp + p->size) {
 				return true;
 			}
-			prev = p;
 			p = static_cast<MemBlock*>(p->next);
 		}
 		return false;
@@ -304,13 +300,11 @@ namespace oak {
 		auto uintptr = reinterpret_cast<uintptr_t>(ptr);
 
 		MemBlock *p = static_cast<MemBlock*>(start);
-		MemBlock *prev = nullptr;
 		while (p) {
 			auto uintp = reinterpret_cast<uintptr_t>(p);
 			if (uintptr > uintp && uintptr < uintp + p->size) {
 				return true;
 			}
-			prev = p;
 			p = static_cast<MemBlock*>(p->next);
 		}
 		return false;
@@ -404,13 +398,11 @@ namespace oak {
 		auto uintptr = reinterpret_cast<uintptr_t>(ptr);
 
 		MemBlock *p = static_cast<MemBlock*>(start);
-		MemBlock *prev = nullptr;
 		while (p) {
 			auto uintp = reinterpret_cast<uintptr_t>(p);
 			if (uintptr > uintp && uintptr < uintp + p->size) {
 				return true;
 			}
-			prev = p;
 			p = static_cast<MemBlock*>(p->next);
 		}
 		return false;

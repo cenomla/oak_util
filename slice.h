@@ -5,14 +5,14 @@
 namespace oak {
 
 	template<typename T>
-	struct ArrayView {
+	struct Slice {
 		T *data = nullptr;
 		size_t size = 0;
 
-		ArrayView() = default;
-		ArrayView(T *_data, size_t _size) : data{ _data }, size{ _size } {}
+		Slice() = default;
+		Slice(T *_data, size_t _size) : data{ _data }, size{ _size } {}
 		template<size_t C>
-		ArrayView(T (&array)[C]) : data{ &array[0] }, size{ C } {}
+		Slice(T (&array)[C]) : data{ &array[0] }, size{ C } {}
 
 		T& operator[](size_t idx) { return data[idx]; }
 		const T& operator[](size_t idx) const { return data[idx]; }
