@@ -16,7 +16,7 @@ namespace oak {
 		void reserve(size_t nPools) {
 			assert(allocator);
 			if (nPools <= poolCount) { return; }
-			auto ndata = static_cast<T*>(allocator->alloc(nPools * sizeof(T*)));
+			auto ndata = static_cast<T**>(allocator->alloc(nPools * sizeof(T*)));
 			std::memset(ndata, 0, poolCount * sizeof(T*));
 			if (data) {
 				std::memcpy(ndata, data, poolCount * sizeof(T*));
