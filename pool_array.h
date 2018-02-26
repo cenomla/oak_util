@@ -32,6 +32,18 @@ namespace oak {
 			}
 		}
 
+		void destroy() {
+			if (data) {
+				for (size_t i = 0; i < poolCount; i++) {
+					allocator->free(data[i], (1 << poolCapacityLog) * sizeof(T));
+				}
+				allocator->free(data, poolCount * sizeof(T*));
+				data = nullptr;
+			}
+			poolCount = 0;
+			size = 0;
+		}
+
 		T* push(const T& v) {
 			auto capacity = (1 << poolCapacityLog) * poolCount;
 			if (size == capacity) {
