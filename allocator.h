@@ -15,6 +15,7 @@ namespace oak {
 	struct _reflect(oak::catagory::none) IAllocator {
 		virtual void *alloc(size_t size) = 0;
 		virtual void free(const void *ptr, size_t size) = 0;
+		virtual bool contains(const void *ptr) = 0;
 		virtual ~IAllocator();
 	protected:
 		IAllocator() = default;
@@ -27,6 +28,7 @@ namespace oak {
 		void destroy();
 		void* alloc(size_t size) override;
 		void free(const void *ptr, size_t size) override;
+		bool contains(const void *ptr) override;
 
 	};	
 
@@ -44,6 +46,7 @@ namespace oak {
 		void destroy();
 		void* alloc(size_t size) override;
 		void free(const void *ptr, size_t size) override;
+		bool contains(const void *ptr) override;
 		void clear();
 		void grow();
 	};
@@ -67,6 +70,7 @@ namespace oak {
 
 		void* alloc(size_t size) override;
 		void free(const void *ptr, size_t size) override;
+		bool contains(const void *ptr) override;
 		void grow(MemBlock *lastNode);
 	};
 
@@ -84,6 +88,7 @@ namespace oak {
 		void destroy();
 		void* alloc(size_t size) override;
 		void free(const void *ptr, size_t size) override;
+		bool contains(const void *ptr) override;
 		void grow();
 		size_t count();
 	};

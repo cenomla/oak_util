@@ -62,6 +62,22 @@ namespace oak {
 		}
 	}
 
+	bool ProxyAllocator::contains(const void *ptr) {
+		//search through memblocks and check each if they contain ptr
+		auto uintptr = reinterpret_cast<uintptr_t>(ptr);
+		MemBlock *p = memlist;
+		MemBlock *prev = nullptr;
+		while (p) {
+			auto uintp = reinterpret_cast<uintptr_t>(p);
+			if (uintptr > uintp && uintptr < uintp + p->size) {
+				return true;
+			}
+			prev = p;
+			p = static_cast<MemBlock*>(p->next);
+		}
+		return false;
+	}
+
 	LinearAllocator::LinearAllocator(size_t a, size_t b, IAllocator *c) :
 		pageSize{ a }, alignment{ b }, parent{ c } {}
 
@@ -120,6 +136,22 @@ namespace oak {
 	}
 
 	void LinearAllocator::free(const void *ptr, size_t size) {}
+
+	bool LinearAllocator::contains(const void *ptr) {
+		auto uintptr = reinterpret_cast<uintptr_t>(ptr);
+
+		MemBlock *p = static_cast<MemBlock*>(start);
+		MemBlock *prev = nullptr;
+		while (p) {
+			auto uintp = reinterpret_cast<uintptr_t>(p);
+			if (uintptr > uintp && uintptr < uintp + p->size) {
+				return true;
+			}
+			prev = p;
+			p = static_cast<MemBlock*>(p->next);
+		}
+		return false;
+	}
 
 	void LinearAllocator::clear() {
 		pagePtr = start;
@@ -268,6 +300,22 @@ namespace oak {
 		}
 	}
 
+	bool FreelistAllocator::contains(const void *ptr) {
+		auto uintptr = reinterpret_cast<uintptr_t>(ptr);
+
+		MemBlock *p = static_cast<MemBlock*>(start);
+		MemBlock *prev = nullptr;
+		while (p) {
+			auto uintp = reinterpret_cast<uintptr_t>(p);
+			if (uintptr > uintp && uintptr < uintp + p->size) {
+				return true;
+			}
+			prev = p;
+			p = static_cast<MemBlock*>(p->next);
+		}
+		return false;
+	}
+
 	void FreelistAllocator::grow(MemBlock *lastNode) {
 		
 		//find the end of the used block list
@@ -350,6 +398,22 @@ namespace oak {
 		auto ptr = const_cast<void*>(p);
 		*static_cast<void**>(ptr) = freeList;
 		freeList = static_cast<void**>(ptr);
+	}
+
+	bool PoolAllocator::contains(const void *ptr) {
+		auto uintptr = reinterpret_cast<uintptr_t>(ptr);
+
+		MemBlock *p = static_cast<MemBlock*>(start);
+		MemBlock *prev = nullptr;
+		while (p) {
+			auto uintp = reinterpret_cast<uintptr_t>(p);
+			if (uintptr > uintp && uintptr < uintp + p->size) {
+				return true;
+			}
+			prev = p;
+			p = static_cast<MemBlock*>(p->next);
+		}
+		return false;
 	}
 
 	void PoolAllocator::grow() {
