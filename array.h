@@ -44,7 +44,7 @@ namespace oak {
 			size = nsize;
 		}
 
-		Array clone(IAllocator *nAllocator = nullptr) {
+		Array clone(IAllocator *nAllocator = nullptr) const {
 			if (!nAllocator) { nAllocator = allocator; }
 			Array narry{ nAllocator };
 			narry.reserve(capacity);
@@ -80,7 +80,7 @@ namespace oak {
 			return data + idx;
 		}
 
-		size_t find(const T& v) {
+		size_t find(const T& v) const {
 			for (size_t i = 0; i < size; i++) {
 				if (data[i] == v) {
 					return i;
