@@ -15,6 +15,28 @@ namespace oak {
 	template<class K, class V>
 	struct HashMap {
 
+		struct Pair {
+			K *key;
+			V *value;
+		};
+
+		struct Iterator {
+			Iterator& operator++() {
+				do {
+					idx ++;
+					if (idx == map->capacity) { return *this; }
+				} while (!map->taken[idx]);
+				return *this;
+			}	
+
+			inline bool operator==(const Iterator& other) const { return map == other.map && idx == other.idx; }
+			inline bool operator!=(const Iterator& other) const { return !operator==(other); }
+			Pair operator*() { return { map->keys + idx, map->values + idx }; }
+
+			HashMap *map;
+			size_t idx;
+		};
+
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
 
 		typedef K key_type;
@@ -148,28 +170,6 @@ namespace oak {
 		inline size_t get_index(const K& key) {
 			return hash(key) % capacity;
 		}
-
-		struct Pair {
-			K *key;
-			V *value;
-		};
-
-		struct Iterator {
-			Iterator& operator++() {
-				do {
-					idx ++;
-					if (idx == map->capacity) { return *this; }
-				} while (!map->taken[idx]);
-				return *this;
-			}	
-
-			inline bool operator==(const Iterator& other) const { return map == other.map && idx == other.idx; }
-			inline bool operator!=(const Iterator& other) const { return !operator==(other); }
-			Pair operator*() { return { map->keys + idx, map->values + idx }; }
-
-			HashMap *map;
-			size_t idx;
-		};
 
 		inline Iterator begin() { return Iterator{ this, firstIndex }; }
 		inline Iterator end() { return Iterator{ this, capacity }; }
