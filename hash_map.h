@@ -163,8 +163,8 @@ namespace oak {
 				return *this;
 			}	
 
-			inline bool operator==(const Iterator& other) { return map == other.map && idx == other.idx; }
-			inline bool operator!=(const Iterator& other) { return !operator==(other); }
+			inline bool operator==(const Iterator& other) const { return map == other.map && idx == other.idx; }
+			inline bool operator!=(const Iterator& other) const { return !operator==(other); }
 			Pair operator*() { return { map->keys + idx, map->values + idx }; }
 
 			HashMap *map;
