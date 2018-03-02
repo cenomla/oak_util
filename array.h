@@ -15,6 +15,7 @@ namespace oak {
 
 	template<typename T>
 	struct Array {
+
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
 
 		typedef T value_type; 

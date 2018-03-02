@@ -12,7 +12,7 @@ namespace oak {
 		return v;
 	}
 
-	template<class K, class V>
+	template<typename K, typename V>
 	struct HashMap {
 
 		struct Pair {

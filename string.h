@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include "osig_defs.h"
+#include "array.h"
 
 namespace oak {
 
@@ -15,9 +16,6 @@ namespace oak {
 		}
 		return static_cast<size_t>(c - str);
 	}
-
-	template<typename T>
-	struct Array;
 
 	struct _reflect(oak::catagory::none) String {
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;

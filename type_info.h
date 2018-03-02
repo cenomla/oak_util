@@ -33,6 +33,8 @@ namespace oak {
 		ARRAY,
 		STRUCT,
 		ENUM,
+		OAK_ARRAY,
+		OAK_HASH_MAP,
 	};
 
 	struct TypeInfo {
