@@ -25,7 +25,7 @@ namespace oak {
 				do {
 					idx ++;
 					if (idx == map->capacity) { return *this; }
-				} while (!map->taken[idx]);
+				} while (!map->hashs[idx]);
 				return *this;
 			}	
 
@@ -47,19 +47,19 @@ namespace oak {
 			if (nsize <= capacity) { return; }
 
 			HashMap nmap{ allocator };
-			auto count = nsize * (sizeof(K) + sizeof(V) + sizeof(bool)); 
+			auto count = nsize * (sizeof(K) + sizeof(V) + sizeof(size_t)); 
 			auto mem = allocator->alloc(count);
 			std::memset(mem, 0, count);
 			nmap.keys = static_cast<K*>(mem);
 			nmap.values = static_cast<V*>(ptr::add(mem, nsize * sizeof(K)));
-			nmap.taken = static_cast<bool*>(ptr::add(mem, nsize * (sizeof(K) + sizeof(V))));
+			nmap.hashs = static_cast<size_t*>(ptr::add(mem, nsize * (sizeof(K) + sizeof(V))));
 			nmap.size = 0;
 			nmap.capacity = nsize;
 			nmap.firstIndex = nsize;
 			
 			size_t left = size;
 			for (size_t i = firstIndex; i < capacity && left > 0; i++) {
-				if (taken[i]) {
+				if (hashs[i]) {
 					nmap.put(keys[i], values[i]);
 					left--;
 				}
@@ -75,7 +75,7 @@ namespace oak {
 			
 			size_t left = size;
 			for (size_t i = firstIndex; i < capacity && left > 0; i++) {
-				if (taken[i]) {
+				if (hashs[i]) {
 					nmap.put(keys[i], values[i]);
 					left--;
 				}
@@ -86,10 +86,10 @@ namespace oak {
 
 		void destroy() {
 			if (keys) {
-				allocator->free(keys, capacity * (sizeof(K) + sizeof(V) + sizeof(bool)));
+				allocator->free(keys, capacity * (sizeof(K) + sizeof(V) + sizeof(size_t)));
 				keys = nullptr;
 				values = nullptr;
-				taken = nullptr;
+				hashs = nullptr;
 			}
 			size = 0;
 			capacity = 0;
@@ -98,16 +98,17 @@ namespace oak {
 
 		size_t find(const K& key) {
 			if (size == 0) { return npos; }
-			auto idx = get_index(key);
-			bool firstTaken = taken[idx];
+			auto h = hash(key);
+			auto idx = h % capacity;
+			auto firstTaken = hashs[idx] ? true : false;
 			for (uint32_t d = 0; d < capacity; d++) {
 				auto ridx = (idx + d) % capacity; 
 
-				if (firstTaken && !taken[ridx]) {
+				if (firstTaken && !hashs[ridx]) {
 					return npos;
 				}
 
-				if (taken[ridx] && keys[ridx] == key) {
+				if (hashs[ridx] == h && keys[ridx] == key) {
 					return ridx;
 				}
 			}
@@ -128,19 +129,21 @@ namespace oak {
 			if (size == capacity) {
 				resize(capacity == 0 ? 4 : capacity * 2);
 			}
-			auto idx = get_index(key);
+			auto h = hash(key);
+			auto idx = h % capacity;
 			for (uint32_t d = 0; d < capacity; d++) {
 				auto ridx = (idx + d) % capacity;
 
-				if (taken[ridx]) {
-					if (keys[ridx] == key) {
+				if (hashs[ridx]) {
+					//first check if the hash is equivalent
+					if (hashs[ridx] == h && keys[ridx] == key) {
 						values[ridx] = value;
 						return values + ridx;
 					}
 				} else {
 					keys[ridx] = key;
 					values[ridx] = value;
-					taken[ridx] = true;
+					hashs[ridx] = h;
 					if (ridx < firstIndex) {
 						firstIndex = ridx;
 					}
@@ -154,21 +157,17 @@ namespace oak {
 
 		void remove(size_t idx) {
 			if (idx == npos) { return; }
-			taken[idx] = false;
+			hashs[idx] = 0;
 			size --;
 			if (firstIndex == idx) { //calculate new first index
 				firstIndex = capacity;
 				for (auto i = 0u; i < capacity; i++) {
-					if (taken[i]) {
+					if (hashs[i]) {
 						firstIndex = i;
 						break;
 					}
 				}
 			}
-		}
-
-		inline size_t get_index(const K& key) {
-			return hash(key) % capacity;
 		}
 
 		inline Iterator begin() { return Iterator{ this, firstIndex }; }
@@ -177,7 +176,7 @@ namespace oak {
 		IAllocator *allocator = nullptr;
 		K *keys = nullptr;
 		V *values = nullptr;
-		bool *taken = nullptr;
+		size_t *hashs = nullptr;
 
 		size_t size = 0, capacity = 0, firstIndex = 0;
 	};
