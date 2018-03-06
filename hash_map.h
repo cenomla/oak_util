@@ -2,8 +2,10 @@
 
 #include <cstring>
 #include <cassert>
+#include <limits>
 
 #include "allocator.h"
+#include "bit.h"
 #include "ptr.h"
 
 namespace oak {
@@ -45,6 +47,8 @@ namespace oak {
 		void resize(size_t nsize) {
 			assert(allocator);
 			if (nsize <= capacity) { return; }
+			//make nsize a power of two
+			nsize = npow2(nsize);
 
 			HashMap nmap{ allocator };
 			auto count = nsize * (sizeof(K) + sizeof(V) + sizeof(size_t)); 
@@ -99,10 +103,10 @@ namespace oak {
 		size_t find(const K& key) {
 			if (size == 0) { return npos; }
 			auto h = hash(key);
-			auto idx = h % capacity;
+			auto idx = h & (capacity - 1);
 			auto firstTaken = hashs[idx] ? true : false;
 			for (uint32_t d = 0; d < capacity; d++) {
-				auto ridx = (idx + d) % capacity; 
+				auto ridx = (idx + d) & (capacity - 1);
 
 				if (firstTaken && !hashs[ridx]) {
 					return npos;
@@ -130,9 +134,9 @@ namespace oak {
 				resize(capacity == 0 ? 4 : capacity * 2);
 			}
 			auto h = hash(key);
-			auto idx = h % capacity;
+			auto idx = h & (capacity - 1);
 			for (uint32_t d = 0; d < capacity; d++) {
-				auto ridx = (idx + d) % capacity;
+				auto ridx = (idx + d) & (capacity - 1);
 
 				if (hashs[ridx]) {
 					//first check if the hash is equivalent

@@ -4,6 +4,7 @@
 #include <cassert>
 
 #include "allocator.h"
+#include "bit.h"
 
 namespace oak {
 
@@ -18,15 +19,15 @@ namespace oak {
 
 			inline bool operator==(const Iterator& other) const {
 				return data == other.data &&
-					poolCapacityLog == other.poolCapacityLog &&
+					poolCapacity == other.poolCapacity &&
 					idx == other.idx;
 			}
 
 			inline bool operator!=(const Iterator& other) const { return !operator==(other); }
-			T& operator*() { return data[idx >> poolCapacityLog][idx & ((1 << poolCapacityLog) - 1)]; }
+			T& operator*() { return data[idx >> log2(poolCapacity)][idx & (poolCapacity - 1)]; }
 
 			T **data = nullptr;
-			size_t poolCapacityLog = 0;
+			size_t poolCapacity = 0;
 			size_t idx = 0;
 		};
 
@@ -36,6 +37,7 @@ namespace oak {
 
 		void reserve(size_t nPools) {
 			assert(allocator);
+			assert(1lu << log2(poolCapacity) == poolCapacity);
 			if (nPools <= poolCount) { return; }
 			auto ndata = static_cast<T**>(allocator->alloc(nPools * sizeof(T*)));
 			std::memset(ndata, 0, nPools * sizeof(T*));
@@ -48,7 +50,7 @@ namespace oak {
 			//allocate pools
 			for (size_t i = 0; i < poolCount; i++) {
 				if (!data[i]) {
-					data[i] = static_cast<T*>(allocator->alloc((1 << poolCapacityLog) * sizeof(T)));
+					data[i] = static_cast<T*>(allocator->alloc(poolCapacity * sizeof(T)));
 				}
 			}
 		}
@@ -56,7 +58,7 @@ namespace oak {
 		void destroy() {
 			if (data) {
 				for (size_t i = 0; i < poolCount; i++) {
-					allocator->free(data[i], (1 << poolCapacityLog) * sizeof(T));
+					allocator->free(data[i], poolCapacity * sizeof(T));
 				}
 				allocator->free(data, poolCount * sizeof(T*));
 				data = nullptr;
@@ -66,7 +68,7 @@ namespace oak {
 		}
 
 		T* push(const T& v) {
-			auto capacity = (1 << poolCapacityLog) * poolCount;
+			auto capacity = poolCapacity * poolCount;
 			if (size == capacity) {
 				reserve(poolCount + 1);
 			}
@@ -78,9 +80,9 @@ namespace oak {
 
 		size_t find(const T& v) {
 			for (size_t i = 0; i < poolCount; i++) {
-				for (size_t j = 0; j < (1 << poolCapacityLog); j++) {
+				for (size_t j = 0; j < poolCapacity; j++) {
 					if (data[i][j] == v) {
-						return i * (1 << poolCapacityLog) + j;
+						return i * poolCapacity + j;
 					}
 				}
 			}
@@ -88,18 +90,18 @@ namespace oak {
 		}
 
 		T& operator[](size_t idx) {
-			return data[idx >> poolCapacityLog][idx & ((1 << poolCapacityLog) - 1)];
+			return data[idx >> log2(poolCapacity)][idx & (poolCapacity - 1)];
 		}
 
 		const T& operator[](size_t idx) const {
-			return data[idx >> poolCapacityLog][idx & ((1 << poolCapacityLog) - 1)];
+			return data[idx >> log2(poolCapacity)][idx & (poolCapacity - 1)];
 		}
 
-		inline Iterator begin() { return Iterator{ data, poolCapacityLog, 0 }; }
-		inline Iterator end() { return Iterator{ data, poolCapacityLog, size }; }
+		inline Iterator begin() { return Iterator{ data, poolCapacity, 0 }; }
+		inline Iterator end() { return Iterator{ data, poolCapacity, size }; }
 
 		IAllocator *allocator = nullptr;
-		size_t poolCapacityLog = 0; //log2 of pool capacity
+		size_t poolCapacity = 0; //must be a power of two
 		T **data = nullptr;
 		size_t poolCount = 0;
 		size_t size = 0;
