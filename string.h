@@ -1,9 +1,11 @@
 #pragma once
 
 #include <cstddef>
+#include <algorithm>
 
 #include "osig_defs.h"
 #include "array.h"
+#include "slice.h"
 
 namespace oak {
 
@@ -17,15 +19,14 @@ namespace oak {
 		return static_cast<size_t>(c - str);
 	}
 
-	struct _reflect(oak::catagory::none) String {
-		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
+	struct _reflect(oak::catagory::none) String : Slice<const char> {
+
+		using Slice::Slice;
+		using Slice::operator=;
 
 		constexpr String() = default;
-		constexpr String(const char *str) :
-			data{ const_cast<char*>(str) }, size{ c_str_len(str) } {}
-
-		String(char *data, size_t size);
-		String(const Array<char>& data);
+		constexpr String(const Slice<const char>& other) : Slice{ other } {}
+		constexpr String(Slice<const char>&& other) : Slice{ std::move(other) } {}
 
 		String substr(size_t start, size_t end = npos) const;
 		size_t find_char(char c, size_t start = 0) const;
@@ -37,13 +38,6 @@ namespace oak {
 		bool is_c_str() const;
 		const char* as_c_str() const;
 		const char* make_c_str(IAllocator *allocator) const;
-		String clone(IAllocator *allocator) const;
-
-		inline char* begin() { return data; }
-		inline char* end() { return data + size; }
-
-		char *data = nullptr;
-		size_t size = 0;
 	};
 
 	constexpr size_t hash(const String& str) {
@@ -56,7 +50,5 @@ namespace oak {
 		return hash;
 	}
 
-	bool operator==(const String& lhs, const String& rhs);
-	inline bool operator!=(const String& lhs, const String& rhs) { return !operator==(lhs, rhs); }
 }
 

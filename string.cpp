@@ -3,14 +3,9 @@
 #include <cstring>
 #include <cstdio>
 
-#include "array.h"
 #include "allocator.h"
 
 namespace oak {
-
-	String::String(char *data, size_t size) : data{ data }, size{ size } {}
-
-	String::String(const Array<char>& data) : data{ data.data }, size{ data.size } {}
 
 	String String::substr(size_t start, size_t end) const {
 		//bounds checking 
@@ -111,22 +106,5 @@ namespace oak {
 		return cstr;
 	}
 
-	String String::clone(IAllocator *allocator) const {
-		if (!size) { return {}; }
-		String nStr{ static_cast<char*>(allocator->alloc(size)), size };
-		memcpy(nStr.data, data, size);
-		return nStr;
-	}
-
-	bool operator==(const String& lhs, const String& rhs) {
-		if (lhs.size != rhs.size) { return false; }	
-		if (lhs.size == 0) { return true; }
-		for (size_t i = 0; i < lhs.size; i++) {
-			if (lhs.data[i] != rhs.data[i]) {
-				return false;
-			}
-		}
-		return true;
-	}
-
 }
+
