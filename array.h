@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cassert>
 #include <initializer_list>
+#include <iterator>
 #include <new>
 
 #include "allocator.h"
@@ -14,9 +15,15 @@ namespace oak {
 	struct Array : Slice<T> {
 
 		using Slice<T>::Slice;
+		using Slice<T>::operator=;
 
 		Array() = default;
 		Array(IAllocator *_allocator) : Slice<T>{}, allocator{ _allocator } {}
+		Array(IAllocator *_allocator, const Slice<T>& other) : Slice<T>{}, allocator{ _allocator } {
+			reserve(other.size);
+			auto mem = const_cast<std::remove_const_t<T>*>(Slice<T>::data);
+			std::memcpy(mem, std::begin(other), other.size * sizeof(T));
+		}
 		Array(IAllocator *_allocator, std::initializer_list<T> list) : Slice<T>{}, allocator{ _allocator } {
 			reserve(list.size());
 			auto mem = const_cast<std::remove_const_t<T>*>(Slice<T>::data);
@@ -101,8 +108,6 @@ namespace oak {
 			std::memmove(Slice<T>::data + idx, Slice<T>::data + idx + 1, (Slice<T>::size - 1 - idx) * sizeof(T));
 			Slice<T>::size--;
 		}
-
-		operator Slice<T>() const { return { Slice<T>::data, Slice<T>::size }; }
 
 		IAllocator *allocator = nullptr;
 		size_t capacity = 0;

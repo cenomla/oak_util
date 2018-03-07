@@ -27,6 +27,7 @@ namespace oak {
 		constexpr String() = default;
 		constexpr String(const Slice<const char>& other) : Slice{ other } {}
 		constexpr String(Slice<const char>&& other) : Slice{ std::move(other) } {}
+		constexpr String(const char *cstr) : Slice{ cstr, c_str_len(cstr) } {}
 
 		String substr(size_t start, size_t end = npos) const;
 		size_t find_char(char c, size_t start = 0) const;

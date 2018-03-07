@@ -35,7 +35,7 @@ namespace oak {
 			inline bool operator!=(const Iterator& other) const { return !operator==(other); }
 			Pair operator*() { return { map->keys + idx, map->values + idx }; }
 
-			HashMap *map;
+			const HashMap *map;
 			size_t idx;
 		};
 
@@ -174,8 +174,8 @@ namespace oak {
 			}
 		}
 
-		inline Iterator begin() { return Iterator{ this, firstIndex }; }
-		inline Iterator end() { return Iterator{ this, capacity }; }
+		inline Iterator begin() const { return Iterator{ this, firstIndex }; }
+		inline Iterator end() const { return Iterator{ this, capacity }; }
 
 		IAllocator *allocator = nullptr;
 		K *keys = nullptr;

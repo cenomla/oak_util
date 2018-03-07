@@ -33,6 +33,7 @@ namespace oak {
 		}
 
 		constexpr size_t find(const T& v, size_t start = 0) const {
+			if (!data) { return npos; }
 			for (size_t i = start; i < size; i++) {
 				if (data[i] == v) {
 					return i;
@@ -51,8 +52,8 @@ namespace oak {
 		T& operator[](size_t idx) { return data[idx]; }
 		const T& operator[](size_t idx) const { return data[idx]; }
 
-		inline T* begin() { return data; }
-		inline T* end() { return data + size; }
+		inline T* begin() const { return data; }
+		inline T* end() const { return data + size; }
 		inline const T* cbegin() const { return data; }
 		inline const T* cend() const { return data + size; }
 
