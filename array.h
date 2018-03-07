@@ -118,6 +118,14 @@ namespace oak {
 			size--;
 		}
 
+		constexpr T& operator[](size_t idx) { return data[idx]; }
+		constexpr const T& operator[](size_t idx) const { return data[idx]; }
+
+		inline T* begin() const { return data; }
+		inline T* end() const { return data + size; }
+		inline const T* cbegin() const { return data; }
+		inline const T* cend() const { return data + size; }
+
 		operator Slice<T>() const { return Slice<T>{ data, size }; }
 
 		IAllocator *allocator = nullptr;
