@@ -13,7 +13,7 @@ namespace oak {
 		return String{ data + start, end - start }; 
 	}
 
-	size_t String::find_char(char c, size_t start) const {
+	size_t String::find(char c, size_t start) const {
 		if (!data) { return npos; }
 		for (size_t i = start; i < size; i++) {
 			if (data[i] == c) {
@@ -104,6 +104,13 @@ namespace oak {
 		std::memcpy(cstr, data, size);
 		cstr[size] = 0;
 		return cstr;
+	}
+
+	String String::clone(IAllocator *allocator) const {
+		if (!size) { return {}; }
+		auto mem = static_cast<char*>(allocator->alloc(size));
+		std::memcpy(mem, data, size);
+		return { mem, size };
 	}
 
 }

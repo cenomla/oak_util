@@ -19,19 +19,26 @@ namespace oak {
 		return static_cast<size_t>(c - str);
 	}
 
-	struct _reflect(oak::catagory::none) String : Slice<const char> {
-
-		using Slice::Slice;
+	struct _reflect(oak::catagory::none) String {
+		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
 
 		constexpr String() = default;
-		constexpr String(const Slice<const char>& other) : Slice{ other } {}
-		constexpr String(Slice<const char>&& other) : Slice{ std::move(other) } {}
-		constexpr String(const char *cstr) : Slice{ cstr, c_str_len(cstr) } {}
-		template<size_t C>
-		constexpr String(const char (&array)[C]) : Slice{ &array[0], C - 1 } {}
+		constexpr String(const char *_data, size_t _size) : data{ _data }, size{ _size } {}
+		constexpr String(const Slice<const char>& other) : data{ other.data }, size{ other.size } {}
+		constexpr String(const char *cstr) : data{ cstr }, size{ c_str_len(cstr) } {}
+
+		constexpr void operator=(const Slice<const char>& other) {
+			data = other.data;
+			size = other.size;
+		}
+
+		constexpr void operator=(const Slice<char>& other) {
+			data = other.data;
+			size = other.size;
+		}
 
 		String substr(size_t start, size_t end = npos) const;
-		size_t find_char(char c, size_t start = 0) const;
+		size_t find(char c, size_t start = 0) const;
 		size_t find_first_of(String delimeters, size_t start = 0) const;
 		size_t find_first_not_of(String delimeters, size_t start = 0) const;
 		size_t find_last_of(String delimeters, size_t start = 0) const;
@@ -40,6 +47,15 @@ namespace oak {
 		bool is_c_str() const;
 		const char* as_c_str() const;
 		const char* make_c_str(IAllocator *allocator) const;
+		String clone(IAllocator *allocator) const;
+
+		constexpr const char& operator[](size_t idx) const { return data[idx]; }
+
+		inline const char* begin() const { return data; }
+		inline const char* end() const { return data + size; }
+
+		const char *data = nullptr;
+		size_t size = 0;
 	};
 
 	constexpr size_t hash(const String& str) {
