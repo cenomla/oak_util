@@ -28,7 +28,7 @@ namespace oak::detail {
 
 	template<typename Buffer>
 	void print_fmt_impl(Buffer&& buffer, String fmtStr, size_t start) {
-		auto str = fmtStr.substr(start);
+		auto str = substr(fmtStr, start);
 		buffer.write(str.data, str.size);
 	}
 	
@@ -36,7 +36,7 @@ namespace oak::detail {
 	void print_fmt_impl(Buffer&& buffer, String fmtStr, size_t start, TArg&& arg, TArgs&&... args) {
 		//find each instance of %
 		auto pos = fmtStr.find('%', start);
-		auto str = fmtStr.substr(start, pos);
+		auto str = substr(fmtStr, start, pos);
 		if (pos < fmtStr.size - 1 &&
 				fmtStr[pos + 1] == '%') {
 			buffer.write("%", 1);

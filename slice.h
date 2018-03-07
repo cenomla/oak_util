@@ -5,6 +5,14 @@
 
 namespace oak {
 
+	constexpr size_t c_str_len(const char *str) {
+		const char *c = str;
+		while (*c) {
+			c++;
+		}
+		return static_cast<size_t>(c - str);
+	}
+
 	template<typename T>
 	struct Slice {
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
@@ -15,22 +23,8 @@ namespace oak {
 		constexpr Slice(T *_data, size_t _size) : data{ _data }, size{ _size } {}
 		template<size_t C>
 		constexpr Slice(T (&array)[C]) : data{ &array[0] }, size{ C } {}
-
-		constexpr Slice(const Slice<T>& other) : data{ other.data }, size{ other.size } {};
-
-		template<typename = std::enable_if<std::is_const_v<T>>>
-		constexpr Slice(const Slice<std::remove_const_t<T>>& other) : data{ other.data }, size{ other.size } {}
-
-		constexpr void operator=(const Slice<T>& other) {
-			data = other.data;
-			size = other.size;
-		}
-
-		template<typename = std::enable_if<std::is_const_v<T>>>
-		constexpr void operator=(const Slice<std::remove_const_t<T>>& other) {
-			data = other.data;
-			size = other.size;
-		}
+		template<typename = std::enable_if<std::is_same_v<T, char>>>
+		constexpr Slice(const char *cstr) : data{ const_cast<char*>(cstr) }, size{ c_str_len(cstr) } {}
 
 		constexpr size_t find(const T& v, size_t start = 0) const {
 			if (!data) { return npos; }

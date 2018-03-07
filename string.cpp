@@ -7,39 +7,29 @@
 
 namespace oak {
 
-	String String::substr(size_t start, size_t end) const {
+	String substr(const String str, size_t start, size_t end) {
 		//bounds checking 
-		if (end == npos) { end = size; }
-		return String{ data + start, end - start }; 
+		if (end == String::npos) { end = str.size; }
+		return String{ str.data + start, end - start }; 
 	}
 
-	size_t String::find(char c, size_t start) const {
-		if (!data) { return npos; }
-		for (size_t i = start; i < size; i++) {
-			if (data[i] == c) {
-				return i;
-			}
-		}
-		return npos;
-	}
-
-	size_t String::find_first_of(String delimeters, size_t start) const {
-		for (size_t i = start; i < size; i++) {
+	size_t find_first_of(const String str, String delimeters, size_t start) {
+		for (size_t i = start; i < str.size; i++) {
 			for (size_t j = 0; j < delimeters.size; j++) {
-				if (data[i] == delimeters.data[j]) {
+				if (str.data[i] == delimeters.data[j]) {
 					return i;
 				}
 			}
 		}
-		return npos;
+		return String::npos;
 	}
 
-	size_t String::find_first_not_of(String delimeters, size_t start) const {
+	size_t find_first_not_of(const String str, String delimeters, size_t start) {
 		bool found;
-		for (size_t i = start; i < size; i++) {
+		for (size_t i = start; i < str.size; i++) {
 			found = false;
 			for (size_t j = 0; j < delimeters.size; j++) {
-				if (data[i] == delimeters.data[j]) {
+				if (str.data[i] == delimeters.data[j]) {
 					found = true;
 					break;
 				}
@@ -48,69 +38,62 @@ namespace oak {
 				return i;
 			}
 		}
-		return npos;
+		return String::npos;
 	}
 
-	size_t String::find_last_of(String delimeters, size_t start) const {
-		for (size_t i = size; i > start; i--) {
+	size_t find_last_of(const String str, String delimeters, size_t start) {
+		for (size_t i = str.size; i > start; i--) {
 			for (size_t j = 0; j < delimeters.size; j++) {
-				if (data[i - 1] == delimeters.data[j]) {
+				if (str.data[i - 1] == delimeters.data[j]) {
 					return i - 1;
 				}
 			}
 		}
-		return npos;
+		return String::npos;
 	}
 
-	size_t String::find_string(String str, size_t start) const {
-		if (size < str.size) { return npos; }
-		for (size_t i = start; i <= size - str.size; i++) {
-			if (str == String{ data + i, str.size }) {
+	size_t find_string(const String str, String value, size_t start) {
+		if (str.size < value.size) { return String::npos; }
+		for (size_t i = start; i <= str.size - value.size; i++) {
+			if (value == String{ str.data + i, value.size }) {
 				return i;
 			}
 		}
-		return npos;
+		return String::npos;
 	}
 
-	void String::splitstr(String delimeters, Array<String>& tokens) const {
+	void splitstr(const String str, String delimeters, Array<String>& tokens) {
 		size_t first = 0, last = 0;
 		do {
-			first = find_first_not_of(delimeters, first);
-			if (first == npos) { break; }
-			last = find_first_of(delimeters, first);
+			first = find_first_not_of(str, delimeters, first);
+			if (first == String::npos) { break; }
+			last = find_first_of(str, delimeters, first);
 			if (last > first) {
-				tokens.push(substr(first, last));
+				tokens.push(substr(str, first, last));
 			}
 			first = last + 1;
-		} while(last != npos);
+		} while(last != String::npos);
 	}
 
-	bool String::is_c_str() const {
+	bool is_c_str(const String str) {
 		//TODO: can this segfault?
-		return data + size == 0;
+		return str.data + str.size == 0;
 	}
 
-	const char* String::as_c_str() const {
+	const char* as_c_str(const String str) {
 		static char cstr[2048]{ 0 };
 		//if (is_c_str()) { return data; }
-		std::memmove(cstr, data, size);
-		cstr[size] = 0;
+		std::memmove(cstr, str.data, str.size);
+		cstr[str.size] = 0;
 		return cstr;
 	}
 
-	const char* String::make_c_str(IAllocator *allocator) const {
-		if (!size) { return ""; }
-		auto cstr = static_cast<char*>(allocator->alloc(size + 1));
-		std::memcpy(cstr, data, size);
-		cstr[size] = 0;
+	const char* make_c_str(const String str, IAllocator *allocator) {
+		if (!str.size) { return ""; }
+		auto cstr = static_cast<char*>(allocator->alloc(str.size + 1));
+		std::memcpy(cstr, str.data, str.size);
+		cstr[str.size] = 0;
 		return cstr;
-	}
-
-	String String::clone(IAllocator *allocator) const {
-		if (!size) { return {}; }
-		auto mem = static_cast<char*>(allocator->alloc(size));
-		std::memcpy(mem, data, size);
-		return { mem, size };
 	}
 
 }
