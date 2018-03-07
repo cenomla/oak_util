@@ -17,7 +17,7 @@ namespace oak::detail {
 	size_t to_str_size(float v);
 	size_t to_str_size(String v);
 
-	Strint to_str(void *v);
+	String to_str(void *v);
 	String to_str(char v);
 	String to_str(uint32_t v);
 	String to_str(uint64_t v);

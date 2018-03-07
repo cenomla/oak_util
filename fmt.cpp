@@ -6,7 +6,7 @@ namespace oak::detail {
 
 	static char toStrBuffer[32];
 
-	size_t to_str(size(void *v) {
+	size_t to_str_size(void *v) {
 		std::memset(toStrBuffer, 0, 32);
 		std::sprintf(toStrBuffer, "%X", reinterpret_cast<uintptr_t>(v));
 		return c_str_len(toStrBuffer);
