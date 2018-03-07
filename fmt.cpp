@@ -6,6 +6,12 @@ namespace oak::detail {
 
 	static char toStrBuffer[32];
 
+	size_t to_str(size(void *v) {
+		std::memset(toStrBuffer, 0, 32);
+		std::sprintf(toStrBuffer, "%X", reinterpret_cast<uintptr_t>(v));
+		return c_str_len(toStrBuffer);
+	}
+
 	size_t to_str_size(char v) {
 		return 1;
 	}
@@ -43,7 +49,7 @@ namespace oak::detail {
 
 	size_t to_str_size(float v) {
 		std::memset(toStrBuffer, 0, 32);
-		sprintf(toStrBuffer, "%f", v);
+		std::sprintf(toStrBuffer, "%f", v);
 		return c_str_len(toStrBuffer);
 	}
 
@@ -58,31 +64,31 @@ namespace oak::detail {
 
 	String to_str(uint32_t v) {
 		std::memset(toStrBuffer, 0, 32);
-		sprintf(toStrBuffer, "%u", v);
+		std::sprintf(toStrBuffer, "%u", v);
 		return toStrBuffer;
 	}
 	
 	String to_str(uint64_t v) {
 		std::memset(toStrBuffer, 0, 32);
-		sprintf(toStrBuffer, "%lu", v);
+		std::sprintf(toStrBuffer, "%lu", v);
 		return toStrBuffer;
 	}
 
 	String to_str(int32_t v) {
 		std::memset(toStrBuffer, 0, 32);
-		sprintf(toStrBuffer, "%i", v);
+		std::sprintf(toStrBuffer, "%i", v);
 		return toStrBuffer;
 	}
 	
 	String to_str(int64_t v) {
 		std::memset(toStrBuffer, 0, 32);
-		sprintf(toStrBuffer, "%li", v);
+		std::sprintf(toStrBuffer, "%li", v);
 		return toStrBuffer;
 	}
 
 	String to_str(float v) {
 		std::memset(toStrBuffer, 0, 32);
-		sprintf(toStrBuffer, "%f", v);
+		std::sprintf(toStrBuffer, "%f", v);
 		return toStrBuffer;
 	}
 
