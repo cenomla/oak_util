@@ -23,19 +23,10 @@ namespace oak {
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
 
 		constexpr String() = default;
-		constexpr String(const char *_data, size_t _size) : data{ _data }, size{ _size } {}
-		constexpr String(const Slice<const char>& other) : data{ other.data }, size{ other.size } {}
-		constexpr String(const char *cstr) : data{ cstr }, size{ c_str_len(cstr) } {}
-
-		constexpr void operator=(const Slice<const char>& other) {
-			data = other.data;
-			size = other.size;
-		}
-
-		constexpr void operator=(const Slice<char>& other) {
-			data = other.data;
-			size = other.size;
-		}
+		constexpr String(char *_data, size_t _size) : data{ _data }, size{ _size } {}
+		constexpr String(const Array<char>& other) : data{ const_cast<char*>(other.data) }, size{ other.size } {}
+		constexpr String(const Slice<char>& other) : data{ const_cast<char*>(other.data) }, size{ other.size } {}
+		constexpr String(const char *cstr) : data{ const_cast<char*>(cstr) }, size{ c_str_len(cstr) } {}
 
 		String substr(size_t start, size_t end = npos) const;
 		size_t find(char c, size_t start = 0) const;
@@ -49,12 +40,15 @@ namespace oak {
 		const char* make_c_str(IAllocator *allocator) const;
 		String clone(IAllocator *allocator) const;
 
+		constexpr char& operator[](size_t idx) { return data[idx]; }
 		constexpr const char& operator[](size_t idx) const { return data[idx]; }
 
-		inline const char* begin() const { return data; }
-		inline const char* end() const { return data + size; }
+		inline char* begin() const { return data; }
+		inline char* end() const { return data + size; }
+		inline const char* cbegin() const { return data; }
+		inline const char* cend() const { return data + size; }
 
-		const char *data = nullptr;
+		char *data = nullptr;
 		size_t size = 0;
 	};
 
