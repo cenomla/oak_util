@@ -1,5 +1,7 @@
 #include "fmt.h"
 
+#include <cstdio>
+
 #include "array.h"
 
 namespace oak::detail {
@@ -99,6 +101,12 @@ namespace oak::detail {
 }
 
 namespace oak {
+
+	void Stdout::write(const void *data, size_t size) {
+		std::fwrite(data, 1, size, stdout);
+	}
+
+	void Stdout::resize(size_t size) { }
 
 	void ArrayBuffer::write(const void *data, size_t size) {
 		assert(size <= buffer->size);

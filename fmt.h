@@ -55,8 +55,8 @@ namespace oak::detail {
 namespace oak {
 
 	struct Stdout {
-		void write(const void *data, size_t size) { fwrite(data, 1, size, stdout); }
-		void resize(size_t size) {}
+		void write(const void *data, size_t size);
+		void resize(size_t size);
 	};
 
 	struct ArrayBuffer {
