@@ -3,7 +3,6 @@
 #include <cstring>
 #include <cassert>
 #include <initializer_list>
-#include <iterator>
 #include <new>
 
 #include "allocator.h"

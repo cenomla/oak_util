@@ -19,7 +19,7 @@ namespace oak {
 		return static_cast<size_t>(c - str);
 	}
 
-	struct String : Slice<const char> {
+	struct _reflect(oak::catagory::none) String : Slice<const char> {
 
 		using Slice::Slice;
 
