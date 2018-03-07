@@ -19,15 +19,16 @@ namespace oak {
 		return static_cast<size_t>(c - str);
 	}
 
-	struct _reflect(oak::catagory::none) String : Slice<const char> {
+	struct String : Slice<const char> {
 
 		using Slice::Slice;
-		using Slice::operator=;
 
 		constexpr String() = default;
 		constexpr String(const Slice<const char>& other) : Slice{ other } {}
 		constexpr String(Slice<const char>&& other) : Slice{ std::move(other) } {}
 		constexpr String(const char *cstr) : Slice{ cstr, c_str_len(cstr) } {}
+		template<size_t C>
+		constexpr String(const char (&array)[C]) : Slice{ &array[0], C - 1 } {}
 
 		String substr(size_t start, size_t end = npos) const;
 		size_t find_char(char c, size_t start = 0) const;
@@ -49,6 +50,21 @@ namespace oak {
 		}
 
 		return hash;
+	}
+
+	constexpr bool operator==(const String& lhs, const String& rhs) {
+		if (lhs.size != rhs.size) { return false; }	
+		if (lhs.size == 0) { return true; }
+		for (size_t i = 0; i < lhs.size; i++) {
+			if (lhs[i] != rhs[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	constexpr bool operator!=(const String& lhs, const String& rhs) {
+		return !(lhs == rhs);
 	}
 
 }

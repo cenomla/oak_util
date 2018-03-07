@@ -49,8 +49,8 @@ namespace oak {
 			return { mem, size };
 		}
 
-		T& operator[](size_t idx) { return data[idx]; }
-		const T& operator[](size_t idx) const { return data[idx]; }
+		constexpr T& operator[](size_t idx) { return data[idx]; }
+		constexpr const T& operator[](size_t idx) const { return data[idx]; }
 
 		inline T* begin() const { return data; }
 		inline T* end() const { return data + size; }
@@ -79,3 +79,4 @@ namespace oak {
 	}
 
 }
+
