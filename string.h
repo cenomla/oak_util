@@ -33,5 +33,13 @@ namespace oak {
 		return hash;
 	}
 
+	constexpr bool operator==(const String& lhs, const char *rhs) {
+		return lhs == String{ rhs };
+	}
+
+	constexpr bool operator!=(const String& lhs, const char *rhs) {
+		return !(lhs == String{ rhs });
+	}
+
 }
 

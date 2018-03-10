@@ -21,9 +21,9 @@ namespace oak {
 
 		constexpr Slice() = default;
 		constexpr Slice(T *_data, size_t _size) : data{ _data }, size{ _size } {}
-		template<size_t C>
+		template<size_t C, typename U = T, typename = std::enable_if_t<!std::is_same_v<U, char>>>
 		constexpr Slice(T (&array)[C]) : data{ &array[0] }, size{ C } {}
-		template<typename = std::enable_if<std::is_same_v<T, char>>>
+		template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, char>>>
 		constexpr Slice(const char *cstr) : data{ const_cast<char*>(cstr) }, size{ c_str_len(cstr) } {}
 
 		constexpr size_t find(const T& v, size_t start = 0) const {

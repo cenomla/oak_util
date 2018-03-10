@@ -8,12 +8,6 @@ namespace oak::detail {
 
 	static char toStrBuffer[32];
 
-	size_t to_str_size(void *v) {
-		std::memset(toStrBuffer, 0, 32);
-		std::sprintf(toStrBuffer, "%X", reinterpret_cast<uintptr_t>(v));
-		return c_str_len(toStrBuffer);
-	}
-
 	size_t to_str_size(char v) {
 		return 1;
 	}
@@ -115,7 +109,7 @@ namespace oak {
 	}
 
 	void ArrayBuffer::resize(size_t size) {
-		buffer->resize(size);
+		buffer->resize(pos + size);
 	}
 
 }
