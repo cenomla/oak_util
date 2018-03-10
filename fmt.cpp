@@ -100,8 +100,6 @@ namespace oak {
 		std::fwrite(data, 1, size, stdout);
 	}
 
-	void Stdout::resize(size_t size) { }
-
 	void ArrayBuffer::write(const void *data, size_t size) {
 		assert(size <= buffer->size);
 		std::memcpy(buffer->data + pos, data, size);

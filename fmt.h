@@ -54,7 +54,14 @@ namespace oak {
 
 	struct Stdout {
 		void write(const void *data, size_t size);
-		void resize(size_t size);
+	};
+
+	template<typename T>
+	struct HasResizeMethod {
+		template<typename U, void (U::*)(size_t)> struct SFINAE {};
+		template<typename U> static char test(SFINAE<U, &U::resize>*);
+		template<typename U> static int test(...);
+		static constexpr bool value = sizeof(test<T>(0)) == sizeof(char);
 	};
 
 	struct ArrayBuffer {
@@ -67,17 +74,19 @@ namespace oak {
 
 	template<typename Buffer, typename... TArgs>
 	void print_fmt(Buffer&& buffer, String fmtStr, TArgs&&... args) {
-		size_t totalSize = 0;
-		if constexpr(sizeof...(args) > 0) {
-			const size_t sizes[] = {
-				detail::to_str_size(std::forward<TArgs>(args))...,
-			};
-			for (auto size : sizes) {
-				totalSize += size;
+		if constexpr(HasResizeMethod<std::decay_t<Buffer>>::value) {
+			size_t totalSize = 0;
+			if constexpr(sizeof...(args) > 0) {
+				const size_t sizes[] = {
+					detail::to_str_size(std::forward<TArgs>(args))...,
+				};
+				for (auto size : sizes) {
+					totalSize += size;
+				}
 			}
+			totalSize += fmtStr.size - sizeof...(args);
+			buffer.resize(totalSize);
 		}
-		totalSize += fmtStr.size - sizeof...(args);
-		buffer.resize(totalSize);
 		detail::print_fmt_impl(std::forward<Buffer>(buffer), fmtStr, 0, std::forward<TArgs>(args)...);
 	}
 
