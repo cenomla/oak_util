@@ -119,6 +119,15 @@ namespace oak {
 			return npos;
 		}
 
+		size_t find_value(const V& value) {
+			for (size_t i = 0; i < size; i++) {
+				if (hashs[i] && values[i] == value) {
+					return i;
+				}
+			}
+			return npos;
+		}
+
 		bool has(const K& key) {
 			return find(key) != npos;
 		}

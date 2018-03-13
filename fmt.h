@@ -1,7 +1,6 @@
 #pragma once
 
-#include <cinttypes>
-#include <cstddef>
+#include <cstdio>
 #include <utility>
 
 #include "string.h"
@@ -14,6 +13,7 @@ namespace oak::detail {
 	size_t to_str_size(int32_t v);
 	size_t to_str_size(int64_t v);
 	size_t to_str_size(float v);
+	size_t to_str_size(double v);
 	size_t to_str_size(String v);
 
 	String to_str(char v);
@@ -22,6 +22,7 @@ namespace oak::detail {
 	String to_str(int32_t v);
 	String to_str(int64_t v);
 	String to_str(float v);
+	String to_str(double v);
 	String to_str(String str);
 
 	template<typename Buffer>
@@ -54,6 +55,12 @@ namespace oak {
 
 	struct Stdout {
 		void write(const void *data, size_t size);
+	};
+
+	struct FileBuffer {
+		void write(const void *data, size_t size);
+
+		FILE *file = nullptr;
 	};
 
 	template<typename T>

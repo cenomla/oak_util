@@ -49,6 +49,12 @@ namespace oak::detail {
 		return c_str_len(toStrBuffer);
 	}
 
+	size_t to_str_size(double v) {
+		std::memset(toStrBuffer, 0, 32);
+		std::sprintf(toStrBuffer, "%lf", v);
+		return c_str_len(toStrBuffer);
+	}
+
 	size_t to_str_size(String v) {
 		return v.size;
 	}
@@ -88,6 +94,12 @@ namespace oak::detail {
 		return toStrBuffer;
 	}
 
+	String to_str(double v) {
+		std::memset(toStrBuffer, 0, 32);
+		std::sprintf(toStrBuffer, "%lf", v);
+		return toStrBuffer;
+	}
+
 	String to_str(String str) {
 		return str;
 	}
@@ -98,6 +110,10 @@ namespace oak {
 
 	void Stdout::write(const void *data, size_t size) {
 		std::fwrite(data, 1, size, stdout);
+	}
+
+	void FileBuffer::write(const void *data, size_t size) {
+		std::fwrite(data, 1, size, file);
 	}
 
 	void ArrayBuffer::write(const void *data, size_t size) {
