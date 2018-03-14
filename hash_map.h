@@ -119,6 +119,24 @@ namespace oak {
 			return npos;
 		}
 
+		size_t find_hash(size_t h) {
+			if (size == 0) { return npos; }
+			auto idx = h & (capacity - 1);
+			auto firstTaken = hashs[idx] ? true : false;
+			for (uint32_t d = 0; d < capacity; d++) {
+				auto ridx = (idx + d) & (capacity - 1);
+
+				if (firstTaken && !hashs[ridx]) {
+					return npos;
+				}
+
+				if (hashs[ridx] == h) {
+					return ridx;
+				}
+			}
+			return npos;
+		}
+
 		size_t find_value(const V& value) {
 			for (size_t i = 0; i < size; i++) {
 				if (hashs[i] && values[i] == value) {
@@ -195,3 +213,4 @@ namespace oak {
 	};
 
 }
+
