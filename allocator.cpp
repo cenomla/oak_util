@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "fmt.h"
 #include "ptr.h"
 
 namespace oak {
@@ -13,7 +14,7 @@ namespace oak {
 	void ProxyAllocator::destroy() {
 		//free memory
 		if (numAllocs > 0) {
-			printf("memory leak, remaining blocks: %lu\n", numAllocs);
+			print_fmt(Stdout{}, "memory leak, remaining blocks: %\n", numAllocs);
 		}
 
 		MemBlock *p = memList;

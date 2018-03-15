@@ -1,7 +1,5 @@
 #include "fmt.h"
 
-#include <cstdio>
-
 #include "array.h"
 
 namespace oak::detail {
@@ -55,6 +53,14 @@ namespace oak::detail {
 		return c_str_len(toStrBuffer);
 	}
 
+	size_t to_str_size(const char *v) {
+		return c_str_len(v);
+	}
+
+	size_t to_str_size(const unsigned char *v) {
+		return c_str_len(reinterpret_cast<const char*>(v));
+	}
+
 	size_t to_str_size(String v) {
 		return v.size;
 	}
@@ -100,6 +106,14 @@ namespace oak::detail {
 		return toStrBuffer;
 	}
 
+	String to_str(const char *v) {
+		return String{ v };
+	}
+
+	String to_str(const unsigned char *v) {
+		return String{ reinterpret_cast<const char *>(v) };
+	}
+
 	String to_str(String str) {
 		return str;
 	}
@@ -116,8 +130,14 @@ namespace oak {
 		std::fwrite(data, 1, size, file);
 	}
 
+	void CharBuffer::write(const void *data, size_t size) {
+		assert(size <= bufferSize - pos);
+		std::memcpy(buffer + pos, data, size);
+		pos += size;
+	}
+
 	void ArrayBuffer::write(const void *data, size_t size) {
-		assert(size <= buffer->size);
+		assert(size <= buffer->size - pos);
 		std::memcpy(buffer->data + pos, data, size);
 		pos += size;
 	}

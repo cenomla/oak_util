@@ -14,6 +14,8 @@ namespace oak::detail {
 	size_t to_str_size(int64_t v);
 	size_t to_str_size(float v);
 	size_t to_str_size(double v);
+	size_t to_str_size(const char *v);
+	size_t to_str_size(const unsigned char *v);
 	size_t to_str_size(String v);
 
 	String to_str(char v);
@@ -23,6 +25,8 @@ namespace oak::detail {
 	String to_str(int64_t v);
 	String to_str(float v);
 	String to_str(double v);
+	String to_str(const char *v);
+	String to_str(const unsigned char *v);
 	String to_str(String str);
 
 	template<typename Buffer>
@@ -53,6 +57,14 @@ namespace oak::detail {
 
 namespace oak {
 
+	template<typename T>
+	struct HasResizeMethod {
+		template<typename U, void (U::*)(size_t)> struct SFINAE {};
+		template<typename U> static char test(SFINAE<U, &U::resize>*);
+		template<typename U> static int test(...);
+		static constexpr bool value = sizeof(test<T>(0)) == sizeof(char);
+	};
+
 	struct Stdout {
 		void write(const void *data, size_t size);
 	};
@@ -63,12 +75,12 @@ namespace oak {
 		FILE *file = nullptr;
 	};
 
-	template<typename T>
-	struct HasResizeMethod {
-		template<typename U, void (U::*)(size_t)> struct SFINAE {};
-		template<typename U> static char test(SFINAE<U, &U::resize>*);
-		template<typename U> static int test(...);
-		static constexpr bool value = sizeof(test<T>(0)) == sizeof(char);
+	struct CharBuffer {
+		void write(const void *data, size_t size);
+
+		char *buffer = nullptr;
+		size_t bufferSize = 0;
+		size_t pos = 0;
 	};
 
 	struct ArrayBuffer {
