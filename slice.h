@@ -10,7 +10,7 @@ namespace oak {
 		while (*c) {
 			c++;
 		}
-		return static_cast<size_t>(c - str);
+		return reinterpret_cast<uintptr_t>(c) - reinterpret_cast<uintptr_t>(str);
 	}
 
 	template<typename T>
