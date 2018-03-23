@@ -48,7 +48,7 @@ namespace oak {
 			assert(allocator);
 			if (nsize <= capacity) { return; }
 			//make nsize a power of two
-			nsize = npow2(nsize);
+			nsize = next_pow2(nsize);
 
 			HashMap nmap{ allocator };
 			auto count = nsize * (sizeof(K) + sizeof(V) + sizeof(size_t)); 

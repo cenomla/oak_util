@@ -77,8 +77,8 @@ namespace oak {
 		return false;
 	}
 
-	LinearAllocator::LinearAllocator(size_t a, size_t b, IAllocator *c) :
-		pageSize{ a }, alignment{ b }, parent{ c } {}
+	LinearAllocator::LinearAllocator(size_t pageSize_, size_t alignment_, IAllocator *parent_) :
+		pageSize{ pageSize_ }, alignment{ alignment_ }, parent{ parent_ } {}
 
 	void LinearAllocator::init() {
 		//we need a page size and parent to continue
@@ -166,8 +166,8 @@ namespace oak {
 		nHeader->size = totalPageSize;
 	}
 
-	FreelistAllocator::FreelistAllocator(size_t a, size_t b, IAllocator *c) :
-		pageSize{ a }, alignment{ b }, parent{ c } {}
+	FreelistAllocator::FreelistAllocator(size_t pageSize_, size_t alignment_, IAllocator *parent_) :
+		pageSize{ pageSize_ }, alignment{ alignment_ }, parent{ parent_ } {}
 
 	void FreelistAllocator::init() {
 		assert(pageSize > sizeof(MemBlock));
@@ -340,10 +340,91 @@ namespace oak {
 		lastNode->next = newBlock;
 	}
 
-	PoolAllocator::PoolAllocator(size_t a, size_t b, size_t c, IAllocator *d) :
-		pageSize{ a }, objectSize{ b }, alignment{ c }, parent{ d } {}
-
 	void PoolAllocator::init() {
+		//allocate pools array and fill with zeros
+		pools = static_cast<Pool*>(parent->alloc(POOL_COUNT * sizeof(Pool)));
+		std::memset(pools, 0, POOL_COUNT * sizeof(Pool));
+	}
+
+	void PoolAllocator::destroy() {
+		assert(pools);
+		//deallocate all pools
+		for (int32_t i = 0; i < POOL_COUNT; i++) {
+			auto block = static_cast<void**>(pools[i].firstBlock);
+			auto allocationSize = (1ll << i);
+			//deallocate each block
+			while (*block) {
+				auto p = block;
+				block = static_cast<void**>(*block);
+				auto allocationCount = POOL_INITIAL_ALLOCATION_COUNT * (1ll << (--pools[i].blockCount));
+				parent->free(p, sizeof(void*) + allocationSize * allocationCount);
+			}
+			assert(pools[i].blockCount == 0);
+		}
+		//deallocate the pool array
+		parent->free(pools, sizeof(Pool) * POOL_COUNT);	
+		pools = nullptr;
+	}
+
+	void* PoolAllocator::alloc(size_t size) {
+		int32_t idx = log2(size);
+		assert(idx < POOL_COUNT);
+		if (!pools[idx].freelist) {
+			grow_pool(idx);
+		}
+
+		void *p = pools[idx].freelist;
+		pools[idx].freelist = static_cast<void**>(*pools[idx].freelist);
+
+		return p;
+	}
+
+	void PoolAllocator::free(const void *ptr, size_t size) {
+		int32_t idx = log2(size);
+		assert(idx < POOL_COUNT);
+		auto p = const_cast<void*>(ptr);
+		*static_cast<void**>(p) = pools[idx].freelist;
+		pools[idx].freelist = static_cast<void**>(p);
+	}
+
+	bool PoolAllocator::contains(const void *ptr) {
+		return false;
+	}
+
+	void PoolAllocator::grow_pool(int32_t idx) {
+		assert(!pools[idx].freelist);
+
+		//allocate a new block
+		auto allocationSize = (1ll << idx);
+		auto allocationCount = POOL_INITIAL_ALLOCATION_COUNT * (1ll << pools[idx].blockCount);
+		auto block = parent->alloc(sizeof(void*) + allocationSize * allocationCount);
+		//first 8 bytes of the block is the next pointer so set it to nullptr
+		*static_cast<void**>(block) = nullptr;
+		//create a freelist out of the block
+		pools[idx].freelist = static_cast<void**>(ptr::add(block, sizeof(void*)));
+
+		auto p = pools[idx].freelist;
+
+		for (int32_t i = 0; i < allocationCount - 1; i++) {
+			*p = ptr::add(p, allocationSize);
+			p = static_cast<void**>(*p);
+		}
+
+		*p = nullptr;
+
+		//update block info
+		if (!pools[idx].firstBlock) {
+			pools[idx].firstBlock = block;
+		}
+		pools[idx].lastBlock = block;
+		pools[idx].blockCount++;
+	}
+
+	FixedPoolAllocator::FixedPoolAllocator(
+			size_t pageSize_, size_t objectSize_, size_t alignment_, IAllocator *parent_) :
+		pageSize{ pageSize_ }, objectSize{ objectSize_ }, alignment{ alignment_ }, parent{ parent_ } {}
+
+	void FixedPoolAllocator::init() {
 		assert(pageSize > sizeof(MemBlock));
 		assert(parent);
 		size_t totalPageSize = pageSize + sizeof(MemBlock);
@@ -368,7 +449,7 @@ namespace oak {
 		*p = nullptr;
 	}
 
-	void PoolAllocator::destroy() {
+	void FixedPoolAllocator::destroy() {
 		MemBlock *prev = nullptr;
 		MemBlock *p = static_cast<MemBlock*>(start);
 		while (p) {
@@ -378,7 +459,7 @@ namespace oak {
 		}
 	}
 
-	void* PoolAllocator::alloc(size_t size) {
+	void* FixedPoolAllocator::alloc(size_t size) {
 		if (*freeList == nullptr) {
 			grow();
 		}
@@ -389,13 +470,13 @@ namespace oak {
 		return p;
 	}
 
-	void PoolAllocator::free(const void *p, size_t size) {
+	void FixedPoolAllocator::free(const void *p, size_t size) {
 		auto ptr = const_cast<void*>(p);
 		*static_cast<void**>(ptr) = freeList;
 		freeList = static_cast<void**>(ptr);
 	}
 
-	bool PoolAllocator::contains(const void *ptr) {
+	bool FixedPoolAllocator::contains(const void *ptr) {
 		auto uintptr = reinterpret_cast<uintptr_t>(ptr);
 
 		MemBlock *p = static_cast<MemBlock*>(start);
@@ -409,7 +490,7 @@ namespace oak {
 		return false;
 	}
 
-	void PoolAllocator::grow() {
+	void FixedPoolAllocator::grow() {
 		//find end of freeList
 		void **prev = nullptr;
 		void **p = freeList;
@@ -451,7 +532,7 @@ namespace oak {
 		*p = nullptr;
 	}
 
-	size_t PoolAllocator::count() {
+	size_t FixedPoolAllocator::count() {
 		return (pageSize & ~(alignment-1)) / objectSize;
 	}
 

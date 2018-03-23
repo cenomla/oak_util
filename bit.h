@@ -20,7 +20,7 @@ namespace oak {
 		return ctz(value) + 1;
 	}
 
-	constexpr size_t npow2(size_t value) {
+	constexpr size_t next_pow2(size_t value) {
 		return 1lu << msb(value);
 	}
 
