@@ -340,6 +340,8 @@ namespace oak {
 		lastNode->next = newBlock;
 	}
 
+	PoolAllocator::PoolAllocator(IAllocator *parent_) : parent{ parent_ } {}
+
 	void PoolAllocator::init() {
 		//allocate pools array and fill with zeros
 		pools = static_cast<Pool*>(parent->alloc(POOL_COUNT * sizeof(Pool)));
@@ -351,13 +353,15 @@ namespace oak {
 		//deallocate all pools
 		for (int32_t i = 0; i < POOL_COUNT; i++) {
 			auto block = static_cast<void**>(pools[i].firstBlock);
-			auto allocationSize = (1ll << i);
+			auto allocationSize = (1ll << (i + POOL_FIRST_INDEX));
+			auto allocationCount = POOL_INITIAL_ALLOCATION_COUNT;
 			//deallocate each block
-			while (*block) {
+			while (block) {
 				auto p = block;
 				block = static_cast<void**>(*block);
-				auto allocationCount = POOL_INITIAL_ALLOCATION_COUNT * (1ll << (--pools[i].blockCount));
 				parent->free(p, sizeof(void*) + allocationSize * allocationCount);
+				allocationCount *= 2;
+				pools[i].blockCount--;
 			}
 			assert(pools[i].blockCount == 0);
 		}
@@ -367,7 +371,7 @@ namespace oak {
 	}
 
 	void* PoolAllocator::alloc(size_t size) {
-		int32_t idx = log2(size);
+		int32_t idx = log2(size) - POOL_FIRST_INDEX;
 		assert(idx < POOL_COUNT);
 		if (!pools[idx].freelist) {
 			grow_pool(idx);
@@ -380,7 +384,7 @@ namespace oak {
 	}
 
 	void PoolAllocator::free(const void *ptr, size_t size) {
-		int32_t idx = log2(size);
+		int32_t idx = log2(size) - POOL_FIRST_INDEX;
 		assert(idx < POOL_COUNT);
 		auto p = const_cast<void*>(ptr);
 		*static_cast<void**>(p) = pools[idx].freelist;
@@ -395,7 +399,7 @@ namespace oak {
 		assert(!pools[idx].freelist);
 
 		//allocate a new block
-		auto allocationSize = (1ll << idx);
+		auto allocationSize = (1ll << (idx + POOL_FIRST_INDEX));
 		auto allocationCount = POOL_INITIAL_ALLOCATION_COUNT * (1ll << pools[idx].blockCount);
 		auto block = parent->alloc(sizeof(void*) + allocationSize * allocationCount);
 		//first 8 bytes of the block is the next pointer so set it to nullptr
