@@ -29,7 +29,7 @@ namespace oak {
 					if (idx == map->capacity) { return *this; }
 				} while (!map->hashs[idx]);
 				return *this;
-			}	
+			}
 
 			inline bool operator==(const Iterator& other) const { return map == other.map && idx == other.idx; }
 			inline bool operator!=(const Iterator& other) const { return !operator==(other); }
@@ -51,7 +51,7 @@ namespace oak {
 			nsize = next_pow2(nsize);
 
 			HashMap nmap{ allocator };
-			auto count = nsize * (sizeof(K) + sizeof(V) + sizeof(size_t)); 
+			auto count = nsize * (sizeof(K) + sizeof(V) + sizeof(size_t));
 			auto mem = allocator->alloc(count);
 			std::memset(mem, 0, count);
 			nmap.keys = static_cast<K*>(mem);
@@ -60,7 +60,7 @@ namespace oak {
 			nmap.size = 0;
 			nmap.capacity = nsize;
 			nmap.firstIndex = nsize;
-			
+
 			size_t left = size;
 			for (size_t i = firstIndex; i < capacity && left > 0; i++) {
 				if (hashs[i]) {
@@ -76,7 +76,7 @@ namespace oak {
 		HashMap clone() {
 			HashMap nmap{ allocator };
 			nmap.resize(capacity);
-			
+
 			size_t left = size;
 			for (size_t i = firstIndex; i < capacity && left > 0; i++) {
 				if (hashs[i]) {
@@ -149,11 +149,11 @@ namespace oak {
 		bool has(const K& key) {
 			return find(key) != npos;
 		}
-			
+
 		V* get(const K& key) {
 			if (capacity == 0) { return nullptr; }
 			auto idx = find(key);
-			return idx != npos ? values + idx : nullptr; 
+			return idx != npos ? values + idx : nullptr;
 		}
 
 		V* put(const K& key, const V& value) {

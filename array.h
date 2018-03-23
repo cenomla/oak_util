@@ -14,7 +14,7 @@ namespace oak {
 	struct Array {
 		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
 
-		typedef T value_type; 
+		typedef T value_type;
 
 		Array() = default;
 		Array(IAllocator *_allocator) : allocator{ _allocator } {}
