@@ -45,6 +45,10 @@ namespace oak {
 		size_t align = 0;
 	};
 
+	enum VarFlags : uint32_t {
+		VAR_VOLATILE = 0x01,
+	};
+
 	struct VarInfo {
 		String name;
 		const TypeInfo *type = nullptr;
@@ -86,7 +90,7 @@ namespace oak {
 		}
 
 		inline const EnumConstant* end() const {
-			return members + memberCount; 
+			return members + memberCount;
 		}
 	};
 
