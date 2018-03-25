@@ -25,7 +25,7 @@ namespace oak {
 
 	constexpr size_t hash(const String& str) {
 		size_t hash = 0;
-		
+
 		for (size_t i = 0; i < str.size; i++) {
 			hash = str.data[i] + (hash << 6) + (hash << 16) - hash;
 		}

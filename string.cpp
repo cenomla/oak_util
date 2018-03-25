@@ -8,9 +8,9 @@
 namespace oak {
 
 	String substr(const String str, size_t start, size_t end) {
-		//bounds checking 
+		//bounds checking
 		if (end == String::npos) { end = str.size; }
-		return String{ str.data + start, end - start }; 
+		return String{ str.data + start, end - start };
 	}
 
 	size_t find_first_of(const String str, String delimeters, size_t start) {

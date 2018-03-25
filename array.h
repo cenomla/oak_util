@@ -7,6 +7,7 @@
 
 #include "allocator.h"
 #include "slice.h"
+#include "bit.h"
 
 namespace oak {
 
@@ -32,6 +33,7 @@ namespace oak {
 		void reserve(size_t nsize) {
 			assert(allocator);
 			if (nsize <= capacity) { return; }
+			nsize = next_pow2(nsize);
 			auto mem = static_cast<std::remove_const_t<T>*>(allocator->alloc(nsize * sizeof(T)));
 			if (data) {
 				std::memcpy(mem, data, capacity * sizeof(T));
