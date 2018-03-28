@@ -75,7 +75,7 @@ namespace oak::detail {
 		std::sprintf(toStrBuffer, "%u", v);
 		return toStrBuffer;
 	}
-	
+
 	String to_str(uint64_t v) {
 		std::memset(toStrBuffer, 0, 32);
 		std::sprintf(toStrBuffer, "%lu", v);
@@ -87,7 +87,7 @@ namespace oak::detail {
 		std::sprintf(toStrBuffer, "%i", v);
 		return toStrBuffer;
 	}
-	
+
 	String to_str(int64_t v) {
 		std::memset(toStrBuffer, 0, 32);
 		std::sprintf(toStrBuffer, "%li", v);
@@ -121,10 +121,6 @@ namespace oak::detail {
 }
 
 namespace oak {
-
-	void Stdout::write(const void *data, size_t size) {
-		std::fwrite(data, 1, size, stdout);
-	}
 
 	void FileBuffer::write(const void *data, size_t size) {
 		std::fwrite(data, 1, size, file);

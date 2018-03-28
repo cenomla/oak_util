@@ -31,7 +31,7 @@ namespace oak {
 		void free(const void *ptr, size_t size) override;
 		bool contains(const void *ptr) override;
 
-	};	
+	};
 
 	struct LinearAllocator : IAllocator {
 		size_t pageSize = 0;
@@ -76,7 +76,7 @@ namespace oak {
 	};
 
 	struct PoolAllocator : IAllocator {
-		static constexpr int64_t MIN_POOL_SIZE = 8; //size in bytes of smallest pool
+		static constexpr int64_t MIN_POOL_SIZE = 4; //size in bytes of smallest pool
 		static constexpr int64_t MAX_POOL_SIZE = 4096; //size in bytes of largest pool
 		static constexpr int64_t POOL_INITIAL_ALLOCATION_COUNT = 32;
 		static constexpr int64_t POOL_COUNT = log2(MAX_POOL_SIZE) - log2(MIN_POOL_SIZE);

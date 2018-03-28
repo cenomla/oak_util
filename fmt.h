@@ -34,7 +34,7 @@ namespace oak::detail {
 		auto str = substr(fmtStr, start);
 		buffer.write(str.data, str.size);
 	}
-	
+
 	template<typename Buffer, typename TArg, typename... TArgs>
 	void print_fmt_impl(Buffer&& buffer, String fmtStr, size_t start, TArg&& arg, TArgs&&... args) {
 		//find each instance of %
@@ -52,7 +52,7 @@ namespace oak::detail {
 			print_fmt_impl(buffer, fmtStr, pos + 1, std::forward<TArgs>(args)...);
 		}
 	}
-	
+
 }
 
 namespace oak {
@@ -63,10 +63,6 @@ namespace oak {
 		template<typename U> static char test(SFINAE<U, &U::resize>*);
 		template<typename U> static int test(...);
 		static constexpr bool value = sizeof(test<T>(0)) == sizeof(char);
-	};
-
-	struct Stdout {
-		void write(const void *data, size_t size);
 	};
 
 	struct FileBuffer {
@@ -92,7 +88,7 @@ namespace oak {
 	};
 
 	template<typename Buffer, typename... TArgs>
-	void print_fmt(Buffer&& buffer, String fmtStr, TArgs&&... args) {
+	void buffer_fmt(Buffer&& buffer, String fmtStr, TArgs&&... args) {
 		if constexpr(HasResizeMethod<std::decay_t<Buffer>>::value) {
 			size_t totalSize = 0;
 			if constexpr(sizeof...(args) > 0) {
@@ -107,6 +103,11 @@ namespace oak {
 			buffer.resize(totalSize);
 		}
 		detail::print_fmt_impl(std::forward<Buffer>(buffer), fmtStr, 0, std::forward<TArgs>(args)...);
+	}
+
+	template<typename... TArgs>
+	void print_fmt(String fmtStr, TArgs&&... args) {
+		fmt_buffer(FileBuffer{ stdout }, fmtStr, std::forward<TArgs>(args)...);
 	}
 
 }
