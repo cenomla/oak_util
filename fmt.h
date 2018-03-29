@@ -107,7 +107,7 @@ namespace oak {
 
 	template<typename... TArgs>
 	void print_fmt(String fmtStr, TArgs&&... args) {
-		fmt_buffer(FileBuffer{ stdout }, fmtStr, std::forward<TArgs>(args)...);
+		buffer_fmt(FileBuffer{ stdout }, fmtStr, std::forward<TArgs>(args)...);
 	}
 
 }

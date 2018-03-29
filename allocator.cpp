@@ -14,7 +14,7 @@ namespace oak {
 	void ProxyAllocator::destroy() {
 		//free memory
 		if (numAllocs > 0) {
-			print_fmt(Stdout{}, "memory leak, remaining blocks: %\n", numAllocs);
+			print_fmt("memory leak, remaining blocks: %\n", numAllocs);
 		}
 
 		MemBlock *p = memList;
@@ -312,7 +312,7 @@ namespace oak {
 	}
 
 	void FreelistAllocator::grow(MemBlock *lastNode) {
-		
+
 		//find the end of the used block list
 		MemBlock *prevHeader = nullptr;
 		MemBlock *header = static_cast<MemBlock*>(start);
@@ -336,7 +336,7 @@ namespace oak {
 		MemBlock *newBlock = header + 1;
 		newBlock->size = pageSize;
 		newBlock->next = nullptr;
-		
+
 		lastNode->next = newBlock;
 	}
 
@@ -366,7 +366,7 @@ namespace oak {
 			assert(pools[i].blockCount == 0);
 		}
 		//deallocate the pool array
-		parent->free(pools, sizeof(Pool) * POOL_COUNT);	
+		parent->free(pools, sizeof(Pool) * POOL_COUNT);
 		pools = nullptr;
 	}
 
