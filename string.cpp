@@ -76,7 +76,6 @@ namespace oak {
 	}
 
 	bool is_c_str(const String str) {
-		//TODO: can this segfault?
 		return str.data + str.size == 0;
 	}
 
