@@ -1,7 +1,11 @@
 #pragma once
 
 #include <cstddef>
+#include <cinttypes>
+#include <cstring>
 #include <type_traits>
+
+#include "allocator.h"
 
 namespace oak {
 
