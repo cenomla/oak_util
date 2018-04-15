@@ -8,8 +8,6 @@
 #include "ptr.h"
 #include "osig_defs.h"
 
-#define STRUCT_INFO(T) static_cast<const oak::StructInfo*>(oak::type_info<T>())
-
 namespace oak {
 
 	template<typename T>
@@ -114,12 +112,30 @@ namespace oak {
 		return &info;
 	}
 
+	template<typename T>
+	const StructInfo* struct_info() {
+		auto typeInfo = type_info<T>();
+		assert(typeInfo->kind == TypeKind::STRUCT);
+		return static_cast<const StructInfo*>(typeInfo);
+	}
+
 	template<typename T> size_t type_id() {
-		return STRUCT_INFO(T)->tid;
+		return struct_info<T>()->tid;
 	}
 
 	template<typename T>
 	Slice<const TypeInfo*> types_in_catagory();
+
+	template<typename C>
+	bool is_type_in_catagory(const TypeInfo *typeInfo) {
+		//TODO: optimize to use catagory ids and store catagory id in type info
+		for (auto it : types_in_catagory<C>()) {
+			if (it == typeInfo) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	struct Any {
 		void *ptr = nullptr;
