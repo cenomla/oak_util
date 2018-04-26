@@ -26,13 +26,13 @@ namespace oak {
 		template<typename T>
 		void set(T&& obj) {
 			using FT = std::decay_t<T>;
-			if constexpr (sizeof(FT) > sizeof(staticStorage)) {
+			if constexpr (sizeof(obj) > sizeof(staticStorage)) {
 				assert(allocator);
-				function = allocator->alloc(sizeof(FT));
+				function = allocator->alloc(sizeof(obj));
 			} else {
 				function = &staticStorage;
 			}
-			std::memcpy(function, &obj, sizeof(FT));
+			std::memcpy(function, &obj, sizeof(obj));
 
 			executeFunction = [](void *function, In&&... args) {
 				if constexpr (std::is_function_v<std::remove_pointer_t<FT>>) { //check if this is a function pointer type
