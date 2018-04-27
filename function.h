@@ -19,7 +19,7 @@ namespace oak {
 			size_t functionSize;
 		};
 		void *function = nullptr;
-		Out (*executeFunction)(void *, In...) = nullptr;
+		Out (*executeFunction)(void *, In&...) = nullptr;
 
 		Function() = default;
 
@@ -40,13 +40,15 @@ namespace oak {
 			}
 			std::memcpy(function, &obj, sizeof(obj));
 
-			executeFunction = [](void *function, In&... args) {
-				if constexpr (std::is_function_v<std::remove_pointer_t<FT>>) { //check if this is a function pointer type
+			if constexpr (std::is_function_v<std::remove_pointer_t<FT>>) { //check if this is a function pointer type
+				executeFunction = [](void *function, In&... args) {
 					return (*static_cast<FT*>(function))(args...);
-				} else {
+				};
+			} else {
+				executeFunction = [](void *function, In&... args) {
 					return static_cast<FT*>(function)->operator()(args...);
-				}
-			};
+				};
+			}
 		}
 
 		void destroy() {
