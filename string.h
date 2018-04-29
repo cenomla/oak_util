@@ -30,7 +30,7 @@ namespace oak {
 			hash = str.data[i] + (hash << 6) + (hash << 16) - hash;
 		}
 
-		return hash;
+		return hash + 1;
 	}
 
 	constexpr bool operator==(const String& lhs, const char *rhs) {
