@@ -6,6 +6,7 @@
 #include "osig_defs.h"
 #include "array.h"
 #include "slice.h"
+#include "hash.h"
 
 namespace oak {
 
@@ -23,15 +24,18 @@ namespace oak {
 	const char* as_c_str(const String str);
 	const char* make_c_str(const String str, IAllocator *allocator);
 
-	constexpr size_t hash(const String& str) {
-		size_t hash = 0;
+	template<>
+	struct HashFunc<String> {
+		constexpr size_t operator()(const String& str) const {
+			size_t hash = 0;
 
-		for (auto i = 0ll; i < str.size; i++) {
-			hash = str.data[i] + (hash << 6) + (hash << 16) - hash;
+			for (auto i = 0ll; i < str.size; i++) {
+				hash = str.data[i] + (hash << 6) + (hash << 16) - hash;
+			}
+
+			return hash + 1;
 		}
-
-		return hash + 1;
-	}
+	};
 
 	constexpr bool operator==(const String& lhs, const char *rhs) {
 		return lhs == String{ rhs };

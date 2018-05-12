@@ -34,7 +34,7 @@ namespace oak {
 
 		void reserve(int64_t nPools) {
 			assert(allocator);
-			assert(1lu << log2(poolCapacity) == static_cast<size_t>(poolCapacity));
+			assert(poolCapacity > 0 && ctz(poolCapacity) + clz(poolCapacity) + 1 == 64);
 			if (nPools <= poolCount) { return; }
 			auto ndata = static_cast<T**>(allocator->alloc(nPools * sizeof(T*)));
 			std::memset(ndata, 0, nPools * sizeof(T*));

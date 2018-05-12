@@ -31,7 +31,7 @@ namespace oak {
 		void reserve(int64_t nsize) {
 			assert(allocator);
 			if (nsize <= capacity) { return; }
-			nsize = next_pow2(nsize);
+			nsize = ensure_pow2(nsize);
 			auto mem = static_cast<std::remove_const_t<T>*>(allocator->alloc(nsize * sizeof(T)));
 			if (data) {
 				std::memcpy(mem, data, capacity * sizeof(T));
