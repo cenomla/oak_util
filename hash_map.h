@@ -5,6 +5,7 @@
 
 #include "allocator.h"
 #include "bit.h"
+#include "cmp.h"
 #include "hash.h"
 #include "ptr.h"
 
@@ -111,7 +112,7 @@ namespace oak {
 					return -1;
 				}
 
-				if (hashs[ridx] == h && keys[ridx] == key) {
+				if (hashs[ridx] == h && CmpFunc<K, K>{}(keys[ridx], key) {
 					return ridx;
 				}
 			}
@@ -138,7 +139,7 @@ namespace oak {
 
 		int64_t find_value(const V& value) const {
 			for (int64_t i = 0; i < size; i++) {
-				if (hashs[i] != EMPTY_HASH && values[i] == value) {
+				if (hashs[i] != EMPTY_HASH && CmpFunc<V, V>{}(values[i], value) {
 					return i;
 				}
 			}
@@ -165,7 +166,7 @@ namespace oak {
 				auto ridx = (idx + d) & (capacity - 1);
 
 				if (hashs[ridx] != EMPTY_HASH) {
-					if (hashs[ridx] == h && keys[ridx] == key) {
+					if (hashs[ridx] == h && CmpFunc<K, K>{}(keys[ridx], key)) {
 						values[ridx] = value;
 						return values + ridx;
 					}
