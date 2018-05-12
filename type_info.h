@@ -80,6 +80,7 @@ namespace oak {
 	};
 
 	struct EnumInfo : TypeInfo {
+		const TypeInfo *underlyingType = nullptr;
 		const EnumConstant *members = nullptr;
 		size_t memberCount = 0;
 
