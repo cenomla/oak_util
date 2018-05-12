@@ -94,7 +94,7 @@ namespace oak {
 		int64_t find(const V& value) {
 			if (size == 0) { return -1; }
 			auto h = HashFunc<V>{}(value);
-			int64_t idx = h & (capacity - 1);
+			auto idx = static_cast<int64_t>(h & static_cast<size_t>(capacity - 1));
 			auto firstTaken = hashs[idx] != EMPTY_HASH;
 			for (int64_t d = 0; d < capacity; d++) {
 				auto ridx = (idx + d) & (capacity - 1);
@@ -112,7 +112,7 @@ namespace oak {
 
 		int64_t find_hash(size_t h) {
 			if (size == 0) { return -1; }
-			int64_t idx = h & (capacity - 1);
+			auto idx = static_cast<int64_t>(h & static_cast<size_t>(capacity - 1));
 			auto firstTaken = hashs[idx] != EMPTY_HASH;
 			for (int64_t d = 0; d < capacity; d++) {
 				auto ridx = (idx + d) & (capacity - 1);
