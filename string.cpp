@@ -7,28 +7,28 @@
 
 namespace oak {
 
-	String substr(const String str, size_t start, size_t end) {
+	String substr(const String str, int64_t start, int64_t end) {
 		//bounds checking
-		if (end == String::npos) { end = str.size; }
+		if (end == -1) { end = str.size; }
 		return String{ str.data + start, end - start };
 	}
 
-	size_t find_first_of(const String str, String delimeters, size_t start) {
-		for (size_t i = start; i < str.size; i++) {
-			for (size_t j = 0; j < delimeters.size; j++) {
+	int64_t find_first_of(const String str, String delimeters, int64_t start) {
+		for (auto i = start; i < str.size; i++) {
+			for (int64_t j = 0; j < delimeters.size; j++) {
 				if (str.data[i] == delimeters.data[j]) {
 					return i;
 				}
 			}
 		}
-		return String::npos;
+		return -1;
 	}
 
-	size_t find_first_not_of(const String str, String delimeters, size_t start) {
+	int64_t find_first_not_of(const String str, String delimeters, int64_t start) {
 		bool found;
-		for (size_t i = start; i < str.size; i++) {
+		for (auto i = start; i < str.size; i++) {
 			found = false;
-			for (size_t j = 0; j < delimeters.size; j++) {
+			for (int64_t j = 0; j < delimeters.size; j++) {
 				if (str.data[i] == delimeters.data[j]) {
 					found = true;
 					break;
@@ -38,41 +38,41 @@ namespace oak {
 				return i;
 			}
 		}
-		return String::npos;
+		return -1;
 	}
 
-	size_t find_last_of(const String str, String delimeters, size_t start) {
-		for (size_t i = str.size; i > start; i--) {
-			for (size_t j = 0; j < delimeters.size; j++) {
+	int64_t find_last_of(const String str, String delimeters, int64_t start) {
+		for (auto i = str.size; i > start; i--) {
+			for (int64_t j = 0; j < delimeters.size; j++) {
 				if (str.data[i - 1] == delimeters.data[j]) {
 					return i - 1;
 				}
 			}
 		}
-		return String::npos;
+		return -1;
 	}
 
-	size_t find_string(const String str, String value, size_t start) {
-		if (str.size < value.size) { return String::npos; }
-		for (size_t i = start; i <= str.size - value.size; i++) {
+	int64_t find_string(const String str, String value, int64_t start) {
+		if (str.size < value.size) { return -1; }
+		for (auto i = start; i <= str.size - value.size; i++) {
 			if (value == String{ str.data + i, value.size }) {
 				return i;
 			}
 		}
-		return String::npos;
+		return -1;
 	}
 
 	void splitstr(const String str, String delimeters, Array<String>& tokens) {
-		size_t first = 0, last = 0;
+		int64_t first = 0, last = 0;
 		do {
 			first = find_first_not_of(str, delimeters, first);
-			if (first == String::npos) { break; }
+			if (first == -1) { break; }
 			last = find_first_of(str, delimeters, first);
 			if (last > first) {
 				tokens.push(substr(str, first, last));
 			}
 			first = last + 1;
-		} while(last != String::npos);
+		} while(last != -1);
 	}
 
 	bool is_c_str(const String str) {

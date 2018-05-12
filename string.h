@@ -13,11 +13,11 @@ namespace oak {
 
 	using String = Slice<char>;
 
-	String substr(const String str, size_t start, size_t end = String::npos);
-	size_t find_first_of(const String str, String delimeters, size_t start = 0);
-	size_t find_first_not_of(const String str, String delimeters, size_t start = 0);
-	size_t find_last_of(const String str, String delimeters, size_t start = 0);
-	size_t find_string(const String str, String value, size_t start = 0);
+	String substr(const String str, int64_t start, int64_t end = -1);
+	int64_t find_first_of(const String str, String delimeters, int64_t start = 0);
+	int64_t find_first_not_of(const String str, String delimeters, int64_t start = 0);
+	int64_t find_last_of(const String str, String delimeters, int64_t start = 0);
+	int64_t find_string(const String str, String value, int64_t start = 0);
 	void splitstr(const String str, String delimeters, Array<String>& tokens);
 	bool is_c_str(const String str);
 	const char* as_c_str(const String str);
@@ -26,7 +26,7 @@ namespace oak {
 	constexpr size_t hash(const String& str) {
 		size_t hash = 0;
 
-		for (size_t i = 0; i < str.size; i++) {
+		for (auto i = 0ll; i < str.size; i++) {
 			hash = str.data[i] + (hash << 6) + (hash << 16) - hash;
 		}
 

@@ -13,8 +13,6 @@ namespace oak {
 
 	template<typename T>
 	struct Array {
-		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
-
 		typedef T value_type;
 
 		Array() = default;
@@ -30,7 +28,7 @@ namespace oak {
 			std::memcpy(mem, std::begin(list), list.size() * sizeof(T));
 		}
 
-		void reserve(size_t nsize) {
+		void reserve(int64_t nsize) {
 			assert(allocator);
 			if (nsize <= capacity) { return; }
 			nsize = next_pow2(nsize);
@@ -43,12 +41,12 @@ namespace oak {
 			capacity = nsize;
 		}
 
-		void resize(size_t nsize) {
+		void resize(int64_t nsize) {
 			reserve(nsize);
 			size = nsize;
 		}
 
-		void resize(size_t nsize, const T& value) {
+		void resize(int64_t nsize, const T& value) {
 			reserve(nsize);
 			auto mem = const_cast<std::remove_const_t<T>*>(data);
 			for (auto i = size; i < nsize; i++) {
@@ -57,14 +55,14 @@ namespace oak {
 			size = nsize;
 		}
 
-		constexpr size_t find(const T& v, size_t start = 0) const {
-			if (!data) { return npos; }
-			for (size_t i = start; i < size; i++) {
+		constexpr int64_t find(const T& v, int64_t start = 0) const {
+			if (!data) { return -1; }
+			for (auto i = start; i < size; i++) {
 				if (data[i] == v) {
 					return i;
 				}
 			}
-			return npos;
+			return -1;
 		}
 
 		Array clone(IAllocator *oAllocator = nullptr) const {
@@ -95,8 +93,8 @@ namespace oak {
 			return data + size - 1;
 		}
 
-		T* insert(const T& v, size_t idx) {
-			if (idx == npos || idx == size) {
+		T* insert(const T& v, int64_t idx) {
+			if (idx == -1 || idx == size) {
 				return push(v);
 			}
 			resize(size + 1);
@@ -105,7 +103,7 @@ namespace oak {
 			return data + idx;
 		}
 
-		void remove(size_t idx) {
+		void remove(int64_t idx) {
 			assert(idx < size);
 			//swap and pop
 			T& v = data[size - 1];
@@ -113,15 +111,15 @@ namespace oak {
 			size--;
 		}
 
-		void remove_ordered(size_t idx) {
+		void remove_ordered(int64_t idx) {
 			assert(idx < size);
 			//move the upper portion or the array down one index
 			std::memmove(data + idx, data + idx + 1, (size - 1 - idx) * sizeof(T));
 			size--;
 		}
 
-		constexpr T& operator[](size_t idx) { return data[idx]; }
-		constexpr const T& operator[](size_t idx) const { return data[idx]; }
+		constexpr T& operator[](int64_t idx) { return data[idx]; }
+		constexpr const T& operator[](int64_t idx) const { return data[idx]; }
 
 		inline T* begin() const { return data; }
 		inline T* end() const { return data + size; }
@@ -132,8 +130,8 @@ namespace oak {
 
 		IAllocator *allocator = nullptr;
 		T *data = nullptr;
-		size_t size = 0;
-		size_t capacity = 0;
+		int64_t size = 0;
+		int64_t capacity = 0;
 	};
 
 }

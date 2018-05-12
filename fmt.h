@@ -43,7 +43,7 @@ namespace oak::detail {
 		if (pos < fmtStr.size - 1 &&
 				fmtStr[pos + 1] == '%') {
 			buffer.write("%", 1);
-		} else if (pos == decltype(fmtStr)::npos) {
+		} else if (pos == -1) {
 			buffer.write(str.data, str.size);
 		} else {
 			auto argStr = detail::to_str(arg);

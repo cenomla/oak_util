@@ -19,25 +19,23 @@ namespace oak {
 
 	template<typename T>
 	struct Slice {
-		static constexpr size_t npos = 0xFFFFFFFFFFFFFFFF;
-
 		typedef T value_type;
 
 		constexpr Slice() = default;
-		constexpr Slice(T *_data, size_t _size) : data{ _data }, size{ _size } {}
-		template<size_t C, typename U = T, typename = std::enable_if_t<!std::is_same_v<U, char>>>
-		constexpr Slice(T (&array)[C]) : data{ &array[0] }, size{ C } {}
+		constexpr Slice(T *_data, int64_t _size) : data{ _data }, size{ _size } {}
+		template<int64_t C, typename U = T, typename = std::enable_if_t<!std::is_same_v<U, char>>>
+		constexpr Slice(T (&array)[C]) : data{ &array[0] }, size{ static_cast<int64_t>(C) } {}
 		template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, char>>>
-		constexpr Slice(const char *cstr) : data{ const_cast<char*>(cstr) }, size{ c_str_len(cstr) } {}
+		constexpr Slice(const char *cstr) : data{ const_cast<char*>(cstr) }, size{ static_cast<int64_t>(c_str_len(cstr)) } {}
 
-		constexpr size_t find(const T& v, size_t start = 0) const {
-			if (!data) { return npos; }
-			for (size_t i = start; i < size; i++) {
+		constexpr int64_t find(const T& v, int64_t start = 0) const {
+			if (!data) { return -1; }
+			for (auto i = start; i < size; i++) {
 				if (data[i] == v) {
 					return i;
 				}
 			}
-			return npos;
+			return -1;
 		}
 
 		Slice<T> clone(IAllocator *allocator) const {
@@ -47,8 +45,8 @@ namespace oak {
 			return { mem, size };
 		}
 
-		constexpr T& operator[](size_t idx) { return data[idx]; }
-		constexpr const T& operator[](size_t idx) const { return data[idx]; }
+		constexpr T& operator[](int64_t idx) { return data[idx]; }
+		constexpr const T& operator[](int64_t idx) const { return data[idx]; }
 
 		inline T* begin() const { return data; }
 		inline T* end() const { return data + size; }
@@ -56,14 +54,14 @@ namespace oak {
 		inline const T* cend() const { return data + size; }
 
 		T *data = nullptr;
-		size_t size = 0;
+		int64_t size = 0;
 	};
 
 	template<typename T>
 	constexpr bool operator==(const Slice<T>& lhs, const Slice<T>& rhs) {
 		if (lhs.size != rhs.size) { return false; }
 		if (lhs.size == 0) { return true; }
-		for (size_t i = 0; i < lhs.size; i++) {
+		for (int64_t i = 0; i < lhs.size; i++) {
 			if (lhs[i] != rhs[i]) {
 				return false;
 			}
