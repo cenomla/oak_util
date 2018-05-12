@@ -52,7 +52,6 @@ namespace oak {
 		const TypeInfo *type = nullptr;
 		size_t offset = 0;
 		uint32_t flags = 0;
-		uint64_t version = 0;
 	};
 
 	struct EnumConstant {
@@ -74,6 +73,7 @@ namespace oak {
 		const VarInfo *members = nullptr;
 		size_t memberCount = 0;
 		size_t tid = 0;
+		size_t catagoryId = 0;
 
 		inline const VarInfo* begin() const { return members; }
 		inline const VarInfo* end() const { return members + memberCount; }
@@ -126,15 +126,13 @@ namespace oak {
 	template<typename T>
 	Slice<const TypeInfo*> types_in_catagory();
 
+	template<typename T>
+	size_t catagory_id();
+
 	template<typename C>
 	bool is_type_in_catagory(const TypeInfo *typeInfo) {
-		//TODO: optimize to use catagory ids and store catagory id in type info
-		for (auto it : types_in_catagory<C>()) {
-			if (it == typeInfo) {
-				return true;
-			}
-		}
-		return false;
+		auto catagoryId = typeInfo->kind == TypeKind::STRUCT ? static_cast<const StructInfo*>(typeInfo)->catagoryId : 0;
+		return catagoryId == catagory_id<C>();
 	}
 
 	struct Any {
@@ -149,3 +147,4 @@ namespace oak {
 	};
 
 }
+

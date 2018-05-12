@@ -112,7 +112,7 @@ namespace oak {
 					return -1;
 				}
 
-				if (hashs[ridx] == h && CmpFunc<K, K>{}(keys[ridx], key) {
+				if (hashs[ridx] == h && CmpFunc<K, K>{}(keys[ridx], key)) {
 					return ridx;
 				}
 			}
@@ -139,7 +139,7 @@ namespace oak {
 
 		int64_t find_value(const V& value) const {
 			for (int64_t i = 0; i < size; i++) {
-				if (hashs[i] != EMPTY_HASH && CmpFunc<V, V>{}(values[i], value) {
+				if (hashs[i] != EMPTY_HASH && CmpFunc<V, V>{}(values[i], value)) {
 					return i;
 				}
 			}

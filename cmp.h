@@ -9,6 +9,7 @@ namespace oak {
 	struct CmpFunc {
 		constexpr bool operator()(const T& lhs, const U& rhs) const {
 			return lhs == rhs;
+		}
 	};
 
 }

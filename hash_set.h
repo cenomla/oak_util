@@ -103,7 +103,7 @@ namespace oak {
 					return -1;
 				}
 
-				if (hashs[ridx] == h && CmpFunc<V, V>{}(values[ridx], value) {
+				if (hashs[ridx] == h && CmpFunc<V, V>{}(values[ridx], value)) {
 					return ridx;
 				}
 			}
@@ -149,7 +149,7 @@ namespace oak {
 
 				if (hashs[ridx] != EMPTY_HASH) {
 					//first check if the hash is equivalent
-					if (hashs[ridx] == h && CmpFunc<V, V>{}(values[ridx], value) {
+					if (hashs[ridx] == h && CmpFunc<V, V>{}(values[ridx], value)) {
 						values[ridx] = value;
 						return values + ridx;
 					}
