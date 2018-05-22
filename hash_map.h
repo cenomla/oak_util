@@ -98,20 +98,20 @@ namespace oak {
 			size = 0;
 			capacity = 0;
 			firstIndex = 0;
+			furthest = 0;
 		}
 
 		int64_t find(const K& key) const {
 			if (size == 0) { return -1; }
-			auto h = HashFunc<K>{}(key);
-			auto idx = static_cast<int64_t>(h & static_cast<size_t>(capacity - 1));
-			auto firstTaken = hashs[idx] != EMPTY_HASH;
-			for (int64_t d = 0; d < capacity; d++) {
-				auto ridx = (idx + d) & (capacity - 1);
-
-				if (firstTaken && hashs[ridx] == EMPTY_HASH) {
-					return -1;
+			const auto h = HashFunc<K>{}(key);
+			const auto idx = static_cast<int64_t>(h & static_cast<size_t>(capacity - 1));
+			if (idx < firstIndex) { return -1; }
+			auto left = size;
+			for (int64_t d = 0; d <= furthest && left > 0; d++) {
+				const auto ridx = (idx + d) & (capacity - 1);
+				if (hashs[ridx] != EMPTY_HASH) {
+					left--;
 				}
-
 				if (hashs[ridx] == h && CmpFunc<K, K>{}(keys[ridx], key)) {
 					return ridx;
 				}
@@ -121,15 +121,14 @@ namespace oak {
 
 		int64_t find_hash(size_t h) const {
 			if (size == 0) { return -1; }
-			auto idx = static_cast<int64_t>(h & static_cast<size_t>(capacity - 1));
-			auto firstTaken = hashs[idx] != EMPTY_HASH;
-			for (int64_t d = 0; d < capacity; d++) {
-				auto ridx = (idx + d) & (capacity - 1);
-
-				if (firstTaken && hashs[ridx] == EMPTY_HASH) {
-					return -1;
+			const auto idx = static_cast<int64_t>(h & static_cast<size_t>(capacity - 1));
+			if (idx < firstIndex) { return -1; }
+			auto left = size;
+			for (int64_t d = 0; d <= furthest && left > 0; d++) {
+				const auto ridx = (idx + d) & (capacity - 1);
+				if (hashs[ridx] != EMPTY_HASH) {
+					left--;
 				}
-
 				if (hashs[ridx] == h) {
 					return ridx;
 				}
@@ -138,9 +137,13 @@ namespace oak {
 		}
 
 		int64_t find_value(const V& value) const {
-			for (int64_t i = 0; i < size; i++) {
-				if (hashs[i] != EMPTY_HASH && CmpFunc<V, V>{}(values[i], value)) {
-					return i;
+			auto left = size;
+			for (int64_t i = firstIndex; i < capacity && left > 0; i++) {
+				if (hashs[i] != EMPTY_HASH) {
+					left--;
+					if (CmpFunc<V, V>{}(values[i], value)) {
+						return i;
+					}
 				}
 			}
 			return -1;
@@ -176,6 +179,9 @@ namespace oak {
 					if (ridx < firstIndex) {
 						firstIndex = ridx;
 					}
+					if (d > furthest) {
+						furthest = d;
+					}
 					size++;
 
 					return values + ridx;
@@ -208,7 +214,7 @@ namespace oak {
 		V *values = nullptr;
 		size_t *hashs = nullptr;
 
-		int64_t size = 0, capacity = 0, firstIndex = 0;
+		int64_t size = 0, capacity = 0, firstIndex = 0, furthest = 0;
 	};
 
 }

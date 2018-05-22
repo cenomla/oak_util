@@ -372,23 +372,31 @@ namespace oak {
 
 	void* PoolAllocator::alloc(size_t size) {
 		int32_t idx = log2(size) - POOL_FIRST_INDEX;
-		assert(idx < POOL_COUNT);
-		if (!pools[idx].freelist) {
-			grow_pool(idx);
+		if (idx < POOL_COUNT) {
+			if (!pools[idx].freelist) {
+				grow_pool(idx);
+			}
+
+			void *p = pools[idx].freelist;
+			pools[idx].freelist = static_cast<void**>(*pools[idx].freelist);
+
+			return p;
+		} else {
+			//fallback to parent allocator
+			print_fmt("parent\n");
+			return parent->alloc(size);
 		}
-
-		void *p = pools[idx].freelist;
-		pools[idx].freelist = static_cast<void**>(*pools[idx].freelist);
-
-		return p;
 	}
 
 	void PoolAllocator::free(const void *ptr, size_t size) {
 		int32_t idx = log2(size) - POOL_FIRST_INDEX;
-		assert(idx < POOL_COUNT);
-		auto p = const_cast<void*>(ptr);
-		*static_cast<void**>(p) = pools[idx].freelist;
-		pools[idx].freelist = static_cast<void**>(p);
+		if (idx < POOL_COUNT) {
+			auto p = const_cast<void*>(ptr);
+			*static_cast<void**>(p) = pools[idx].freelist;
+			pools[idx].freelist = static_cast<void**>(p);
+		} else {
+			parent->free(ptr, size);
+		}
 	}
 
 	bool PoolAllocator::contains(const void *ptr) {
