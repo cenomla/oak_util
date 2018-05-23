@@ -104,11 +104,8 @@ namespace oak {
 		}
 
 		void remove(int64_t idx) {
-			assert(idx < size);
-			//swap and pop
-			T& v = data[size - 1];
-			data[idx] = v;
-			size--;
+			assert(0 <= idx && idx < size);
+			data[idx] = data[--size];
 		}
 
 		void remove_ordered(int64_t idx) {
