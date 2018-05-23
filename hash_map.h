@@ -105,7 +105,6 @@ namespace oak {
 			if (size == 0) { return -1; }
 			const auto h = HashFunc<K>{}(key);
 			const auto idx = static_cast<int64_t>(h & static_cast<size_t>(capacity - 1));
-			if (idx < firstIndex) { return -1; }
 			auto left = size;
 			for (int64_t d = 0; d <= furthest && left > 0; d++) {
 				const auto ridx = (idx + d) & (capacity - 1);
@@ -122,7 +121,6 @@ namespace oak {
 		int64_t find_hash(size_t h) const {
 			if (size == 0) { return -1; }
 			const auto idx = static_cast<int64_t>(h & static_cast<size_t>(capacity - 1));
-			if (idx < firstIndex) { return -1; }
 			auto left = size;
 			for (int64_t d = 0; d <= furthest && left > 0; d++) {
 				const auto ridx = (idx + d) & (capacity - 1);
@@ -191,7 +189,7 @@ namespace oak {
 		}
 
 		void remove(int64_t idx) {
-			assert(idx >= 0);
+			assert(idx >= 0 && idx < capacity);
 			assert(size > 0);
 			hashs[idx] = EMPTY_HASH;
 			size--;
