@@ -15,7 +15,7 @@ namespace oak::detail {
 	}
 
 	size_t to_str_size(int64_t v) {
-		int64_t c = 1;
+		int64_t c = 10;
 		size_t t = 1;
 		if (v < 0) {
 			v = -v;
@@ -32,7 +32,7 @@ namespace oak::detail {
 	}
 
 	size_t to_str_size(uint64_t v) {
-		uint64_t c = 1;
+		uint64_t c = 10;
 		size_t t = 1;
 		while (c <= v) {
 			t++;

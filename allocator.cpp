@@ -383,7 +383,6 @@ namespace oak {
 			return p;
 		} else {
 			//fallback to parent allocator
-			print_fmt("parent\n");
 			return parent->alloc(size);
 		}
 	}
