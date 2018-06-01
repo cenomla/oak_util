@@ -89,20 +89,20 @@ namespace oak {
 			size = 0;
 			capacity = 0;
 			firstIndex = 0;
+			furthest = 0;
 		}
 
-		int64_t find(const V& value) {
+		int64_t find(const V& value) const {
 			if (size == 0) { return -1; }
-			auto h = HashFunc<V>{}(value);
-			auto idx = static_cast<int64_t>(h & static_cast<size_t>(capacity - 1));
-			auto firstTaken = hashs[idx] != EMPTY_HASH;
-			for (int64_t d = 0; d < capacity; d++) {
-				auto ridx = (idx + d) & (capacity - 1);
+			const auto h = HashFunc<V>{}(value);
+			const auto idx = static_cast<int64_t>(h & static_cast<size_t>(capacity - 1));
+			auto left = size;
+			for (int64_t d = 0; d <= furthest && left > 0; d++) {
+				const auto ridx = (idx + d) & (capacity - 1);
 
-				if (firstTaken && hashs[ridx] == EMPTY_HASH) {
-					return -1;
+				if (hashs[ridx] != EMPTY_HASH) {
+					left--;
 				}
-
 				if (hashs[ridx] == h && CmpFunc<V, V>{}(values[ridx], value)) {
 					return ridx;
 				}
@@ -110,17 +110,15 @@ namespace oak {
 			return -1;
 		}
 
-		int64_t find_hash(size_t h) {
+		int64_t find_hash(size_t h) const {
 			if (size == 0) { return -1; }
-			auto idx = static_cast<int64_t>(h & static_cast<size_t>(capacity - 1));
-			auto firstTaken = hashs[idx] != EMPTY_HASH;
-			for (int64_t d = 0; d < capacity; d++) {
-				auto ridx = (idx + d) & (capacity - 1);
-
-				if (firstTaken && hashs[ridx] == EMPTY_HASH) {
-					return -1;
+			const auto idx = static_cast<int64_t>(h & static_cast<size_t>(capacity - 1));
+			auto left = size;
+			for (int64_t d = 0; d <= furthest && left > 0; d++) {
+				const auto ridx = (idx + d) & (capacity - 1);
+				if (hashs[ridx] != EMPTY_HASH) {
+					left--;
 				}
-
 				if (hashs[ridx] == h) {
 					return ridx;
 				}
@@ -128,12 +126,11 @@ namespace oak {
 			return -1;
 		}
 
-		bool has(const V& value) {
+		bool has(const V& value) const {
 			return find(value) != -1;
 		}
 
 		V* get(const V& value) {
-			if (capacity == 0) { return nullptr; }
 			auto idx = find(value);
 			return idx != -1 ? value + idx : nullptr;
 		}
@@ -142,13 +139,12 @@ namespace oak {
 			if (size == capacity) {
 				resize(capacity == 0 ? 4 : capacity * 2);
 			}
-			auto h = HashFunc<V>{}(value);
-			int64_t idx = h & (capacity - 1);
+			const auto h = HashFunc<V>{}(value);
+			const int64_t idx = h & (capacity - 1);
 			for (int64_t d = 0; d < capacity; d++) {
 				auto ridx = (idx + d) & (capacity - 1);
 
 				if (hashs[ridx] != EMPTY_HASH) {
-					//first check if the hash is equivalent
 					if (hashs[ridx] == h && CmpFunc<V, V>{}(values[ridx], value)) {
 						values[ridx] = value;
 						return values + ridx;
@@ -159,6 +155,9 @@ namespace oak {
 					if (ridx < firstIndex) {
 						firstIndex = ridx;
 					}
+					if (d > furthest) {
+						furthest = d;
+					}
 					size++;
 
 					return values + ridx;
@@ -168,10 +167,10 @@ namespace oak {
 		}
 
 		void remove(int64_t idx) {
-			assert(idx >= 0);
+			assert(idx >= 0 && idx < capacity);
 			assert(size > 0);
 			hashs[idx] = EMPTY_HASH;
-			size --;
+			size--;
 			if (firstIndex == idx) { //calculate new first index
 				firstIndex = capacity;
 				for (int64_t i = 0; i < capacity; i++) {
@@ -190,7 +189,7 @@ namespace oak {
 		V *values = nullptr;
 		size_t *hashs = nullptr;
 
-		int64_t size = 0, capacity = 0, firstIndex = 0;
+		int64_t size = 0, capacity = 0, firstIndex = 0, furthest = 0;
 	};
 
 }
