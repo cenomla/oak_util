@@ -110,5 +110,12 @@ namespace oak {
 		buffer_fmt(FileBuffer{ stdout }, fmtStr, std::forward<TArgs>(args)...);
 	}
 
+	template<typename... TArgs>
+	String fmt(IAllocator *allocator, String fmtStr, TArgs&&... args) {
+		Array<char> string{ allocator };
+		buffer_fmt(ArrayBuffer{ &string }, fmtStr, std::forward<TArgs>(args)...);
+		return string;
+	}
+
 }
 

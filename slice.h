@@ -9,12 +9,12 @@
 
 namespace oak {
 
-	constexpr size_t c_str_len(const char *str) {
-		const char *c = str;
+	constexpr int64_t c_str_len(const char *str) {
+		auto c = str;
 		while (*c) {
 			c++;
 		}
-		return reinterpret_cast<uintptr_t>(c) - reinterpret_cast<uintptr_t>(str);
+		return reinterpret_cast<int64_t>(c - str);
 	}
 
 	template<typename T>
@@ -26,7 +26,7 @@ namespace oak {
 		template<int64_t C, typename U = T, typename = std::enable_if_t<!std::is_same_v<U, char>>>
 		constexpr Slice(T (&array)[C]) : data{ &array[0] }, size{ static_cast<int64_t>(C) } {}
 		template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, char>>>
-		constexpr Slice(const char *cstr) : data{ const_cast<char*>(cstr) }, size{ static_cast<int64_t>(c_str_len(cstr)) } {}
+		constexpr Slice(const char *cstr) : data{ const_cast<char*>(cstr) }, size{ c_str_len(cstr) } {}
 
 		constexpr int64_t find(const T& v, int64_t start = 0) const {
 			if (!data) { return -1; }
@@ -61,6 +61,11 @@ namespace oak {
 	constexpr bool operator==(const Slice<T>& lhs, const Slice<T>& rhs) {
 		if (lhs.size != rhs.size) { return false; }
 		if (lhs.size == 0) { return true; }
+		// This next early exit check was implemented for the use of string pools.
+		// However if the slices are the same size and point to the same memory they must contain the same contents
+		// so this is check shouldn't break anything even for non interned slices.
+		// -coleman 6.1.2018
+		if (lhs.data == rhs.data) { return true; }
 		for (int64_t i = 0; i < lhs.size; i++) {
 			if (lhs[i] != rhs[i]) {
 				return false;

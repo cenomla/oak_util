@@ -93,6 +93,11 @@ namespace oak {
 		}
 	};
 
+	template<typename T>
+	constexpr decltype(auto) enum_int(T val) {
+		return static_cast<std::underlying_type_t<T>>(val);
+	}
+
 	template<typename T> std::enable_if_t<
 		!(std::is_pointer_v<T> || std::is_array_v<T>),
 		const TypeInfo*> type_info();
