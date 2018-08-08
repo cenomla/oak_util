@@ -8,6 +8,8 @@
 #include "ptr.h"
 #include "osig_defs.h"
 
+#define ssizeof(x) static_cast<int64_t>(sizeof(x))
+
 namespace oak {
 
 	template<typename T>
