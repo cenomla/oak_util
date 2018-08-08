@@ -23,7 +23,7 @@ namespace oak {
 			}
 
 			inline bool operator!=(const Iterator& other) const { return !operator==(other); }
-			T& operator*() { return data[idx >> log2(poolCapacity)][idx & (poolCapacity - 1)]; }
+			T& operator*() { return data[idx >> blog2(poolCapacity)][idx & (poolCapacity - 1)]; }
 
 			T **data = nullptr;
 			int64_t poolCapacity = 0;
@@ -87,11 +87,11 @@ namespace oak {
 		}
 
 		T& operator[](int64_t idx) {
-			return data[idx >> log2(poolCapacity)][idx & (poolCapacity - 1)];
+			return data[idx >> blog2(poolCapacity)][idx & (poolCapacity - 1)];
 		}
 
 		const T& operator[](int64_t idx) const {
-			return data[idx >> log2(poolCapacity)][idx & (poolCapacity - 1)];
+			return data[idx >> blog2(poolCapacity)][idx & (poolCapacity - 1)];
 		}
 
 		inline Iterator begin() { return Iterator{ data, poolCapacity, 0 }; }

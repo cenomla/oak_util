@@ -34,7 +34,7 @@ namespace oak {
 		return static_cast<int64_t>(ensure_pow2(static_cast<uint64_t>(value)));
 	}
 
-	constexpr uint64_t log2(uint64_t value) {
+	constexpr uint64_t blog2(uint64_t value) {
 		return 63ull - clz(value);
 	}
 

@@ -79,8 +79,8 @@ namespace oak {
 		static constexpr int64_t MIN_POOL_SIZE = 4; //size in bytes of smallest pool
 		static constexpr int64_t MAX_POOL_SIZE = 4096; //size in bytes of largest pool
 		static constexpr int64_t POOL_INITIAL_ALLOCATION_COUNT = 32;
-		static constexpr int64_t POOL_COUNT = log2(MAX_POOL_SIZE) - log2(MIN_POOL_SIZE);
-		static constexpr int64_t POOL_FIRST_INDEX = log2(MIN_POOL_SIZE);
+		static constexpr int64_t POOL_COUNT = blog2(MAX_POOL_SIZE) - blog2(MIN_POOL_SIZE);
+		static constexpr int64_t POOL_FIRST_INDEX = blog2(MIN_POOL_SIZE);
 
 		struct Pool {
 			void *firstBlock = nullptr;

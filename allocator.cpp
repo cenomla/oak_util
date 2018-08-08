@@ -371,7 +371,7 @@ namespace oak {
 	}
 
 	void* PoolAllocator::alloc(size_t size) {
-		int32_t idx = log2(size) - POOL_FIRST_INDEX;
+		int32_t idx = blog2(size) - POOL_FIRST_INDEX;
 		if (idx < POOL_COUNT) {
 			if (!pools[idx].freelist) {
 				grow_pool(idx);
@@ -388,7 +388,7 @@ namespace oak {
 	}
 
 	void PoolAllocator::free(const void *ptr, size_t size) {
-		int32_t idx = log2(size) - POOL_FIRST_INDEX;
+		int32_t idx = blog2(size) - POOL_FIRST_INDEX;
 		if (idx < POOL_COUNT) {
 			auto p = const_cast<void*>(ptr);
 			*static_cast<void**>(p) = pools[idx].freelist;
