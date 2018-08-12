@@ -27,5 +27,12 @@ namespace oak {
 		}
 	};
 
+	template<>
+	struct HashFunc<int32_t> {
+		constexpr size_t operator()(const int32_t& v) const {
+			return static_cast<size_t>(v + (std::numeric_limits<int16_t>::max() - 1));
+		}
+	};
+
 }
 

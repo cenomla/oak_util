@@ -157,7 +157,7 @@ namespace oak {
 		}
 
 		V* put(const K& key, const V& value) {
-			if (size == capacity) {
+			if (size == capacity || furthest > 32) {
 				resize(capacity == 0 ? 4 : capacity * 2);
 			}
 			const auto h = HashFunc<K>{}(key);
