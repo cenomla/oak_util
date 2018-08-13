@@ -51,8 +51,8 @@ namespace oak {
 			auto count = nsize * (sizeof(K) + sizeof(V) + sizeof(size_t));
 			auto mem = allocator->alloc(count);
 			nmap.keys = static_cast<K*>(mem);
-			nmap.values = static_cast<V*>(ptr::add(mem, nsize * sizeof(K)));
-			nmap.hashs = static_cast<size_t*>(ptr::add(mem, nsize * (sizeof(K) + sizeof(V))));
+			nmap.values = static_cast<V*>(add_ptr(mem, nsize * sizeof(K)));
+			nmap.hashs = static_cast<size_t*>(add_ptr(mem, nsize * (sizeof(K) + sizeof(V))));
 			std::memset(nmap.keys, 0, nsize * sizeof(K));
 			std::memset(nmap.values, 0, nsize * sizeof(V));
 			std::memset(nmap.hashs, 0xFF, nsize * sizeof(size_t));

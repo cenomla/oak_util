@@ -46,7 +46,7 @@ namespace oak {
 			auto count = nsize * (sizeof(V) + sizeof(size_t));
 			auto mem = allocator->alloc(count);
 			nset.values = static_cast<V*>(mem);
-			nset.hashs = static_cast<size_t*>(ptr::add(mem, nsize * sizeof(V)));
+			nset.hashs = static_cast<size_t*>(add_ptr(mem, nsize * sizeof(V)));
 			std::memset(nset.values, 0, nsize * sizeof(V));
 			std::memset(nset.hashs, 0xFF, nsize * sizeof(size_t));
 			nset.size = 0;

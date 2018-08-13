@@ -1,25 +1,32 @@
 #pragma once
 
-#include <new>
-
-#include "allocator.h"
+#include "ptr.h"
 
 namespace oak {
 
-	template<typename T, typename... TArgs>
-	T* make(IAllocator *allocator, TArgs&&... parameters) {
-		auto mem = allocator->alloc(sizeof(T));
-		new (mem) T{ parameters... };
-		return static_cast<T*>(mem);
-	}
+	struct MemoryArenaHeader {
+		size_t alignment;
+		int64_t allocationCount;
+		int64_t allocatedMemory;
+		int64_t usedMemory;
+		void *next;
+	};
+
+	struct MemoryArena {
+		void *block = nullptr;
+		size_t size = 0;
+	};
+
+	MemoryArena create_memory_arena(size_t size, size_t alignment);
+	void destroy_memory_arena(MemoryArena *arena);
+	void *allocate_from_arena(MemoryArena *arena, size_t size, size_t count);
+	void clear_arena(MemoryArena *arena);
 
 	template<typename T, typename... TArgs>
-	T* make_array(IAllocator *allocator, size_t count, TArgs&&... parameters) {
-		auto mem = static_cast<T*>(allocator->alloc(sizeof(T) * count));
-		for (size_t i = 0; i < count; i++) {
-			new (mem + i) T { parameters... };
-		}
-		return mem;
+	T* make(MemoryArena *arena, size_t count, TArgs&&... parameters) {
+		auto mem = allocate_from_arena(arena, sizeof(T), count);
+		new (mem) T{ parameters... };
+		return static_cast<T*>(mem);
 	}
 
 }

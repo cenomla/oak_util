@@ -3,21 +3,21 @@
 #include <cstddef>
 #include <cinttypes>
 
-namespace oak::ptr {
+namespace oak {
 
-	inline void* add(void* p, size_t x) {
+	inline void* add_ptr(void *p, size_t x) {
 		return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(p) + x);
 	}
 
-	inline const void* add(const void* p, size_t x) {
+	inline const void* add_ptr(const void *p, size_t x) {
 		return reinterpret_cast<const void*>(reinterpret_cast<uintptr_t>(p) + x);
 	}
 
-	inline void* subtract(void* p, size_t x) {
+	inline void* sub_ptr(void* p, size_t x) {
 		return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(p) - x);
 	}
 
-	inline const void* subtract(const void* p, size_t x) {
+	inline const void* sub_ptr(const void *p, size_t x) {
 		return reinterpret_cast<const void*>(reinterpret_cast<uintptr_t>(p) - x);
 	}
 	inline size_t align_size(size_t size, uint32_t alignment) {
@@ -30,7 +30,7 @@ namespace oak::ptr {
 	}
 
 	inline void* align_address(void *address, uint32_t alignment) {
-		return add(address, align_offset(address, alignment));
+		return add_ptr(address, align_offset(address, alignment));
 	}
 
 	inline uint32_t align_offset_with_header(const void *address, uint32_t alignment, uint32_t headerSize) {

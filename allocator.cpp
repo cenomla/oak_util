@@ -38,12 +38,12 @@ namespace oak {
 
 		numAllocs ++;
 
-		return ptr::add(ptr, sizeof(MemBlock));
+		return add_ptr(ptr, sizeof(MemBlock));
 	}
 
 	void ProxyAllocator::free(const void *ptr, size_t size) {
 		//search through linked list for ptr - sizeof(memList) then remove from list and deallocate
-		auto memBlock = static_cast<const MemBlock*>(ptr::subtract(ptr, sizeof(MemBlock)));
+		auto memBlock = static_cast<const MemBlock*>(sub_ptr(ptr, sizeof(MemBlock)));
 
 		MemBlock *p = memList;
 		MemBlock *prev = nullptr;
@@ -94,7 +94,7 @@ namespace oak {
 		header->size = totalPageSize;
 		//fill in the rest of the struct
 		pagePtr = start;
-		pos = ptr::add(start, sizeof(MemBlock));
+		pos = add_ptr(start, sizeof(MemBlock));
 	}
 
 	void LinearAllocator::destroy() {
@@ -116,7 +116,7 @@ namespace oak {
 	void* LinearAllocator::alloc(size_t size) {
 		assert(size != 0 && size <= pageSize);
 
-		uint32_t adjustment = ptr::align_offset(pos, alignment);
+		uint32_t adjustment = align_offset(pos, alignment);
 		uintptr_t alignedAddress = reinterpret_cast<uintptr_t>(pos) + adjustment;
 		MemBlock *header = static_cast<MemBlock*>(pagePtr);
 
@@ -125,8 +125,8 @@ namespace oak {
 				grow();
 			}
 			pagePtr = header->next;
-			pos = ptr::add(pagePtr, sizeof(MemBlock));
-			adjustment = ptr::align_offset(pos, alignment);
+			pos = add_ptr(pagePtr, sizeof(MemBlock));
+			adjustment = align_offset(pos, alignment);
 			alignedAddress = reinterpret_cast<uintptr_t>(pos) + adjustment;
 		}
 
@@ -152,7 +152,7 @@ namespace oak {
 
 	void LinearAllocator::clear() {
 		pagePtr = start;
-		pos = ptr::add(pagePtr, sizeof(MemBlock));
+		pos = add_ptr(pagePtr, sizeof(MemBlock));
 	}
 
 	void LinearAllocator::grow() {
@@ -201,7 +201,7 @@ namespace oak {
 
 		while (p) {
 			//Calculate adjustment needed to keep object correctly aligned
-			uint32_t adjustment = ptr::align_offset_with_header(p, alignment, sizeof(AllocationHeader));
+			uint32_t adjustment = align_offset_with_header(p, alignment, sizeof(AllocationHeader));
 
 			size_t totalSize = size + adjustment;
 
@@ -227,7 +227,7 @@ namespace oak {
 				}
 			} else {
 				//else create a new FreeBlock containing remaining memory
-				MemBlock* next = static_cast<MemBlock*>(ptr::add(p, totalSize));
+				MemBlock* next = static_cast<MemBlock*>(add_ptr(p, totalSize));
 				next->size = p->size - totalSize;
 				next->next = p->next;
 
@@ -245,7 +245,7 @@ namespace oak {
 			header->size = totalSize;
 			header->adjustment = adjustment;
 
-			assert(ptr::align_offset(reinterpret_cast<void*>(alignedAddress), alignment) == 0);
+			assert(align_offset(reinterpret_cast<void*>(alignedAddress), alignment) == 0);
 
 			return reinterpret_cast<void*>(alignedAddress);
 		}
@@ -256,7 +256,7 @@ namespace oak {
 	void FreelistAllocator::free(const void *ptr, size_t size) {
 		assert(ptr != nullptr);
 
-		const AllocationHeader* header = static_cast<const AllocationHeader*>(ptr::subtract(ptr, sizeof(AllocationHeader)));
+		const AllocationHeader* header = static_cast<const AllocationHeader*>(sub_ptr(ptr, sizeof(AllocationHeader)));
 
 		uintptr_t   blockStart = reinterpret_cast<uintptr_t>(ptr) - header->adjustment;
 		size_t blockSize = header->size;
@@ -412,12 +412,12 @@ namespace oak {
 		//first 8 bytes of the block is the next pointer so set it to nullptr
 		*static_cast<void**>(block) = nullptr;
 		//create a freelist out of the block
-		pools[idx].freelist = static_cast<void**>(ptr::add(block, sizeof(void*)));
+		pools[idx].freelist = static_cast<void**>(add_ptr(block, sizeof(void*)));
 
 		auto p = pools[idx].freelist;
 
 		for (int32_t i = 0; i < allocationCount - 1; i++) {
-			*p = ptr::add(p, allocationSize);
+			*p = add_ptr(p, allocationSize);
 			p = static_cast<void**>(*p);
 		}
 
@@ -446,14 +446,14 @@ namespace oak {
 		header->size = totalPageSize;
 
 		//make sure the size is aligned
-		objectSize = ptr::align_size(objectSize, alignment);
+		objectSize = align_size(objectSize, alignment);
 
-		freeList = static_cast<void**>(ptr::add(start, sizeof(MemBlock)));
+		freeList = static_cast<void**>(add_ptr(start, sizeof(MemBlock)));
 
 		void **p = freeList;
 
 		for (size_t i = 0; i < count() - 1; i++) {
-			*p = ptr::add(p, objectSize);
+			*p = add_ptr(p, objectSize);
 			p = static_cast<void**>(*p);
 		}
 
@@ -531,12 +531,12 @@ namespace oak {
 		header->next = nullptr;
 		header->size = totalPageSize;
 
-		*prev = ptr::add(ptr, sizeof(MemBlock));
+		*prev = add_ptr(ptr, sizeof(MemBlock));
 
 		p = static_cast<void**>(*prev);
 
 		for (size_t i = 0; i < count() - 1; i++) {
-			*p = ptr::add(p, objectSize);
+			*p = add_ptr(p, objectSize);
 			p = static_cast<void**>(*p);
 		}
 
