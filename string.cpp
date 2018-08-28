@@ -3,7 +3,7 @@
 #include <cstring>
 #include <cstdio>
 
-#include "allocator.h"
+#include "memory.h"
 
 namespace oak {
 
@@ -80,17 +80,10 @@ namespace oak {
 	}
 
 	const char* as_c_str(const String str) {
-		static char cstr[2048]{ 0 };
-		//if (is_c_str()) { return data; }
-		std::memmove(cstr, str.data, str.size);
-		cstr[str.size] = 0;
-		return cstr;
-	}
-
-	const char* make_c_str(const String str, IAllocator *allocator) {
 		if (!str.size) { return ""; }
-		auto cstr = static_cast<char*>(allocator->alloc(str.size + 1));
-		std::memcpy(cstr, str.data, str.size);
+		if (is_c_str(str)) { return str.data; }
+		auto cstr = allocate_structs<char>(temporaryMemory, str.size + 1);
+		std::memmove(cstr, str.data, str.size);
 		cstr[str.size] = 0;
 		return cstr;
 	}

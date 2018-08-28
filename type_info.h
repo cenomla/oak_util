@@ -9,6 +9,8 @@
 #include "osig_defs.h"
 
 #define ssizeof(x) static_cast<int64_t>(sizeof(x))
+#define array_element_count(x) (sizeof(x)/sizeof(*x))
+#define sarray_element_count(x) static_cast<int64_t>(array_element_count(x))
 
 namespace oak {
 

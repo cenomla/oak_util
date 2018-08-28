@@ -5,11 +5,15 @@
 namespace oak {
 
 	struct MemoryArenaHeader {
-		size_t alignment;
 		int64_t allocationCount;
 		int64_t allocatedMemory;
 		int64_t usedMemory;
 		void *next;
+	};
+
+	struct StackHeader {
+		int64_t allocationCount;
+		int64_t allocatedMemory;
 	};
 
 	struct MemoryArena {
@@ -17,16 +21,44 @@ namespace oak {
 		size_t size = 0;
 	};
 
-	MemoryArena create_memory_arena(size_t size, size_t alignment);
+	MemoryArena create_memory_arena(size_t size);
+	MemoryArena create_memory_arena(void *block, size_t size);
 	void destroy_memory_arena(MemoryArena *arena);
-	void *allocate_from_arena(MemoryArena *arena, size_t size, size_t count);
+
+	void *allocate_from_arena(MemoryArena *arena, size_t size, int64_t count, size_t alignment);
 	void clear_arena(MemoryArena *arena);
 
-	template<typename T, typename... TArgs>
-	T* make(MemoryArena *arena, size_t count, TArgs&&... parameters) {
-		auto mem = allocate_from_arena(arena, sizeof(T), count);
-		new (mem) T{ parameters... };
-		return static_cast<T*>(mem);
+	void* push_stack(MemoryArena *arena);
+	void pop_stack(MemoryArena *arena, void *stackPtr);
+
+	struct ArenaStack {
+		MemoryArena *arena = nullptr;
+		void *stackPtr = nullptr;
+
+		ArenaStack(MemoryArena *arena_) : arena{ arena_ }, stackPtr{ push_stack(arena) } {}
+
+		~ArenaStack() {
+			pop_stack(arena, stackPtr);
+		}
+	};
+
+
+	template<typename T>
+	T* allocate_structs(MemoryArena *arena, int64_t count) {
+		auto structsPtr = static_cast<T*>(allocate_from_arena(arena, sizeof(T), count, alignof(T)));
+		return structsPtr;
 	}
 
+	template<typename T, typename... TArgs>
+	T* make_structs(MemoryArena *arena, int64_t count, TArgs&&... parameters) {
+		auto structsPtr = static_cast<T*>(allocate_from_arena(arena, sizeof(T), count, alignof(T)));
+		for (int64_t i = 0; i < count; i++) {
+			structsPtr[i] = { parameters... };
+		}
+		return structsPtr;
+	}
+
+	inline MemoryArena *temporaryMemory = nullptr;
+
 }
+

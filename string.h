@@ -10,8 +10,6 @@
 
 namespace oak {
 
-	struct IAllocator;
-
 	using String = Slice<char>;
 
 	String substr(const String str, int64_t start, int64_t end = -1);
@@ -22,7 +20,6 @@ namespace oak {
 	void splitstr(const String str, String delimeters, Array<String>& tokens);
 	bool is_c_str(const String str);
 	const char* as_c_str(const String str);
-	const char* make_c_str(const String str, IAllocator *allocator);
 
 	template<>
 	struct HashFunc<String> {

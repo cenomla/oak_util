@@ -3,7 +3,6 @@
 #include <cstring>
 #include <cassert>
 #include <initializer_list>
-#include <new>
 
 #include "allocator.h"
 #include "slice.h"
@@ -50,7 +49,7 @@ namespace oak {
 			reserve(nsize);
 			auto mem = const_cast<std::remove_const_t<T>*>(data);
 			for (auto i = size; i < nsize; i++) {
-				new (mem + i) T{ value };
+				mem[i] = T{ value };
 			}
 			size = nsize;
 		}

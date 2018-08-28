@@ -373,12 +373,12 @@ namespace oak {
 	void* PoolAllocator::alloc(size_t size) {
 		int32_t idx = blog2(size) - POOL_FIRST_INDEX;
 		if (idx < POOL_COUNT) {
-			if (!pools[idx].freelist) {
+			if (!pools[idx].freeList) {
 				grow_pool(idx);
 			}
 
-			void *p = pools[idx].freelist;
-			pools[idx].freelist = static_cast<void**>(*pools[idx].freelist);
+			void *p = pools[idx].freeList;
+			pools[idx].freeList = static_cast<void**>(*pools[idx].freeList);
 
 			return p;
 		} else {
@@ -391,8 +391,8 @@ namespace oak {
 		int32_t idx = blog2(size) - POOL_FIRST_INDEX;
 		if (idx < POOL_COUNT) {
 			auto p = const_cast<void*>(ptr);
-			*static_cast<void**>(p) = pools[idx].freelist;
-			pools[idx].freelist = static_cast<void**>(p);
+			*static_cast<void**>(p) = pools[idx].freeList;
+			pools[idx].freeList = static_cast<void**>(p);
 		} else {
 			parent->free(ptr, size);
 		}
@@ -403,7 +403,7 @@ namespace oak {
 	}
 
 	void PoolAllocator::grow_pool(int32_t idx) {
-		assert(!pools[idx].freelist);
+		assert(!pools[idx].freeList);
 
 		//allocate a new block
 		auto allocationSize = (1ll << (idx + POOL_FIRST_INDEX));
@@ -411,10 +411,10 @@ namespace oak {
 		auto block = parent->alloc(sizeof(void*) + allocationSize * allocationCount);
 		//first 8 bytes of the block is the next pointer so set it to nullptr
 		*static_cast<void**>(block) = nullptr;
-		//create a freelist out of the block
-		pools[idx].freelist = static_cast<void**>(add_ptr(block, sizeof(void*)));
+		//create a freeList out of the block
+		pools[idx].freeList = static_cast<void**>(add_ptr(block, sizeof(void*)));
 
-		auto p = pools[idx].freelist;
+		auto p = pools[idx].freeList;
 
 		for (int32_t i = 0; i < allocationCount - 1; i++) {
 			*p = add_ptr(p, allocationSize);

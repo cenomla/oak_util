@@ -86,7 +86,7 @@ namespace oak {
 			void *firstBlock = nullptr;
 			void *lastBlock = nullptr;
 			int64_t blockCount = 0;
-			void **freelist = nullptr;
+			void **freeList = nullptr;
 		};
 
 		IAllocator *parent = nullptr;
