@@ -76,7 +76,7 @@ namespace oak {
 				if (hashs[ridx] != EMPTY_HASH) {
 					left--;
 				}
-				if (hashs[ridx] == h && CmpFunc<K, K>{}(keys[ridx], key)) {
+				if (hashs[ridx] == h && EqualFunc<K, K>{}(keys[ridx], key)) {
 					return ridx;
 				}
 			}
@@ -104,7 +104,7 @@ namespace oak {
 			for (int64_t i = firstIndex; i < capacity && left > 0; i++) {
 				if (hashs[i] != EMPTY_HASH) {
 					left--;
-					if (CmpFunc<V, V>{}(values[i], value)) {
+					if (EqualFunc<V, V>{}(values[i], value)) {
 						return i;
 					}
 				}
@@ -128,7 +128,7 @@ namespace oak {
 				auto ridx = (idx + d) & (capacity - 1);
 
 				if (hashs[ridx] != EMPTY_HASH) {
-					if (hashs[ridx] == h && CmpFunc<K, K>{}(keys[ridx], key)) {
+					if (hashs[ridx] == h && EqualFunc<K, K>{}(keys[ridx], key)) {
 						values[ridx] = value;
 						return values + ridx;
 					}
@@ -250,7 +250,7 @@ namespace oak {
 			for (int64_t i = firstIndex; i < capacity && left > 0; i++) {
 				if (keys[i] != NULL_KEY) {
 					left--;
-					if (CmpFunc<V, V>{}(values[i], value)) {
+					if (EqualFunc<V, V>{}(values[i], value)) {
 						return i;
 					}
 				}
