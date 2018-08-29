@@ -42,7 +42,6 @@ namespace oak {
 		}
 	};
 
-
 	template<typename T>
 	T* allocate_structs(MemoryArena *arena, int64_t count) {
 		auto structsPtr = static_cast<T*>(allocate_from_arena(arena, sizeof(T), count, alignof(T)));

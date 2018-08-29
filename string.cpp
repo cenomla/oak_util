@@ -9,13 +9,13 @@ namespace oak {
 
 	String substr(const String str, int64_t start, int64_t end) {
 		//bounds checking
-		if (end == -1) { end = str.size; }
+		if (end == -1) { end = str.count; }
 		return String{ str.data + start, end - start };
 	}
 
 	int64_t find_first_of(const String str, String delimeters, int64_t start) {
-		for (auto i = start; i < str.size; i++) {
-			for (int64_t j = 0; j < delimeters.size; j++) {
+		for (auto i = start; i < str.count; i++) {
+			for (int64_t j = 0; j < delimeters.count; j++) {
 				if (str.data[i] == delimeters.data[j]) {
 					return i;
 				}
@@ -26,9 +26,9 @@ namespace oak {
 
 	int64_t find_first_not_of(const String str, String delimeters, int64_t start) {
 		bool found;
-		for (auto i = start; i < str.size; i++) {
+		for (auto i = start; i < str.count; i++) {
 			found = false;
-			for (int64_t j = 0; j < delimeters.size; j++) {
+			for (int64_t j = 0; j < delimeters.count; j++) {
 				if (str.data[i] == delimeters.data[j]) {
 					found = true;
 					break;
@@ -42,8 +42,8 @@ namespace oak {
 	}
 
 	int64_t find_last_of(const String str, String delimeters, int64_t start) {
-		for (auto i = str.size; i > start; i--) {
-			for (int64_t j = 0; j < delimeters.size; j++) {
+		for (auto i = str.count; i > start; i--) {
+			for (int64_t j = 0; j < delimeters.count; j++) {
 				if (str.data[i - 1] == delimeters.data[j]) {
 					return i - 1;
 				}
@@ -53,9 +53,9 @@ namespace oak {
 	}
 
 	int64_t find_string(const String str, String value, int64_t start) {
-		if (str.size < value.size) { return -1; }
-		for (auto i = start; i <= str.size - value.size; i++) {
-			if (value == String{ str.data + i, value.size }) {
+		if (str.count < value.count) { return -1; }
+		for (auto i = start; i <= str.count - value.count; i++) {
+			if (value == String{ str.data + i, value.count }) {
 				return i;
 			}
 		}
@@ -76,16 +76,24 @@ namespace oak {
 	}
 
 	bool is_c_str(const String str) {
-		return str.data + str.size == 0;
+		return str.data + str.count == 0;
 	}
 
 	const char* as_c_str(const String str) {
-		if (!str.size) { return ""; }
+		if (!str.count) { return ""; }
 		if (is_c_str(str)) { return str.data; }
-		auto cstr = allocate_structs<char>(temporaryMemory, str.size + 1);
-		std::memmove(cstr, str.data, str.size);
-		cstr[str.size] = 0;
+		auto cstr = allocate_structs<char>(temporaryMemory, str.count + 1);
+		std::memmove(cstr, str.data, str.count);
+		cstr[str.count] = 0;
 		return cstr;
+	}
+
+	String copy_str(const String str, IAllocator *allocator) {
+		String string;
+		string.count = str.count;
+		string.data = static_cast<char*>(allocator->alloc(string.count));
+		std::memcpy(string.data, str.data, string.count);
+		return string;
 	}
 
 }

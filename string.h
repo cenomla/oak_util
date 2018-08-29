@@ -20,13 +20,14 @@ namespace oak {
 	void splitstr(const String str, String delimeters, Array<String>& tokens);
 	bool is_c_str(const String str);
 	const char* as_c_str(const String str);
+	String copy_str(const String str, IAllocator *allocator);
 
 	template<>
 	struct HashFunc<String> {
 		constexpr size_t operator()(const String& str) const {
 			size_t hash = 0;
 
-			for (auto i = 0ll; i < str.size; i++) {
+			for (auto i = 0ll; i < str.count; i++) {
 				hash = str.data[i] + (hash << 6) + (hash << 16) - hash;
 			}
 

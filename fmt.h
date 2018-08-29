@@ -32,7 +32,7 @@ namespace oak::detail {
 	template<typename Buffer>
 	void print_fmt_impl(Buffer&& buffer, String fmtStr, size_t start) {
 		auto str = substr(fmtStr, start);
-		buffer.write(str.data, str.size);
+		buffer.write(str.data, str.count);
 	}
 
 	template<typename Buffer, typename TArg, typename... TArgs>
@@ -40,15 +40,15 @@ namespace oak::detail {
 		//find each instance of %
 		auto pos = fmtStr.find('%', start);
 		auto str = substr(fmtStr, start, pos);
-		if (pos < fmtStr.size - 1 &&
+		if (pos < fmtStr.count - 1 &&
 				fmtStr[pos + 1] == '%') {
 			buffer.write("%", 1);
 		} else if (pos == -1) {
-			buffer.write(str.data, str.size);
+			buffer.write(str.data, str.count);
 		} else {
 			auto argStr = detail::to_str(arg);
-			buffer.write(str.data, str.size);
-			buffer.write(argStr.data, argStr.size);
+			buffer.write(str.data, str.count);
+			buffer.write(argStr.data, argStr.count);
 			print_fmt_impl(buffer, fmtStr, pos + 1, std::forward<TArgs>(args)...);
 		}
 	}
@@ -99,7 +99,7 @@ namespace oak {
 					totalSize += size;
 				}
 			}
-			totalSize += fmtStr.size - sizeof...(args);
+			totalSize += fmtStr.count - sizeof...(args);
 			buffer.resize(totalSize);
 		}
 		detail::print_fmt_impl(std::forward<Buffer>(buffer), fmtStr, 0, std::forward<TArgs>(args)...);

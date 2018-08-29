@@ -62,7 +62,7 @@ namespace oak::detail {
 	}
 
 	size_t to_str_size(String v) {
-		return v.size;
+		return v.count;
 	}
 
 	String to_str(char v) {
