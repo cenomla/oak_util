@@ -56,12 +56,21 @@ namespace oak {
 			}
 		}
 
+		void clear() {
+			for (int64_t i = 0; i < capacity; i++) {
+				hashs[i] = EMPTY_HASH;
+			}
+			count = 0;
+			firstIndex = 0;
+			furthest = 0;
+		}
+
 		int64_t find(const K& key) const {
 			assert(keys);
-			if (size == 0) { return -1; }
+			if (count == 0) { return -1; }
 			const auto h = HashFunc<K>{}(key);
 			const int64_t idx = h & (capacity - 1);
-			auto left = size;
+			auto left = count;
 			for (int64_t d = 0; d <= furthest && left > 0; d++) {
 				const auto ridx = (idx + d) & (capacity - 1);
 				if (hashs[ridx] != EMPTY_HASH) {
@@ -75,9 +84,9 @@ namespace oak {
 		}
 
 		int64_t find_hash(size_t h) const {
-			if (size == 0) { return -1; }
+			if (count == 0) { return -1; }
 			const int64_t idx = h & (capacity - 1);
-			auto left = size;
+			auto left = count;
 			for (int64_t d = 0; d <= furthest && left > 0; d++) {
 				const auto ridx = (idx + d) & (capacity - 1);
 				if (hashs[ridx] != EMPTY_HASH) {
@@ -91,7 +100,7 @@ namespace oak {
 		}
 
 		int64_t find_value(const V& value) const {
-			auto left = size;
+			auto left = count;
 			for (int64_t i = firstIndex; i < capacity && left > 0; i++) {
 				if (hashs[i] != EMPTY_HASH) {
 					left--;
@@ -133,7 +142,7 @@ namespace oak {
 					if (d > furthest) {
 						furthest = d;
 					}
-					size++;
+					count++;
 
 					return values + ridx;
 				}
@@ -144,9 +153,9 @@ namespace oak {
 		void remove(int64_t idx) {
 			assert(keys);
 			assert(idx >= 0 && idx < capacity);
-			assert(size > 0);
+			assert(count > 0);
 			hashs[idx] = EMPTY_HASH;
-			size--;
+			count--;
 			if (firstIndex == idx) { //calculate new first index
 				firstIndex = capacity;
 				for (int64_t i = 0; i < capacity; i++) {
@@ -165,7 +174,7 @@ namespace oak {
 		V *values = nullptr;
 		size_t *hashs = nullptr;
 
-		int64_t size = 0, capacity = 0, firstIndex = 0, furthest = 0;
+		int64_t count = 0, capacity = 0, firstIndex = 0, furthest = 0;
 	};
 
 	template<typename V>
@@ -210,11 +219,20 @@ namespace oak {
 			}
 		}
 
+		void clear() {
+			for (int64_t i = 0; i < capacity; i++) {
+				keys[i] = NULL_KEY;
+			}
+			count = 0;
+			firstIndex = 0;
+			furthest = 0;
+		}
+
 		int64_t find(const size_t key) const {
 			assert(keys);
-			if (size == 0) { return -1; }
+			if (count == 0) { return -1; }
 			const int64_t idx = key & (capacity - 1);
-			auto left = size;
+			auto left = count;
 			for (int64_t d = 0; d <= furthest && left > 0; d++) {
 				const auto ridx = (idx + d) & (capacity - 1);
 				if (keys[ridx] != NULL_KEY) {
@@ -228,7 +246,7 @@ namespace oak {
 		}
 
 		int64_t find_value(const V& value) const {
-			auto left = size;
+			auto left = count;
 			for (int64_t i = firstIndex; i < capacity && left > 0; i++) {
 				if (keys[i] != NULL_KEY) {
 					left--;
@@ -268,7 +286,7 @@ namespace oak {
 					if (d > furthest) {
 						furthest = d;
 					}
-					size++;
+					count++;
 
 					return values + ridx;
 				}
@@ -279,9 +297,9 @@ namespace oak {
 		void remove(int64_t idx) {
 			assert(keys);
 			assert(idx >= 0 && idx < capacity);
-			assert(size > 0);
+			assert(count > 0);
 			keys[idx] = NULL_KEY;
-			size--;
+			count--;
 			if (firstIndex == idx) { //calculate new first index
 				firstIndex = capacity;
 				for (int64_t i = 0; i < capacity; i++) {
@@ -299,7 +317,7 @@ namespace oak {
 		size_t *keys = nullptr;
 		V *values = nullptr;
 
-		int64_t size = 0, capacity = 0, firstIndex = 0, furthest = 0;
+		int64_t count = 0, capacity = 0, firstIndex = 0, furthest = 0;
 	};
 
 }
