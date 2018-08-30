@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <utility>
 
+#include "memory.h"
 #include "string.h"
 
 namespace oak::detail {
@@ -71,19 +72,12 @@ namespace oak {
 		FILE *file = nullptr;
 	};
 
-	struct CharBuffer {
-		void write(const void *data, size_t size);
-
-		char *buffer = nullptr;
-		size_t bufferSize = 0;
-		size_t pos = 0;
-	};
-
-	struct ArrayBuffer {
+	struct StringBuffer {
 		void write(const void *data, size_t size);
 		void resize(size_t size);
 
-		Array<char> *buffer = nullptr;
+		MemoryArena *arena = nullptr;
+		String *buffer = nullptr;
 		size_t pos = 0;
 	};
 
@@ -111,9 +105,9 @@ namespace oak {
 	}
 
 	template<typename... TArgs>
-	String fmt(IAllocator *allocator, String fmtStr, TArgs&&... args) {
-		Array<char> string{ allocator };
-		buffer_fmt(ArrayBuffer{ &string }, fmtStr, std::forward<TArgs>(args)...);
+	String fmt(MemoryArena *arena, String fmtStr, TArgs&&... args) {
+		String string;
+		buffer_fmt(ArrayBuffer{ arena, &string }, fmtStr, std::forward<TArgs>(args)...);
 		return string;
 	}
 

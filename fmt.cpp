@@ -1,10 +1,6 @@
 #include "fmt.h"
 
-#include "array.h"
-
 namespace oak::detail {
-
-	static char toStrBuffer[32];
 
 	size_t to_str_size(char v) {
 		return 1;
@@ -42,15 +38,15 @@ namespace oak::detail {
 	}
 
 	size_t to_str_size(float v) {
-		std::memset(toStrBuffer, 0, 32);
-		std::sprintf(toStrBuffer, "%f", v);
-		return c_str_len(toStrBuffer);
+		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
+		std::sprintf(str, "%f", v);
+		return c_str_len(str);
 	}
 
 	size_t to_str_size(double v) {
-		std::memset(toStrBuffer, 0, 32);
-		std::sprintf(toStrBuffer, "%lf", v);
-		return c_str_len(toStrBuffer);
+		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
+		std::sprintf(str, "%lf", v);
+		return c_str_len(str);
 	}
 
 	size_t to_str_size(const char *v) {
@@ -66,44 +62,45 @@ namespace oak::detail {
 	}
 
 	String to_str(char v) {
-		toStrBuffer[0] = v;
-		return String{ toStrBuffer, 1 };
+		auto str = allocate_structs<char>(temporaryMemory, 1);
+		str[0] = v;
+		return String{ str, 1 };
 	}
 
 	String to_str(uint32_t v) {
-		std::memset(toStrBuffer, 0, 32);
-		std::sprintf(toStrBuffer, "%u", v);
-		return toStrBuffer;
+		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
+		std::sprintf(str, "%u", v);
+		return str;
 	}
 
 	String to_str(uint64_t v) {
-		std::memset(toStrBuffer, 0, 32);
-		std::sprintf(toStrBuffer, "%lu", v);
-		return toStrBuffer;
+		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
+		std::sprintf(str, "%lu", v);
+		return str;
 	}
 
 	String to_str(int32_t v) {
-		std::memset(toStrBuffer, 0, 32);
-		std::sprintf(toStrBuffer, "%i", v);
-		return toStrBuffer;
+		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
+		std::sprintf(str, "%i", v);
+		return str;
 	}
 
 	String to_str(int64_t v) {
-		std::memset(toStrBuffer, 0, 32);
-		std::sprintf(toStrBuffer, "%li", v);
-		return toStrBuffer;
+		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
+		std::sprintf(str, "%li", v);
+		return str;
 	}
 
 	String to_str(float v) {
-		std::memset(toStrBuffer, 0, 32);
-		std::sprintf(toStrBuffer, "%f", v);
-		return toStrBuffer;
+		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
+		std::sprintf(str, "%f", v);
+		return str;
 	}
 
 	String to_str(double v) {
-		std::memset(toStrBuffer, 0, 32);
-		std::sprintf(toStrBuffer, "%lf", v);
-		return toStrBuffer;
+		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
+		std::sprintf(str, "%lf", v);
+		return str;
 	}
 
 	String to_str(const char *v) {
@@ -126,20 +123,19 @@ namespace oak {
 		std::fwrite(data, 1, size, file);
 	}
 
-	void CharBuffer::write(const void *data, size_t size) {
-		assert(size <= bufferSize - pos);
-		std::memcpy(buffer + pos, data, size);
-		pos += size;
-	}
-
-	void ArrayBuffer::write(const void *data, size_t size) {
-		assert(size <= buffer->size - pos);
+	void StringBuffer::write(const void *data, size_t size) {
+		assert(size <= buffer->count - pos);
 		std::memcpy(buffer->data + pos, data, size);
 		pos += size;
 	}
 
-	void ArrayBuffer::resize(size_t size) {
-		buffer->resize(pos + size);
+	void String::resize(size_t size) {
+		auto ndata = make_structs<char>(arena, size, char{ 0 });
+		if (buffer->data) {
+			std::memcpy(ndata, buffer->data, buffer->count);
+		}
+		buffer->data = ndata;
+		buffer->count = size;
 	}
 
 }
