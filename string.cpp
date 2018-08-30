@@ -62,17 +62,28 @@ namespace oak {
 		return -1;
 	}
 
-	void splitstr(const String str, String delimeters, Array<String>& tokens) {
+	Slice<String> splitstr(const String str, String delimeters) {
+		int64_t tokenCapacity = 64;
+		Slice<String> tokens;
+		tokens.data = allocate_structs<String>(temporaryMemory, tokenCapacity);
 		int64_t first = 0, last = 0;
 		do {
 			first = find_first_not_of(str, delimeters, first);
 			if (first == -1) { break; }
 			last = find_first_of(str, delimeters, first);
 			if (last > first) {
-				tokens.push(substr(str, first, last));
+				if (tokens.count == tokenCapacity) {
+					tokenCapacity *= 2;
+					auto ndata = allocate_structs<String>(temporaryMemory, tokenCapacity);
+					std::memcpy(ndata, tokens.data, tokens.count);
+					tokens.data = ndata;
+				}
+				tokens[tokens.count++] = substr(str, first, last);
 			}
 			first = last + 1;
 		} while(last != -1);
+
+		return tokens;
 	}
 
 	bool is_c_str(const String str) {

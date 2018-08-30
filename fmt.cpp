@@ -1,5 +1,7 @@
 #include "fmt.h"
 
+#include <cassert>
+
 namespace oak::detail {
 
 	size_t to_str_size(char v) {
@@ -130,6 +132,7 @@ namespace oak {
 	}
 
 	void StringBuffer::resize(size_t size) {
+		size += pos;
 		auto ndata = make_structs<char>(arena, size, char{ 0 });
 		if (buffer->data) {
 			std::memcpy(ndata, buffer->data, buffer->count);

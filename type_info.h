@@ -2,6 +2,7 @@
 
 #include <cinttypes>
 #include <cstddef>
+#include <cassert>
 #include <type_traits>
 
 #include "string.h"

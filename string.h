@@ -4,7 +4,7 @@
 #include <algorithm>
 
 #include "osig_defs.h"
-#include "array.h"
+#include "allocator.h"
 #include "slice.h"
 #include "hash.h"
 
@@ -17,7 +17,7 @@ namespace oak {
 	int64_t find_first_not_of(const String str, String delimeters, int64_t start = 0);
 	int64_t find_last_of(const String str, String delimeters, int64_t start = 0);
 	int64_t find_string(const String str, String value, int64_t start = 0);
-	void splitstr(const String str, String delimeters, Array<String>& tokens);
+	Slice<String> splitstr(const String str, String delimeters);
 	bool is_c_str(const String str);
 	const char* as_c_str(const String str);
 	String copy_str(const String str, IAllocator *allocator);
