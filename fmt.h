@@ -107,7 +107,7 @@ namespace oak {
 	template<typename... TArgs>
 	String fmt(MemoryArena *arena, String fmtStr, TArgs&&... args) {
 		String string;
-		buffer_fmt(ArrayBuffer{ arena, &string }, fmtStr, std::forward<TArgs>(args)...);
+		buffer_fmt(StringBuffer{ arena, &string }, fmtStr, std::forward<TArgs>(args)...);
 		return string;
 	}
 

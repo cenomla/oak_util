@@ -129,7 +129,7 @@ namespace oak {
 		pos += size;
 	}
 
-	void String::resize(size_t size) {
+	void StringBuffer::resize(size_t size) {
 		auto ndata = make_structs<char>(arena, size, char{ 0 });
 		if (buffer->data) {
 			std::memcpy(ndata, buffer->data, buffer->count);
