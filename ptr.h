@@ -20,6 +20,18 @@ namespace oak {
 	inline const void* sub_ptr(const void *p, size_t x) {
 		return reinterpret_cast<const void*>(reinterpret_cast<uintptr_t>(p) - x);
 	}
+
+	inline const uintptr_t ptr_diff(const void *p0, const void *p1) {
+		auto min = reinterpret_cast<uintptr_t>(p0);
+		auto max = reinterpret_cast<uintptr_t>(p1);
+		if (min > max) {
+			auto x = min;
+			min = max;
+			max = x;
+		}
+		return max - min;
+	}
+
 	inline size_t align_size(size_t size, size_t alignment) {
 		return (size + alignment-1) & (~(alignment-1));
 	}
