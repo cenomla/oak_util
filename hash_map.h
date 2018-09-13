@@ -41,27 +41,27 @@ namespace oak {
 		typedef K key_type;
 		typedef V value_type;
 
-		void resize(int64_t nsize) {
+		void resize(int64_t ncount) {
 			assert(allocator);
-			if (nsize <= capacity) { return; }
-			//make nsize a power of two
-			nsize = ensure_pow2(nsize);
+			if (ncount <= capacity) { return; }
+			//make ncount a power of two
+			ncount = ensure_pow2(ncount);
 
 			HashMap nmap{ allocator };
-			auto count = nsize * (sizeof(K) + sizeof(V) + sizeof(size_t));
+			auto count = ncount * (sizeof(K) + sizeof(V) + sizeof(size_t));
 			auto mem = allocator->alloc(count);
 			nmap.keys = static_cast<K*>(mem);
-			nmap.values = static_cast<V*>(add_ptr(mem, nsize * sizeof(K)));
-			nmap.hashs = static_cast<size_t*>(add_ptr(mem, nsize * (sizeof(K) + sizeof(V))));
-			std::memset(nmap.keys, 0, nsize * sizeof(K));
-			std::memset(nmap.values, 0, nsize * sizeof(V));
-			std::memset(nmap.hashs, 0xFF, nsize * sizeof(size_t));
+			nmap.values = static_cast<V*>(add_ptr(mem, ncount * sizeof(K)));
+			nmap.hashs = static_cast<size_t*>(add_ptr(mem, ncount * (sizeof(K) + sizeof(V))));
+			std::memset(nmap.keys, 0, ncount * sizeof(K));
+			std::memset(nmap.values, 0, ncount * sizeof(V));
+			std::memset(nmap.hashs, 0xFF, ncount * sizeof(size_t));
 			assert(nmap.hashs[0] == EMPTY_HASH);
-			nmap.size = 0;
-			nmap.capacity = nsize;
-			nmap.firstIndex = nsize;
+			nmap.count = 0;
+			nmap.capacity = ncount;
+			nmap.firstIndex = ncount;
 
-			auto left = size;
+			auto left = count;
 			for (auto i = firstIndex; i < capacity && left > 0; i++) {
 				if (hashs[i] != EMPTY_HASH) {
 					nmap.put(keys[i], values[i]);
@@ -77,7 +77,7 @@ namespace oak {
 			HashMap nmap{ allocator };
 			nmap.resize(capacity);
 
-			auto left = size;
+			auto left = count;
 			for (auto i = firstIndex; i < capacity && left > 0; i++) {
 				if (hashs[i] != EMPTY_HASH) {
 					nmap.put(keys[i], values[i]);
@@ -95,17 +95,17 @@ namespace oak {
 				values = nullptr;
 				hashs = nullptr;
 			}
-			size = 0;
+			count = 0;
 			capacity = 0;
 			firstIndex = 0;
 			furthest = 0;
 		}
 
 		int64_t find(const K& key) const {
-			if (size == 0) { return -1; }
+			if (count == 0) { return -1; }
 			const auto h = HashFunc<K>{}(key);
 			const int64_t idx = h & (capacity - 1);
-			auto left = size;
+			auto left = count;
 			for (int64_t d = 0; d <= furthest && left > 0; d++) {
 				const auto ridx = (idx + d) & (capacity - 1);
 				if (hashs[ridx] != EMPTY_HASH) {
@@ -119,9 +119,9 @@ namespace oak {
 		}
 
 		int64_t find_hash(size_t h) const {
-			if (size == 0) { return -1; }
+			if (count == 0) { return -1; }
 			const int64_t idx = h & (capacity - 1);
-			auto left = size;
+			auto left = count;
 			for (int64_t d = 0; d <= furthest && left > 0; d++) {
 				const auto ridx = (idx + d) & (capacity - 1);
 				if (hashs[ridx] != EMPTY_HASH) {
@@ -135,7 +135,7 @@ namespace oak {
 		}
 
 		int64_t find_value(const V& value) const {
-			auto left = size;
+			auto left = count;
 			for (int64_t i = firstIndex; i < capacity && left > 0; i++) {
 				if (hashs[i] != EMPTY_HASH) {
 					left--;
@@ -157,7 +157,7 @@ namespace oak {
 		}
 
 		V* put(const K& key, const V& value) {
-			if (size == capacity || furthest > 32) {
+			if (count == capacity || furthest > 32) {
 				resize(capacity == 0 ? 4 : capacity * 2);
 			}
 			const auto h = HashFunc<K>{}(key);
@@ -180,7 +180,7 @@ namespace oak {
 					if (d > furthest) {
 						furthest = d;
 					}
-					size++;
+					count++;
 
 					return values + ridx;
 				}
@@ -190,9 +190,9 @@ namespace oak {
 
 		void remove(int64_t idx) {
 			assert(idx >= 0 && idx < capacity);
-			assert(size > 0);
+			assert(count > 0);
 			hashs[idx] = EMPTY_HASH;
-			size--;
+			count--;
 			if (firstIndex == idx) { //calculate new first index
 				firstIndex = capacity;
 				for (int64_t i = 0; i < capacity; i++) {
@@ -212,7 +212,7 @@ namespace oak {
 		V *values = nullptr;
 		size_t *hashs = nullptr;
 
-		int64_t size = 0, capacity = 0, firstIndex = 0, furthest = 0;
+		int64_t count = 0, capacity = 0, firstIndex = 0, furthest = 0;
 	};
 
 }
