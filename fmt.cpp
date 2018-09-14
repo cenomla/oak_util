@@ -1,6 +1,7 @@
 #include "fmt.h"
 
 #include <cassert>
+#include <cstdio>
 
 namespace oak::detail {
 
@@ -13,16 +14,12 @@ namespace oak::detail {
 	}
 
 	size_t to_str_size(int64_t v) {
-		int64_t c = 10;
-		size_t t = 1;
+		size_t t = 0;
 		if (v < 0) {
+			t++;
 			v = -v;
 		}
-		while (c <= v) {
-			t++;
-			c *= 10;
-		}
-		return t;
+		return t + to_str_size(static_cast<uint64_t>(v));
 	}
 
 	size_t to_str_size(uint32_t v) {
@@ -70,27 +67,37 @@ namespace oak::detail {
 	}
 
 	String to_str(uint32_t v) {
-		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
-		std::sprintf(str, "%u", v);
-		return str;
+		return to_str(static_cast<uint64_t>(v));
 	}
 
 	String to_str(uint64_t v) {
-		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
-		std::sprintf(str, "%lu", v);
-		return str;
+		auto str = allocate_structs<char>(temporaryMemory, 32);
+		int idx = 0;
+		do {
+			auto nv = v / 10;
+			str[idx++] = '0' + static_cast<char>(v - (nv * 10));
+			v = nv;
+		} while (v > 0);
+		return { str, idx };
 	}
 
 	String to_str(int32_t v) {
-		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
-		std::sprintf(str, "%i", v);
-		return str;
+		return to_str(static_cast<int64_t>(v));
 	}
 
 	String to_str(int64_t v) {
 		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
-		std::sprintf(str, "%li", v);
-		return str;
+		int idx = 0;
+		if (v < 0) {
+			str[idx++] = '-';
+			v = -v;
+		}
+		do {
+			auto nv = v / 10;
+			str[idx++] = '0' + static_cast<char>(v - (nv * 10));
+			v = nv;
+		} while (v > 0);
+		return { str, idx };
 	}
 
 	String to_str(float v) {

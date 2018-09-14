@@ -31,26 +31,34 @@ namespace oak::detail {
 	String to_str(String str);
 
 	template<typename Buffer>
-	void print_fmt_impl(Buffer&& buffer, String fmtStr, size_t start) {
-		auto str = substr(fmtStr, start);
-		buffer.write(str.data, str.count);
-	}
-
-	template<typename Buffer, typename TArg, typename... TArgs>
-	void print_fmt_impl(Buffer&& buffer, String fmtStr, size_t start, TArg&& arg, TArgs&&... args) {
-		//find each instance of %
-		auto pos = fmtStr.find('%', start);
-		auto str = substr(fmtStr, start, pos);
-		if (pos < fmtStr.count - 1 &&
-				fmtStr[pos + 1] == '%') {
-			buffer.write("%", 1);
-		} else if (pos == -1) {
-			buffer.write(str.data, str.count);
-		} else {
-			auto argStr = detail::to_str(arg);
-			buffer.write(str.data, str.count);
-			buffer.write(argStr.data, argStr.count);
-			print_fmt_impl(buffer, fmtStr, pos + 1, std::forward<TArgs>(args)...);
+	void print_fmt_impl(Buffer&& buffer, String fmtStr, const String *strings, int64_t stringCount) {
+		int64_t idx = 0;
+		int64_t start = 0;
+		//write each substr replacing % with the argument string
+		while (start < fmtStr.count) {
+			//find each instance of %
+			auto pos = fmtStr.find('%', start);
+			auto str = substr(fmtStr, start, pos);
+			//%% means just print the %
+			if (0 < pos && pos + 1 < fmtStr.count && fmtStr[pos + 1] == '%') {
+				buffer.write("%", 1);
+				//skip %%
+				start = pos + 2;
+			} else {
+				//write the slice of the format string to the buffer
+				buffer.write(str.data, str.count);
+				//if we found a percent then write then replacement string
+				if (pos != -1) {
+					if (idx < stringCount) {
+						buffer.write(strings[idx].data, strings[idx].count);
+						++idx;
+					}
+					//skip %
+					start = pos + 1;
+				} else {
+					start += str.count;
+				}
+			}
 		}
 	}
 
@@ -83,20 +91,20 @@ namespace oak {
 
 	template<typename Buffer, typename... TArgs>
 	void buffer_fmt(Buffer&& buffer, String fmtStr, TArgs&&... args) {
+		//since arrays of size zero arent supported just add one to the size of args and keep an empty string at the end
+		const String argStrings[sizeof...(args) + 1] = {
+			detail::to_str(std::forward<TArgs>(args))..., "",
+		};
+		//if we have control over the buffer size make sure it is of valid size
 		if constexpr(HasResizeMethod<std::decay_t<Buffer>>::value) {
 			size_t totalSize = 0;
-			if constexpr(sizeof...(args) > 0) {
-				const size_t sizes[] = {
-					detail::to_str_size(std::forward<TArgs>(args))...,
-				};
-				for (auto size : sizes) {
-					totalSize += size;
-				}
+			for (auto str : argStrings) {
+				totalSize += str.count;
 			}
 			totalSize += fmtStr.count - sizeof...(args);
 			buffer.resize(totalSize);
 		}
-		detail::print_fmt_impl(std::forward<Buffer>(buffer), fmtStr, 0, std::forward<TArgs>(args)...);
+		detail::print_fmt_impl(std::forward<Buffer>(buffer), fmtStr, argStrings, sizeof...(args));
 	}
 
 	template<typename... TArgs>
