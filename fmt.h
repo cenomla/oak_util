@@ -8,17 +8,6 @@
 
 namespace oak::detail {
 
-	size_t to_str_size(char v);
-	size_t to_str_size(uint32_t v);
-	size_t to_str_size(uint64_t v);
-	size_t to_str_size(int32_t v);
-	size_t to_str_size(int64_t v);
-	size_t to_str_size(float v);
-	size_t to_str_size(double v);
-	size_t to_str_size(const char *v);
-	size_t to_str_size(const unsigned char *v);
-	size_t to_str_size(String v);
-
 	String to_str(char v);
 	String to_str(uint32_t v);
 	String to_str(uint64_t v);
