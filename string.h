@@ -21,6 +21,7 @@ namespace oak {
 	bool is_c_str(const String str);
 	const char* as_c_str(const String str);
 	String copy_str(const String str, IAllocator *allocator);
+	void reverse(String& str);
 
 	template<>
 	struct HashFunc<String> {

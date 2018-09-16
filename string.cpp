@@ -107,5 +107,14 @@ namespace oak {
 		return string;
 	}
 
+	void reverse(String& str) {
+		if (str.count < 2) { return; }
+		for (int64_t i = 0; i < str.count >> 1; i++) {
+			auto tmp = str[i];
+			str[i] = str[str.count - 1 - i];
+			str[str.count - 1 - i] = tmp;
+		}
+	}
+
 }
 

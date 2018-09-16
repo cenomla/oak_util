@@ -19,11 +19,12 @@ namespace oak::detail {
 		auto str = allocate_structs<char>(temporaryMemory, 32);
 		int idx = 0;
 		do {
-			auto nv = v / 10;
-			str[idx++] = '0' + static_cast<char>(v - (nv * 10));
-			v = nv;
+			str[idx++] = '0' + static_cast<char>(v % 10);
+			v /= 10;
 		} while (v > 0);
-		return { str, idx };
+		String string{ str, idx };
+		reverse(string);
+		return string;
 	}
 
 	String to_str(int32_t v) {
@@ -31,18 +32,24 @@ namespace oak::detail {
 	}
 
 	String to_str(int64_t v) {
-		auto str = make_structs<char>(temporaryMemory, 32, char{ 0 });
-		int idx = 0;
+		auto str = allocate_structs<char>(temporaryMemory, 32);
+		bool neg = false;
 		if (v < 0) {
-			str[idx++] = '-';
+			neg = true;
 			v = -v;
 		}
+		int idx = 0;
 		do {
-			auto nv = v / 10;
-			str[idx++] = '0' + static_cast<char>(v - (nv * 10));
-			v = nv;
+			str[idx++] = '0' + static_cast<char>(v % 10);
+			v /= 10;
 		} while (v > 0);
-		return { str, idx };
+
+		if (neg) {
+			str[idx++] = '-';
+		}
+		String string{ str, idx };
+		reverse(string);
+		return string;
 	}
 
 	String to_str(float v) {

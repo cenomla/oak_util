@@ -15,6 +15,8 @@
 
 namespace oak {
 
+	constexpr bool USING_TYPE_INFO = true;
+
 	template<typename T>
 	struct Slice;
 
