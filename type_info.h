@@ -72,13 +72,13 @@ namespace oak {
 
 	struct ArrayInfo : TypeInfo {
 		const TypeInfo *of = nullptr;
-		size_t count = 0;
+		int64_t count = 0;
 	};
 
 	struct StructInfo : TypeInfo {
 		void (*construct)(void *) = nullptr;
 		const VarInfo *members = nullptr;
-		size_t memberCount = 0;
+		int64_t memberCount = 0;
 		size_t tid = 0;
 		size_t catagoryId = 0;
 
@@ -89,7 +89,7 @@ namespace oak {
 	struct EnumInfo : TypeInfo {
 		const TypeInfo *underlyingType = nullptr;
 		const EnumConstant *members = nullptr;
-		size_t memberCount = 0;
+		int64_t memberCount = 0;
 
 		inline const EnumConstant* begin() const {
 			return members;

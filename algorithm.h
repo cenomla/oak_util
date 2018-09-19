@@ -14,7 +14,7 @@ namespace oak {
 		static auto top_down_merge = [&functor](T *array, T *buffer, int64_t begin, int64_t middle, int64_t end) {
 			auto i = begin, j = middle;
 			for (auto k = begin; k < end; k++) {
-				if (i < middle && (j >= end || functor(array[i], array[j]))) {
+				if (i < middle && (j >= end || !functor(array[j], array[i]))) {
 					buffer[k] = array[i];
 					i ++;
 				} else {

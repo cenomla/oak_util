@@ -14,6 +14,7 @@
 #endif
 
 namespace oak::catagory {
+	struct primitive {};
 	struct none {};
 }
 
