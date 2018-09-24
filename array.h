@@ -15,26 +15,24 @@ namespace oak {
 		typedef T value_type;
 
 		Array() = default;
-		Array(IAllocator *_allocator) : allocator{ _allocator } {}
-		Array(IAllocator *_allocator, const Slice<T>& other) : allocator{ _allocator } {
+		Array(const Slice<T>& other) {
 			reserve(other.count);
 			auto mem = const_cast<std::remove_const_t<T>*>(data);
 			std::memcpy(mem, std::begin(other), other.count * sizeof(T));
 		}
-		Array(IAllocator *_allocator, std::initializer_list<T> list) : allocator{ _allocator } {
+		Array(std::initializer_list<T> list) {
 			reserve(list.count());
 			auto mem = const_cast<std::remove_const_t<T>*>(data);
 			std::memcpy(mem, std::begin(list), list.count() * sizeof(T));
 		}
 
 		void reserve(int64_t ncount) {
-			assert(allocator);
 			if (ncount <= capacity) { return; }
 			ncount = ensure_pow2(ncount);
-			auto mem = static_cast<std::remove_const_t<T>*>(allocator->alloc(ncount * sizeof(T)));
+			auto mem = static_cast<std::remove_const_t<T>*>(alloc(ncount * sizeof(T)));
 			if (data) {
 				std::memcpy(mem, data, capacity * sizeof(T));
-				allocator->free(data, capacity * sizeof(T));
+				free(data, capacity * sizeof(T));
 			}
 			data = mem;
 			capacity = ncount;
@@ -64,11 +62,8 @@ namespace oak {
 			return -1;
 		}
 
-		Array clone(IAllocator *oAllocator = nullptr) const {
-			if (!oAllocator) {
-				oAllocator = allocator;
-			}
-			Array narry{ oAllocator };
+		Array clone() const {
+			Array narry;
 			narry.reserve(capacity);
 			narry.count = count;
 			std::memcpy(narry.data, data, capacity * sizeof(T));
@@ -77,7 +72,7 @@ namespace oak {
 
 		void destroy() {
 			if (data) {
-				allocator->free(data, capacity * sizeof(T));
+				free(data, capacity * sizeof(T));
 				data = nullptr;
 			}
 			count = 0;
@@ -124,7 +119,6 @@ namespace oak {
 
 		operator Slice<T>() const { return Slice<T>{ data, count }; }
 
-		IAllocator *allocator = nullptr;
 		T *data = nullptr;
 		int64_t count = 0;
 		int64_t capacity = 0;

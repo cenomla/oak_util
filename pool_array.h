@@ -33,21 +33,20 @@ namespace oak {
 		typedef T value_type;
 
 		void reserve(int64_t nPools) {
-			assert(allocator);
 			assert(poolCapacity > 0 && ctz(poolCapacity) + clz(poolCapacity) + 1 == 64);
 			if (nPools <= poolCount) { return; }
-			auto ndata = static_cast<T**>(allocator->alloc(nPools * sizeof(T*)));
+			auto ndata = static_cast<T**>(alloc(nPools * sizeof(T*)));
 			std::memset(ndata, 0, nPools * sizeof(T*));
 			if (data) {
 				std::memcpy(ndata, data, poolCount * sizeof(T*));
-				allocator->free(data, poolCount * sizeof(T*));
+				free(data, poolCount * sizeof(T*));
 			}
 			data = ndata;
 			poolCount = nPools;
 			//allocate pools
 			for (int64_t i = 0; i < poolCount; i++) {
 				if (!data[i]) {
-					data[i] = static_cast<T*>(allocator->alloc(poolCapacity * sizeof(T)));
+					data[i] = static_cast<T*>(alloc(poolCapacity * sizeof(T)));
 				}
 			}
 		}
@@ -55,9 +54,9 @@ namespace oak {
 		void destroy() {
 			if (data) {
 				for (int64_t i = 0; i < poolCount; i++) {
-					allocator->free(data[i], poolCapacity * sizeof(T));
+					free(data[i], poolCapacity * sizeof(T));
 				}
-				allocator->free(data, poolCount * sizeof(T*));
+				free(data, poolCount * sizeof(T*));
 				data = nullptr;
 			}
 			poolCount = 0;
@@ -97,7 +96,6 @@ namespace oak {
 		inline Iterator begin() { return Iterator{ data, poolCapacity, 0 }; }
 		inline Iterator end() { return Iterator{ data, poolCapacity, size }; }
 
-		IAllocator *allocator = nullptr;
 		int64_t poolCapacity = 0; //must be a power of two
 		T **data = nullptr;
 		int64_t poolCount = 0;

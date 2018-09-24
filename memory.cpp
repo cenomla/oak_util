@@ -4,12 +4,13 @@
 #include <cstdlib>
 
 #include "type_info.h"
+#include "bit.h"
 
 namespace oak {
 
 	MemoryArena create_memory_arena(size_t size) {
 		auto totalSize = sizeof(MemoryArenaHeader) + size;
-		auto block = calloc(totalSize, 1);
+		auto block = alloc(totalSize);
 		if (!block) {
 			return {};
 		}
@@ -29,7 +30,7 @@ namespace oak {
 	}
 
 	void destroy_memory_arena(MemoryArena *arena) {
-		free(arena->block);
+		free(arena->block, arena->size);
 		arena->block = nullptr;
 		arena->size = 0;
 	}

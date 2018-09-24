@@ -37,14 +37,13 @@ namespace oak {
 		typedef V value_type;
 
 		void resize(int64_t nsize) {
-			assert(allocator);
 			if (nsize <= capacity) { return; }
 			//make nsize a power of two
 			nsize = ensure_pow2(nsize);
 
-			HashSet nset{ allocator };
+			HashSet nset;
 			auto count = nsize * (sizeof(V) + sizeof(size_t));
-			auto mem = allocator->alloc(count);
+			auto mem = alloc(count);
 			nset.values = static_cast<V*>(mem);
 			nset.hashs = static_cast<size_t*>(add_ptr(mem, nsize * sizeof(V)));
 			std::memset(nset.values, 0, nsize * sizeof(V));
@@ -66,7 +65,7 @@ namespace oak {
 		}
 
 		HashSet clone() {
-			HashSet nset{ allocator };
+			HashSet nset;
 			nset.resize(capacity - 1);
 
 			auto left = size;
@@ -82,7 +81,7 @@ namespace oak {
 
 		void destroy() {
 			if (values) {
-				allocator->free(values, capacity * (sizeof(V) + sizeof(size_t)));
+				free(values, capacity * (sizeof(V) + sizeof(size_t)));
 				values = nullptr;
 				hashs = nullptr;
 			}
@@ -185,7 +184,6 @@ namespace oak {
 		inline Iterator begin() const { return Iterator{ this, firstIndex }; }
 		inline Iterator end() const { return Iterator{ this, capacity }; }
 
-		IAllocator *allocator = nullptr;
 		V *values = nullptr;
 		size_t *hashs = nullptr;
 

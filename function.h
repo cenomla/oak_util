@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include "allocator.h"
+#include "memory.h"
 
 namespace oak {
 
@@ -13,7 +14,7 @@ namespace oak {
 
 	template<typename Out, typename... In>
 	struct Function<Out(In...)> {
-		IAllocator *allocator = nullptr;
+		MemoryArena *arena = nullptr;
 		union {
 			char staticStorage[16]{ 0 };
 			size_t functionSize;
@@ -29,18 +30,27 @@ namespace oak {
 		}
 
 		template<typename T>
+		Function(MemoryArena *arena_, T&& obj) : arena{ arena_ } {
+			set(std::forward<T>(obj));
+		}
+
+		template<typename T>
 		void set(T&& obj) {
 			using FT = std::decay_t<T>;
 			if constexpr (sizeof(obj) > sizeof(staticStorage)) {
-				assert(allocator);
-				function = allocator->alloc(sizeof(obj));
+				if (arena) {
+					function = allocate_structs<T>(arena, 1);
+				} else {
+					function = alloc(sizeof(obj));
+				}
 				functionSize = sizeof(obj);
 			} else {
 				function = &staticStorage;
 			}
 			std::memcpy(function, &obj, sizeof(obj));
 
-			if constexpr (std::is_function_v<std::remove_pointer_t<FT>>) { //check if this is a function pointer type
+			// Check if this is a function pointer type
+			if constexpr (std::is_function_v<std::remove_pointer_t<FT>>) {
 				executeFunction = [](void *function, In&... args) {
 					return (*static_cast<FT*>(function))(args...);
 				};
@@ -52,13 +62,16 @@ namespace oak {
 		}
 
 		void destroy() {
-			//if the object is empty
+			// If the object is empty
 			if (!function) { return; }
-			//if the object was dynamically allocated
+			// If the object was dynamically allocated
 			if (function != &staticStorage) {
-				assert(allocator);
 				assert(functionSize);
-				allocator->free(function, functionSize);
+				if (arena) {
+					// We dont free from memory arenas
+				} else {
+					free(function, functionSize);
+				}
 			}
 			function = nullptr;
 		}
@@ -66,7 +79,7 @@ namespace oak {
 		Out operator()(In&... args) {
 			assert(function);
 			assert(executeFunction);
-			//dont return if the return type is void
+			// Dont return if the return type is void
 			if constexpr (std::is_same_v<Out, void>) {
 				executeFunction(function, args...);
 			} else {

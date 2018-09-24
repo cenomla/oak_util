@@ -42,14 +42,13 @@ namespace oak {
 		typedef V value_type;
 
 		void resize(int64_t ncount) {
-			assert(allocator);
 			if (ncount <= capacity) { return; }
 			//make ncount a power of two
 			ncount = ensure_pow2(ncount);
 
-			HashMap nmap{ allocator };
+			HashMap nmap;
 			auto count = ncount * (sizeof(K) + sizeof(V) + sizeof(size_t));
-			auto mem = allocator->alloc(count);
+			auto mem = alloc(count);
 			nmap.keys = static_cast<K*>(mem);
 			nmap.values = static_cast<V*>(add_ptr(mem, ncount * sizeof(K)));
 			nmap.hashs = static_cast<size_t*>(add_ptr(mem, ncount * (sizeof(K) + sizeof(V))));
@@ -74,7 +73,7 @@ namespace oak {
 		}
 
 		HashMap clone() {
-			HashMap nmap{ allocator };
+			HashMap nmap;
 			nmap.resize(capacity);
 
 			auto left = count;
@@ -90,7 +89,7 @@ namespace oak {
 
 		void destroy() {
 			if (keys) {
-				allocator->free(keys, capacity * (sizeof(K) + sizeof(V) + sizeof(size_t)));
+				free(keys, capacity * (sizeof(K) + sizeof(V) + sizeof(size_t)));
 				keys = nullptr;
 				values = nullptr;
 				hashs = nullptr;
@@ -207,7 +206,6 @@ namespace oak {
 		inline Iterator begin() const { return Iterator{ this, firstIndex }; }
 		inline Iterator end() const { return Iterator{ this, capacity }; }
 
-		IAllocator *allocator = nullptr;
 		K *keys = nullptr;
 		V *values = nullptr;
 		size_t *hashs = nullptr;
