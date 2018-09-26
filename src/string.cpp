@@ -1,9 +1,9 @@
-#include "string.h"
+#include "oak_util/string.h"
 
 #include <cstring>
-#include <cstdio>
 
-#include "memory.h"
+#include "oak_util/allocator.h"
+#include "oak_util/memory.h"
 
 namespace oak {
 
@@ -77,7 +77,7 @@ namespace oak {
 			if (tokens.count == tokenCapacity) {
 				tokenCapacity *= 2;
 				auto ndata = allocate_structs<String>(temporaryMemory, tokenCapacity);
-				std::memcpy(ndata, tokens.data, tokens.count);
+				memcpy(ndata, tokens.data, tokens.count);
 				tokens.data = ndata;
 			}
 			tokens[tokens.count++] = substr(str, first, last);

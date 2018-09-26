@@ -1,6 +1,7 @@
 #include <cassert>
-#include "../fmt.h"
-#include "../memory.h"
+
+#include "oak_util/fmt.h"
+#include "oak_util/memory.h"
 
 struct Obj {
 	int32_t a;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdio>
 #include <utility>
+#include <cstdio>
 
 #include "memory.h"
 #include "string.h"

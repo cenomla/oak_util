@@ -1,6 +1,8 @@
-#include "fmt.h"
+#include "oak_util/fmt.h"
 
 #include <cassert>
+#include <cstdlib>
+#include <cstring>
 #include <cstdio>
 
 namespace oak::detail {

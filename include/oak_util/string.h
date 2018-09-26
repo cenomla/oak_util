@@ -1,10 +1,8 @@
 #pragma once
 
+#include <cinttypes>
 #include <cstddef>
-#include <algorithm>
 
-#include "osig_defs.h"
-#include "allocator.h"
 #include "slice.h"
 #include "hash.h"
 
