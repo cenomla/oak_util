@@ -48,6 +48,7 @@ namespace oak {
 			header->usedMemory += offset + memoryToAllocate;
 			return add_ptr(result, offset);
 		}
+		assert("out of memory" && false);
 		return nullptr;
 	}
 
