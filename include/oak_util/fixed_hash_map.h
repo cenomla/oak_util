@@ -54,6 +54,7 @@ namespace oak {
 			for (int64_t i = 0; i < capacity; i++) {
 				hashs[i] = EMPTY_HASH;
 			}
+			firstIndex = capacity;
 		}
 
 		void clear() {
@@ -217,6 +218,7 @@ namespace oak {
 			for (int64_t i = 0; i < capacity; i++) {
 				keys[i] = NULL_KEY;
 			}
+			firstIndex = capacity;
 		}
 
 		void clear() {

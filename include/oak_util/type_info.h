@@ -10,8 +10,8 @@
 #include "osig_defs.h"
 
 #define ssizeof(x) static_cast<int64_t>(sizeof(x))
-#define array_element_count(x) (sizeof(x)/sizeof(*x))
-#define sarray_element_count(x) static_cast<int64_t>(array_element_count(x))
+#define array_count(x) (sizeof(x)/sizeof(*x))
+#define sarray_count(x) static_cast<int64_t>(array_count(x))
 
 namespace oak {
 
@@ -155,8 +155,11 @@ namespace oak {
 		Any() = default;
 		Any(void *_ptr, const TypeInfo *_type) : ptr{ _ptr }, type{ _type } {}
 		Any(const Any& other) : ptr{ other.ptr }, type{ other.type } {}
-		template<typename T, typename DT = std::decay_t<T>, std::enable_if_t<!std::is_same_v<DT, Any>, int> = 0>
+		template<typename T, typename DT = std::decay_t<T>,
+			std::enable_if_t<!std::is_pointer_v<DT>, int> = 0, std::enable_if_t<!std::is_same_v<DT, Any>, int> = 0>
 		Any(T&& thing) : ptr{ &thing }, type{ type_info<DT>() } {}
+		template<typename T, typename DT = std::decay_t<T>>
+		Any(T* thing) : ptr{ thing }, type{ type_info<std::remove_pointer_t<T>>() } {}
 	};
 
 }
