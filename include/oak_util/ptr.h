@@ -36,6 +36,10 @@ namespace oak {
 		return (size + alignment-1) & (~(alignment-1));
 	}
 
+	inline int64_t align_int(int64_t value, size_t alignment) {
+		return (value + alignment - 1) & (~(alignment - 1));
+	}
+
 	inline size_t align_offset(const void *address, size_t alignment) {
 		size_t adjustment = (alignment - (reinterpret_cast<uintptr_t>(address) & static_cast<uintptr_t>(alignment - 1)));
 		return adjustment == alignment ? 0 : adjustment;
