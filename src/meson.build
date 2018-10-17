@@ -1,6 +1,7 @@
 sources = [
   'fmt.cpp',
   'memory.cpp',
+  'random.cpp',
   'string.cpp',
 ]
 
