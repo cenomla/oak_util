@@ -5,49 +5,73 @@
 
 // Used to convert an int to double
 #define TWO_M52 2.2204460492503131e-16
+// The parameters for the lcg that seeds the lfg
+#define LFG_SEED_A 25214903917
+#define LFG_SEED_C 11
+#define LFG_SEED_M 45
 
 namespace oak {
 
-	void RandomGenerator::init(MemoryArena *arena, int j_, int k_, uint64_t seed) {
-		j = j_;
-		k = k_;
-		state = make_structs<uint64_t>(arena, k);
-		state[0] = seed & uint64_t{ 0xFFFFFFFF00000000 };
-		++i;
+	void LCGenerator::init(uint64_t a_, uint64_t c_, uint64_t m_, uint64_t seed) {
+		a = a_;
+		c = c_;
+		m = (uint64_t{ 1 } << m_) - 1;
+		state = seed;
 	}
 
-	void RandomGenerator::gen_next() {
-		assert(state);
-		auto idx0 = i - j;
-		auto idx1 = i - k;
-		if (idx0 < 0) { idx0 = k - idx0; }
-		if (idx1 < 0) { idx1 = k - idx1; }
-		state[i++] = state[idx0] * state[idx1];
-		if (i >= k) {
-			i -= k;
-		}
+	void LCGenerator::advance_state() {
+		state = (state * a + c) & m;
 	}
 
-	int RandomGenerator::random_int() {
-		gen_next();
-		return static_cast<int>(state[i - 1] >> 33);
+	int LCGenerator::random_int() {
+		advance_state();
+		// Return the 15th - 46th bits
+		return static_cast<int>((state >> 15) & 0x7FFFFFFF);
 	}
 
-	double RandomGenerator::random_double() {
-		gen_next();
-		return (state[i - 1] >> 12) * TWO_M52;
+	double LCGenerator::random_double() {
+		advance_state();
+		return (state >> 12) * TWO_M52;
 	}
 
-	float RandomGenerator::random_float() {
+	float LCGenerator::random_float() {
 		return static_cast<float>(random_double());
 	}
 
-	int random_range(RandomGenerator *generator, int min, int max) {
-		return min + (generator->random_int() * (max - min));
+	void LFGenerator::init(MemoryArena *arena, int l_, int k_, uint64_t seed) {
+		l = l_;
+		k = k_;
+		state = make_structs<uint64_t>(arena, k);
+		LCGenerator rng;
+		rng.init(LFG_SEED_A, LFG_SEED_C, LFG_SEED_M, seed);
+		for (int i = 0; i < k; ++i) {
+			state[i] = rng.state;
+			rng.advance_state();
+		}
 	}
 
-	float random_range(RandomGenerator *generator, float min, float max) {
-		return min + (generator->random_float() * (max - min));
+	void LFGenerator::advance_state() {
+		assert(state);
+		++pos;
+		if (pos >= k) { pos -= k; }
+		auto lpos = pos - l;
+		if (lpos < 0) { lpos += k; }
+		state[pos] = state[pos] + state[lpos];
+	}
+
+	int LFGenerator::random_int() {
+		advance_state();
+		return static_cast<int>((state[pos] >> 15) & 0x7FFFFFFF);
+	}
+
+	double LFGenerator::random_double() {
+		advance_state();
+		return (state[pos] >> 12) * TWO_M52;
+	}
+
+	float LFGenerator::random_float() {
+		return static_cast<float>(random_double());
 	}
 
 }
+

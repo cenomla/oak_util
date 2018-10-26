@@ -156,10 +156,8 @@ namespace oak {
 		Any(void *_ptr, const TypeInfo *_type) : ptr{ _ptr }, type{ _type } {}
 		Any(const Any& other) : ptr{ other.ptr }, type{ other.type } {}
 		template<typename T, typename DT = std::decay_t<T>,
-			std::enable_if_t<!std::is_pointer_v<DT>, int> = 0, std::enable_if_t<!std::is_same_v<DT, Any>, int> = 0>
+			std::enable_if_t<!std::is_same_v<DT, Any>, int> = 0>
 		Any(T&& thing) : ptr{ &thing }, type{ type_info<DT>() } {}
-		template<typename T, typename DT = std::decay_t<T>>
-		Any(T* thing) : ptr{ thing }, type{ type_info<std::remove_pointer_t<T>>() } {}
 	};
 
 }
