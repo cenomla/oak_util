@@ -8,6 +8,8 @@
 
 namespace oak {
 
+	struct MemoryArena;
+
 	using String = Slice<char>;
 
 	String substr(const String str, int64_t start, int64_t end = -1);
@@ -18,7 +20,7 @@ namespace oak {
 	Slice<String> splitstr(const String str, const String delimeters);
 	bool is_c_str(const String str);
 	const char* as_c_str(const String str);
-	String copy_str(const String str);
+	String copy_str(MemoryArena *arena, const String str);
 	void reverse(String& str);
 
 	template<>

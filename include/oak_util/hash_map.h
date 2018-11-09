@@ -25,8 +25,7 @@ namespace oak {
 			Iterator& operator++() {
 				do {
 					idx ++;
-					if (idx == map->capacity) { return *this; }
-				} while (map->hashs[idx] == EMPTY_HASH);
+				} while (idx != map->capacity && map->hashs[idx] == EMPTY_HASH);
 				return *this;
 			}
 
@@ -47,8 +46,8 @@ namespace oak {
 			ncount = ensure_pow2(ncount);
 
 			HashMap nmap;
-			auto count = ncount * (sizeof(K) + sizeof(V) + sizeof(size_t));
-			auto mem = alloc(count);
+			auto size = ncount * (sizeof(K) + sizeof(V) + sizeof(size_t));
+			auto mem = alloc(size);
 			nmap.keys = static_cast<K*>(mem);
 			nmap.values = static_cast<V*>(add_ptr(mem, ncount * sizeof(K)));
 			nmap.hashs = static_cast<size_t*>(add_ptr(mem, ncount * (sizeof(K) + sizeof(V))));
@@ -61,10 +60,10 @@ namespace oak {
 			nmap.firstIndex = ncount;
 
 			auto left = count;
-			for (auto i = firstIndex; i < capacity && left > 0; i++) {
+			for (auto i = firstIndex; i < capacity && left > 0; ++i) {
 				if (hashs[i] != EMPTY_HASH) {
 					nmap.put(keys[i], values[i]);
-					left--;
+					--left;
 				}
 			}
 
@@ -77,10 +76,10 @@ namespace oak {
 			nmap.resize(capacity);
 
 			auto left = count;
-			for (auto i = firstIndex; i < capacity && left > 0; i++) {
+			for (auto i = firstIndex; i < capacity && left > 0; ++i) {
 				if (hashs[i] != EMPTY_HASH) {
 					nmap.put(keys[i], values[i]);
-					left--;
+					--left;
 				}
 			}
 
@@ -105,10 +104,10 @@ namespace oak {
 			const auto h = HashFunc<K>{}(key);
 			const int64_t idx = h & (capacity - 1);
 			auto left = count;
-			for (int64_t d = 0; d <= furthest && left > 0; d++) {
+			for (int64_t d = 0; d <= furthest && left > 0; ++d) {
 				const auto ridx = (idx + d) & (capacity - 1);
 				if (hashs[ridx] != EMPTY_HASH) {
-					left--;
+					--left;
 				}
 				if (hashs[ridx] == h && EqualFunc<K, K>{}(keys[ridx], key)) {
 					return ridx;
@@ -121,10 +120,10 @@ namespace oak {
 			if (count == 0) { return -1; }
 			const int64_t idx = h & (capacity - 1);
 			auto left = count;
-			for (int64_t d = 0; d <= furthest && left > 0; d++) {
+			for (int64_t d = 0; d <= furthest && left > 0; ++d) {
 				const auto ridx = (idx + d) & (capacity - 1);
 				if (hashs[ridx] != EMPTY_HASH) {
-					left--;
+					--left;
 				}
 				if (hashs[ridx] == h) {
 					return ridx;
@@ -135,9 +134,9 @@ namespace oak {
 
 		int64_t find_value(const V& value) const {
 			auto left = count;
-			for (int64_t i = firstIndex; i < capacity && left > 0; i++) {
+			for (int64_t i = firstIndex; i < capacity && left > 0; ++i) {
 				if (hashs[i] != EMPTY_HASH) {
-					left--;
+					--left;
 					if (EqualFunc<V, V>{}(values[i], value)) {
 						return i;
 					}
@@ -161,7 +160,7 @@ namespace oak {
 			}
 			const auto h = HashFunc<K>{}(key);
 			const int64_t idx = h & (capacity - 1);
-			for (int64_t d = 0; d < capacity; d++) {
+			for (int64_t d = 0; d < capacity; ++d) {
 				auto ridx = (idx + d) & (capacity - 1);
 
 				if (hashs[ridx] != EMPTY_HASH) {
@@ -179,7 +178,7 @@ namespace oak {
 					if (d > furthest) {
 						furthest = d;
 					}
-					count++;
+					++count;
 
 					return values + ridx;
 				}
@@ -191,10 +190,10 @@ namespace oak {
 			assert(idx >= 0 && idx < capacity);
 			assert(count > 0);
 			hashs[idx] = EMPTY_HASH;
-			count--;
+			--count;
 			if (firstIndex == idx) { //calculate new first index
 				firstIndex = capacity;
-				for (int64_t i = 0; i < capacity; i++) {
+				for (int64_t i = 0; i < capacity; ++i) {
 					if (hashs[i] != EMPTY_HASH) {
 						firstIndex = i;
 						break;

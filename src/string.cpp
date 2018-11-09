@@ -101,10 +101,10 @@ namespace oak {
 		return cstr;
 	}
 
-	String copy_str(const String str) {
+	String copy_str(MemoryArena *arena, const String str) {
 		String string;
 		string.count = str.count;
-		string.data = static_cast<char*>(alloc(string.count));
+		string.data = allocate_structs<char>(arena, string.count);
 		std::memcpy(string.data, str.data, string.count);
 		return string;
 	}

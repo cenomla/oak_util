@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstring>
 
 #include "type_info.h"
 #include "bit.h"
@@ -28,8 +29,7 @@ namespace oak {
 			Iterator& operator++() {
 				do {
 					idx ++;
-					if (idx == map->capacity) { return *this; }
-				} while (map->hashs[idx] == EMPTY_HASH);
+				} while (idx != map->capacity && map->hashs[idx] == EMPTY_HASH);
 				return *this;
 			}
 
@@ -51,16 +51,12 @@ namespace oak {
 			keys = static_cast<K*>(mem);
 			values = static_cast<V*>(add_ptr(mem, keysSize));
 			hashs = static_cast<size_t*>(add_ptr(mem, keysSize + valuesSize));
-			for (int64_t i = 0; i < capacity; i++) {
-				hashs[i] = EMPTY_HASH;
-			}
+			std::memset(hashs, 0xFF, hashsSize);
 			firstIndex = capacity;
 		}
 
 		void clear() {
-			for (int64_t i = 0; i < capacity; i++) {
-				hashs[i] = EMPTY_HASH;
-			}
+			std::memset(hashs, 0xFF, capacity * ssizeof(size_t));
 			count = 0;
 			firstIndex = 0;
 			furthest = 0;
@@ -72,10 +68,10 @@ namespace oak {
 			const auto h = HashFunc<K>{}(key);
 			const int64_t idx = h & (capacity - 1);
 			auto left = count;
-			for (int64_t d = 0; d <= furthest && left > 0; d++) {
+			for (int64_t d = 0; d <= furthest && left > 0; ++d) {
 				const auto ridx = (idx + d) & (capacity - 1);
 				if (hashs[ridx] != EMPTY_HASH) {
-					left--;
+					--left;
 				}
 				if (hashs[ridx] == h && EqualFunc<K, K>{}(keys[ridx], key)) {
 					return ridx;
@@ -88,10 +84,10 @@ namespace oak {
 			if (count == 0) { return -1; }
 			const int64_t idx = h & (capacity - 1);
 			auto left = count;
-			for (int64_t d = 0; d <= furthest && left > 0; d++) {
+			for (int64_t d = 0; d <= furthest && left > 0; ++d) {
 				const auto ridx = (idx + d) & (capacity - 1);
 				if (hashs[ridx] != EMPTY_HASH) {
-					left--;
+					--left;
 				}
 				if (hashs[ridx] == h) {
 					return ridx;
@@ -102,9 +98,9 @@ namespace oak {
 
 		int64_t find_value(const V& value) const {
 			auto left = count;
-			for (int64_t i = firstIndex; i < capacity && left > 0; i++) {
+			for (int64_t i = firstIndex; i < capacity && left > 0; ++i) {
 				if (hashs[i] != EMPTY_HASH) {
-					left--;
+					--left;
 					if (EqualFunc<V, V>{}(values[i], value)) {
 						return i;
 					}
@@ -125,7 +121,7 @@ namespace oak {
 		V* put(const K& key, const V& value) {
 			const auto h = HashFunc<K>{}(key);
 			const int64_t idx = h & (capacity - 1);
-			for (int64_t d = 0; d < capacity; d++) {
+			for (int64_t d = 0; d < capacity; ++d) {
 				auto ridx = (idx + d) & (capacity - 1);
 
 				if (hashs[ridx] != EMPTY_HASH) {
@@ -156,10 +152,10 @@ namespace oak {
 			assert(idx >= 0 && idx < capacity);
 			assert(count > 0);
 			hashs[idx] = EMPTY_HASH;
-			count--;
+			--count;
 			if (firstIndex == idx) { //calculate new first index
 				firstIndex = capacity;
-				for (int64_t i = 0; i < capacity; i++) {
+				for (int64_t i = 0; i < capacity; ++i) {
 					if (hashs[i] != EMPTY_HASH) {
 						firstIndex = i;
 						break;
@@ -194,8 +190,7 @@ namespace oak {
 			Iterator& operator++() {
 				do {
 					idx ++;
-					if (idx == map->capacity) { return *this; }
-				} while (map->keys[idx] == NULL_KEY);
+				} while (idx != map->capacity && map->keys[idx] == NULL_KEY);
 				return *this;
 			}
 
@@ -215,16 +210,12 @@ namespace oak {
 			auto mem = allocate_from_arena(arena, totalSize, 1, 1);
 			keys = static_cast<size_t*>(mem);
 			values = static_cast<V*>(add_ptr(mem, keysSize));
-			for (int64_t i = 0; i < capacity; i++) {
-				keys[i] = NULL_KEY;
-			}
+			std::memset(keys, NULL_KEY, keysSize);
 			firstIndex = capacity;
 		}
 
 		void clear() {
-			for (int64_t i = 0; i < capacity; i++) {
-				keys[i] = NULL_KEY;
-			}
+			std::memset(keys, NULL_KEY, capacity * ssizeof(size_t));
 			count = 0;
 			firstIndex = 0;
 			furthest = 0;
@@ -235,10 +226,10 @@ namespace oak {
 			if (count == 0) { return -1; }
 			const int64_t idx = key & (capacity - 1);
 			auto left = count;
-			for (int64_t d = 0; d <= furthest && left > 0; d++) {
+			for (int64_t d = 0; d <= furthest && left > 0; ++d) {
 				const auto ridx = (idx + d) & (capacity - 1);
 				if (keys[ridx] != NULL_KEY) {
-					left--;
+					--left;
 				}
 				if (keys[ridx] == key) {
 					return ridx;
@@ -249,9 +240,9 @@ namespace oak {
 
 		int64_t find_value(const V& value) const {
 			auto left = count;
-			for (int64_t i = firstIndex; i < capacity && left > 0; i++) {
+			for (int64_t i = firstIndex; i < capacity && left > 0; ++i) {
 				if (keys[i] != NULL_KEY) {
-					left--;
+					--left;
 					if (EqualFunc<V, V>{}(values[i], value)) {
 						return i;
 					}
@@ -271,7 +262,7 @@ namespace oak {
 
 		V* put(const size_t key, const V& value) {
 			const int64_t idx = key & (capacity - 1);
-			for (int64_t d = 0; d < capacity; d++) {
+			for (int64_t d = 0; d < capacity; ++d) {
 				auto ridx = (idx + d) & (capacity - 1);
 
 				if (keys[ridx] != NULL_KEY) {
@@ -288,7 +279,7 @@ namespace oak {
 					if (d > furthest) {
 						furthest = d;
 					}
-					count++;
+					++count;
 
 					return values + ridx;
 				}
@@ -301,10 +292,10 @@ namespace oak {
 			assert(idx >= 0 && idx < capacity);
 			assert(count > 0);
 			keys[idx] = NULL_KEY;
-			count--;
+			--count;
 			if (firstIndex == idx) { //calculate new first index
 				firstIndex = capacity;
-				for (int64_t i = 0; i < capacity; i++) {
+				for (int64_t i = 0; i < capacity; ++i) {
 					if (keys[i] != NULL_KEY) {
 						firstIndex = i;
 						break;

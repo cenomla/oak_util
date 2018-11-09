@@ -4,90 +4,48 @@
 #include <cassert>
 #include <limits>
 
-#include "allocator.h"
+#include "type_info.h"
 #include "bit.h"
 #include "cmp.h"
 #include "hash.h"
 #include "ptr.h"
+#include "memory.h"
 
 namespace oak {
 
 	template<typename V>
-	struct HashSet {
+	struct FixedHashSet {
 
 		static constexpr size_t EMPTY_HASH = ~size_t{ 0 };
+
+		typedef V value_type;
 
 		struct Iterator {
 			Iterator& operator++() {
 				do {
-					idx ++;
+					++idx;
 				} while (idx != set->capacity && set->hashs[idx] == EMPTY_HASH);
 				return *this;
 			}
 
 			inline bool operator==(const Iterator& other) const { return set == other.set && idx == other.idx; }
 			inline bool operator!=(const Iterator& other) const { return !operator==(other); }
-			V& operator*() { return set->values[idx]; }
+			inline V& operator*() { return set->values[idx]; }
 
-			const HashSet *set;
+			const FixedHashSet *set;
 			int64_t idx;
 		};
 
-		typedef V value_type;
-
-		void resize(int64_t nsize) {
-			if (nsize <= capacity) { return; }
-			//make nsize a power of two
-			nsize = ensure_pow2(nsize);
-
-			HashSet nset;
-			auto size = nsize * (sizeof(V) + sizeof(size_t));
-			auto mem = alloc(size);
-			nset.values = static_cast<V*>(mem);
-			nset.hashs = static_cast<size_t*>(add_ptr(mem, nsize * sizeof(V)));
-			std::memset(nset.values, 0, nsize * sizeof(V));
-			std::memset(nset.hashs, 0xFF, nsize * sizeof(size_t));
-			nset.size = 0;
-			nset.capacity = nsize;
-			nset.firstIndex = nsize;
-
-			auto left = size;
-			for (auto i = firstIndex; i < capacity && left > 0; ++i) {
-				if (hashs[i] != EMPTY_HASH) {
-					nset.put(values[i]);
-					--left;
-				}
-			}
-
-			destroy();
-			std::memcpy(this, &nset, sizeof(HashSet));
-		}
-
-		HashSet clone() {
-			HashSet nset;
-			nset.resize(capacity - 1);
-
-			auto left = size;
-			for (auto i = firstIndex; i < capacity && left > 0; ++i) {
-				if (hashs[i] != EMPTY_HASH) {
-					nset.put(values[i]);
-					--left;
-				}
-			}
-
-			return nset;
-		}
-
-		void destroy() {
-			if (values) {
-				free(values, capacity * (sizeof(V) + sizeof(size_t)));
-				values = nullptr;
-				hashs = nullptr;
-			}
-			size = 0;
-			capacity = 0;
-			firstIndex = 0;
-			furthest = 0;
+		void init(MemoryArena *arena, int64_t capacity_) {
+			capacity = ensure_pow2(capacity_);
+			auto valuesSize = capacity * ssizeof(V);
+			auto hashsSize = capacity * ssizeof(size_t);
+			auto totalSize = valuesSize + hashsSize;
+			auto mem = allocate_from_arena(arena, totalSize, 1, alignof(void*));
+			values = static_cast<V*>(mem);
+			hashs = static_cast<size_t*>(add_ptr(mem, valuesSize));
+			std::memset(hashs, 0xFF, hashsSize);
+			firstIndex = capacity;
 		}
 
 		int64_t find(const V& value) const {
@@ -101,7 +59,6 @@ namespace oak {
 				if (hashs[ridx] != EMPTY_HASH) {
 					--left;
 				}
-
 				if (hashs[ridx] == h && EqualFunc<V, V>{}(values[ridx], value)) {
 					return ridx;
 				}
@@ -135,9 +92,6 @@ namespace oak {
 		}
 
 		V* put(const V& value) {
-			if (size == capacity) {
-				resize(capacity == 0 ? 4 : capacity * 2);
-			}
 			const auto h = HashFunc<V>{}(value);
 			const int64_t idx = h & (capacity - 1);
 			for (int64_t d = 0; d < capacity; ++d) {
@@ -162,7 +116,6 @@ namespace oak {
 					return values + ridx;
 				}
 			}
-
 			return nullptr;
 		}
 
