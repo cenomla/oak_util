@@ -15,7 +15,7 @@ namespace oak {
 		typedef T value_type;
 
 		Array() = default;
-		Array(const Slice<T>& other) {
+		explicit Array(const Slice<T>& other) {
 			reserve(other.count);
 			auto mem = const_cast<std::remove_const_t<T>*>(data);
 			std::memcpy(mem, std::begin(other), other.count * sizeof(T));

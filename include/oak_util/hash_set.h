@@ -45,7 +45,6 @@ namespace oak {
 			auto mem = alloc(size);
 			nset.values = static_cast<V*>(mem);
 			nset.hashs = static_cast<size_t*>(add_ptr(mem, nsize * sizeof(V)));
-			std::memset(nset.values, 0, nsize * sizeof(V));
 			std::memset(nset.hashs, 0xFF, nsize * sizeof(size_t));
 			nset.size = 0;
 			nset.capacity = nsize;
