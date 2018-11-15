@@ -210,7 +210,7 @@ namespace oak {
 			auto mem = allocate_from_arena(arena, totalSize, 1, 1);
 			keys = static_cast<size_t*>(mem);
 			values = static_cast<V*>(add_ptr(mem, keysSize));
-			std::memset(keys, NULL_KEY, keysSize);
+			std::memset(keys, 0xFF, keysSize);
 			firstIndex = capacity;
 		}
 
