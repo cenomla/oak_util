@@ -29,9 +29,16 @@ namespace oak {
 
 	constexpr int64_t ensure_pow2(int64_t value) {
 		if (value < 0) {
-			return -static_cast<int64_t>(ensure_pow2(static_cast<size_t>(-value)));
+			return -static_cast<int64_t>(ensure_pow2(static_cast<uint64_t>(-value)));
 		}
 		return static_cast<int64_t>(ensure_pow2(static_cast<uint64_t>(value)));
+	}
+
+	constexpr int32_t ensure_pow2(int32_t value) {
+		if (value < 0) {
+			return -static_cast<int32_t>(ensure_pow2(static_cast<uint64_t>(-value)));
+		}
+		return static_cast<int32_t>(ensure_pow2(static_cast<uint64_t>(value)));
 	}
 
 	constexpr uint64_t blog2(uint64_t value) {
