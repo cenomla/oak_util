@@ -1,5 +1,9 @@
 
-memory_test = executable('memory', 'memory.cpp', objects: oak_util.extract_all_objects(), include_directories: includes, dependencies: deps)
+memory_test = executable('memory', 'memory.cpp', dependencies: test_deps)
 
 test('memory', memory_test)
+
+any_test = executable('any', 'any_test.cpp', dependencies: test_deps)
+
+test('any', any_test)
 

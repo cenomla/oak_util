@@ -9,6 +9,8 @@
 
 namespace oak {
 
+	constexpr size_t SMALL_FUNCTION_SIZE = 16;
+
 	template<typename T>
 	struct Function {};
 
@@ -16,7 +18,7 @@ namespace oak {
 	struct Function<Out(In...)> {
 		MemoryArena *arena = nullptr;
 		union {
-			char staticStorage[16]{ 0 };
+			char staticStorage[SMALL_FUNCTION_SIZE]{ 0 };
 			size_t functionSize;
 		};
 		void *function = nullptr;
@@ -76,7 +78,7 @@ namespace oak {
 			function = nullptr;
 		}
 
-		Out operator()(In&... args) {
+		Out operator()(In... args) {
 			assert(function);
 			assert(executeFunction);
 			// Dont return if the return type is void
@@ -85,6 +87,10 @@ namespace oak {
 			} else {
 				return executeFunction(function, args...);
 			}
+		}
+
+		operator bool() {
+			return function != nullptr;
 		}
 
 	};

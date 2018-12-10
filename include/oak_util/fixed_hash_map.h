@@ -153,7 +153,7 @@ namespace oak {
 			assert(count > 0);
 			hashs[idx] = EMPTY_HASH;
 			--count;
-			if (firstIndex == idx) { //calculate new first index
+			if (firstIndex == idx) { // Calculate new first index
 				firstIndex = capacity;
 				for (int64_t i = 0; i < capacity; ++i) {
 					if (hashs[i] != EMPTY_HASH) {

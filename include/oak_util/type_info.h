@@ -148,16 +148,59 @@ namespace oak {
 		return catagoryId == catagory_id<C>();
 	}
 
+	constexpr TypeInfo noTypeInfo{ oak::TypeKind::NONE, "none", 0, 0 };
+
 	struct Any {
 		void *ptr = nullptr;
 		const TypeInfo *type = nullptr;
 
 		Any() = default;
-		Any(void *_ptr, const TypeInfo *_type) : ptr{ _ptr }, type{ _type } {}
-		Any(const Any& other) : ptr{ other.ptr }, type{ other.type } {}
+		Any(void *ptr_, const TypeInfo *type_) : ptr{ ptr_ }, type{ type_ } {}
+		Any(const Any& other) = default;
 		template<typename T, typename DT = std::decay_t<T>,
 			std::enable_if_t<!std::is_same_v<DT, Any>, int> = 0>
 		Any(T&& thing) : ptr{ &thing }, type{ type_info<DT>() } {}
+
+		inline Any get_member(String name) {
+			if (type->kind == TypeKind::STRUCT ||
+					type->kind == TypeKind::OAK_SLICE) {
+				auto si = static_cast<const StructInfo*>(type);
+				for (auto member : Slice{ si->members, si->memberCount }) {
+					if (member.name == name) {
+						return { add_ptr(ptr, member.offset), member.type };
+					}
+				}
+			}
+			return { nullptr, &noTypeInfo };
+		}
+
+		inline Any get_element(int64_t index) {
+			if (type->kind == TypeKind::ARRAY) {
+				auto ai = static_cast<const ArrayInfo*>(type);
+				if (index < ai->count) {
+					return { add_ptr(ptr, index * ai->of->size), ai->of };
+				}
+			} else if (type->kind == TypeKind::OAK_SLICE) {
+				auto data = get_member("data");
+				auto count = get_member("count");
+				if (index < count.to_value<int64_t>()) {
+					auto pi = static_cast<const PtrInfo*>(data.type);
+					return { add_ptr(data.to_value<void*>(), index * pi->of->size), pi->of };
+				}
+			}
+			return { nullptr, &noTypeInfo };
+		}
+
+		template<typename T>
+		inline T& to_value() {
+			const TypeInfo *typeInfo = type_info<T>();
+			assert(typeInfo == type ||
+					(type->kind == TypeKind::ENUM && static_cast<const EnumInfo*>(type)->underlyingType == typeInfo) ||
+					(type->kind == TypeKind::PTR && typeInfo->kind == TypeKind::PTR &&
+						 static_cast<const PtrInfo*>(typeInfo)->of == type_info<void>()));
+			assert(ptr);
+			return *static_cast<T*>(ptr);
+		}
 	};
 
 }

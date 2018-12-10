@@ -11,4 +11,6 @@ deps = [
 includes = include_directories('include')
 
 subdir('src')
+
+test_deps = deps + [ oak_util_dep ]
 subdir('tests')
