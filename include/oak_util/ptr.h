@@ -21,7 +21,7 @@ namespace oak {
 		return reinterpret_cast<const void*>(reinterpret_cast<uintptr_t>(p) - x);
 	}
 
-	inline const uintptr_t ptr_diff(const void *p0, const void *p1) {
+	inline uintptr_t ptr_diff(const void *p0, const void *p1) {
 		auto min = reinterpret_cast<uintptr_t>(p0);
 		auto max = reinterpret_cast<uintptr_t>(p1);
 		if (min > max) {

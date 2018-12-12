@@ -6,7 +6,7 @@ namespace oak {
 
 	namespace detail {
 
-		inline void std_free_wrapper(void *ptr, size_t size) {
+		inline void std_free_wrapper(void *ptr, size_t) {
 			std::free(ptr);
 		}
 
