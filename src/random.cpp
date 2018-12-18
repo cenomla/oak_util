@@ -1,7 +1,8 @@
 #include "oak_util/random.h"
 
 #include <cassert>
-#include "oak_util/memory.h"
+#include <oak_util/memory.h>
+#include <oak_util/bit.h>
 
 // Used to convert an int to double
 #define TWO_M52 2.2204460492503131e-16
@@ -31,7 +32,7 @@ namespace oak {
 
 	double LCGenerator::random_double() {
 		advance_state();
-		return (state >> 12) * TWO_M52;
+		return static_cast<double>(state << (52 - blog2(m + 1))) * TWO_M52;
 	}
 
 	float LCGenerator::random_float() {
