@@ -100,7 +100,7 @@ namespace oak {
 		}
 	};
 
-	template<typename T>
+	template<typename T, typename = std::enable_if_t<std::is_enum_v<T>>>
 	constexpr decltype(auto) enum_int(T val) {
 		return static_cast<std::underlying_type_t<T>>(val);
 	}
