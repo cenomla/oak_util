@@ -8,7 +8,7 @@ namespace oak {
 
 	template<typename T>
 	struct HashFunc {
-		constexpr size_t operator()(const T& v) const {
+		constexpr size_t operator()(const T&) const {
 			return ~size_t{ 0 };
 		}
 	};

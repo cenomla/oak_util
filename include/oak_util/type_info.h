@@ -77,59 +77,65 @@ namespace oak {
 
 	struct StructInfo : TypeInfo {
 		void (*construct)(void *) = nullptr;
-		const VarInfo *members = nullptr;
+		VarInfo const *members = nullptr;
 		int64_t memberCount = 0;
 		size_t tid = 0;
 		size_t catagoryId = 0;
 
-		inline const VarInfo* begin() const { return members; }
-		inline const VarInfo* end() const { return members + memberCount; }
+		inline VarInfo const* begin() const { return members; }
+		inline VarInfo const* end() const { return members + memberCount; }
 	};
 
 	struct EnumInfo : TypeInfo {
-		const TypeInfo *underlyingType = nullptr;
-		const EnumConstant *members = nullptr;
+		TypeInfo const *underlyingType = nullptr;
+		EnumConstant const *members = nullptr;
 		int64_t memberCount = 0;
 
-		inline const EnumConstant* begin() const {
+		inline EnumConstant const* begin() const {
 			return members;
 		}
 
-		inline const EnumConstant* end() const {
+		inline EnumConstant const* end() const {
 			return members + memberCount;
 		}
 	};
 
-	template<typename T, typename = std::enable_if_t<std::is_enum_v<T>>>
+	template<typename T>
 	constexpr decltype(auto) enum_int(T val) {
-		return static_cast<std::underlying_type_t<T>>(val);
-	}
-
-	template<typename T> std::enable_if_t<
-		!(std::is_pointer_v<T> || std::is_array_v<T>),
-		const TypeInfo*> type_info();
-
-	template<typename T> std::enable_if_t<std::is_pointer_v<T>, const TypeInfo*> type_info() {
-		static const PtrInfo info{
-			{ TypeKind::PTR, "pointer", sizeof(T), alignof(T) },
-			type_info<std::remove_pointer_t<T>>()
-		};
-		return &info;
-	}
-
-	template<typename T> std::enable_if_t<std::is_array_v<T>, const TypeInfo*> type_info() {
-		static const ArrayInfo info{
-			{ TypeKind::ARRAY, "array", sizeof(T), alignof(T) },
-			type_info<std::remove_extent_t<T>>(), std::extent_v<T>
-		};
-		return &info;
+		if constexpr (std::is_enum_v<T>) {
+			return static_cast<std::underlying_type_t<T>>(val);
+		} else {
+			static_assert("\"enum_int\" must be used with an enum type");
+		}
 	}
 
 	template<typename T>
-	const StructInfo* struct_info() {
+	TypeInfo const* type_info_internal();
+
+	template<typename T>
+	TypeInfo const* type_info() {
+		if constexpr(std::is_pointer_v<T>) {
+			static PtrInfo const info{
+				{ TypeKind::PTR, "pointer", sizeof(T), alignof(T) },
+				type_info<std::remove_pointer_t<T>>()
+			};
+			return &info;
+		} else if constexpr(std::is_array_v<T>) {
+			static ArrayInfo const info{
+				{ TypeKind::ARRAY, "array", sizeof(T), alignof(T) },
+				type_info<std::remove_extent_t<T>>(), std::extent_v<T>
+			};
+			return &info;
+		} else {
+			return type_info_internal<T>();
+		}
+	}
+
+	template<typename T>
+	StructInfo const* struct_info() {
 		auto typeInfo = type_info<T>();
 		assert(typeInfo->kind == TypeKind::STRUCT);
-		return static_cast<const StructInfo*>(typeInfo);
+		return static_cast<StructInfo const*>(typeInfo);
 	}
 
 	template<typename T> size_t type_id() {
@@ -137,14 +143,14 @@ namespace oak {
 	}
 
 	template<typename T>
-	Slice<const TypeInfo*> types_in_catagory();
+	Slice<TypeInfo const*> types_in_catagory();
 
 	template<typename T>
 	size_t catagory_id();
 
 	template<typename C>
-	bool is_type_in_catagory(const TypeInfo *typeInfo) {
-		auto catagoryId = typeInfo->kind == TypeKind::STRUCT ? static_cast<const StructInfo*>(typeInfo)->catagoryId : 0;
+	bool is_type_in_catagory(TypeInfo const *typeInfo) {
+		auto catagoryId = typeInfo->kind == TypeKind::STRUCT ? static_cast<StructInfo const*>(typeInfo)->catagoryId : 0;
 		return catagoryId == catagory_id<C>();
 	}
 
@@ -155,10 +161,10 @@ namespace oak {
 		const TypeInfo *type = nullptr;
 
 		Any() = default;
-		Any(void *ptr_, const TypeInfo *type_) : ptr{ ptr_ }, type{ type_ } {}
-		Any(const Any& other) = default;
-		template<typename T, typename DT = std::decay_t<T>,
-			std::enable_if_t<!std::is_same_v<DT, Any>, int> = 0>
+		Any(void *ptr_, TypeInfo const *type_) : ptr{ ptr_ }, type{ type_ } {}
+
+		Any(Any const& other) = default;
+		template<typename T, typename DT = std::decay_t<T>, typename = std::enable_if_t<!std::is_same_v<DT, Any>>>
 		Any(T&& thing) : ptr{ &thing }, type{ type_info<DT>() } {}
 
 		inline Any get_member(String name) {
@@ -193,11 +199,11 @@ namespace oak {
 
 		template<typename T>
 		inline T& to_value() {
-			const TypeInfo *typeInfo = type_info<T>();
+			TypeInfo const *typeInfo = type_info<T>();
 			assert(typeInfo == type ||
-					(type->kind == TypeKind::ENUM && static_cast<const EnumInfo*>(type)->underlyingType == typeInfo) ||
+					(type->kind == TypeKind::ENUM && static_cast<EnumInfo const*>(type)->underlyingType == typeInfo) ||
 					(type->kind == TypeKind::PTR && typeInfo->kind == TypeKind::PTR &&
-						 static_cast<const PtrInfo*>(typeInfo)->of == type_info<void>()));
+						 static_cast<PtrInfo const*>(typeInfo)->of == type_info<void>()));
 			assert(ptr);
 			return *static_cast<T*>(ptr);
 		}
