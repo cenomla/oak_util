@@ -82,7 +82,7 @@ namespace oak {
 
 	template<> const TypeInfo* type_info<Test>() {
 		using T = Test;
-		static const VarInfo members[] = {
+		static const MemberInfo members[] = {
 			{ "a", type_info<decltype(T::a)>(), offsetof(T, a), 0 },
 			{ "b", type_info<decltype(T::b)>(), offsetof(T, b), 0 },
 		};
@@ -94,7 +94,7 @@ namespace oak {
 
 	template<> const TypeInfo* type_info<Slice<Test>>() {
 		using T = oak::Slice<Test>;
-		static const VarInfo members[] = {
+		static const MemberInfo members[] = {
 			{ "data", type_info<decltype(T::data)>(), offsetof(T, data), 0 },
 			{ "count", type_info<decltype(T::count)>(), offsetof(T, count), 0 },
 		};

@@ -54,7 +54,7 @@ namespace oak {
 		VAR_VOLATILE = 0x01,
 	};
 
-	struct VarInfo {
+	struct MemberInfo {
 		String name;
 		const TypeInfo *type = nullptr;
 		size_t offset = 0;
@@ -77,13 +77,13 @@ namespace oak {
 
 	struct StructInfo : TypeInfo {
 		void (*construct)(void *) = nullptr;
-		VarInfo const *members = nullptr;
+		MemberInfo const *members = nullptr;
 		int64_t memberCount = 0;
 		size_t tid = 0;
 		size_t catagoryId = 0;
 
-		inline VarInfo const* begin() const { return members; }
-		inline VarInfo const* end() const { return members + memberCount; }
+		inline MemberInfo const* begin() const { return members; }
+		inline MemberInfo const* end() const { return members + memberCount; }
 	};
 
 	struct EnumInfo : TypeInfo {
@@ -154,7 +154,7 @@ namespace oak {
 		return catagoryId == catagory_id<C>();
 	}
 
-	constexpr TypeInfo noTypeInfo{ oak::TypeKind::NONE, "none", 0, 0 };
+	inline const TypeInfo noTypeInfo{ oak::TypeKind::NONE, "none", 0, 0 };
 
 	struct Any {
 		void *ptr = nullptr;

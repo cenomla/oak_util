@@ -36,7 +36,7 @@ namespace oak {
 
 	template<>
 	struct HashFunc<void*> {
-		constexpr size_t operator()(void* const& v) const {
+		size_t operator()(void* const& v) const {
 			return reinterpret_cast<size_t>(v);
 		}
 	};
