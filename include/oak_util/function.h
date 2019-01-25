@@ -26,6 +26,29 @@ namespace oak {
 
 		Function() = default;
 
+		Function(Function&& other) {
+			operator=(static_cast<Function&&>(other));
+		}
+
+		Function& operator=(Function&& other) {
+			arena = other.arena;
+			if (other.function == &other.staticStorage) {
+				function = &staticStorage;
+				std::memcpy(staticStorage, other.staticStorage, sizeof(staticStorage));
+			} else {
+				function = other.function;
+				functionSize = other.functionSize;
+			}
+
+			executeFunction = other.executeFunction;
+
+			other.arena = nullptr;
+			std::memset(other.staticStorage, 0, sizeof(other.staticStorage));
+			other.function = nullptr;
+			other.executeFunction = nullptr;
+			return *this;
+		}
+
 		template<typename T>
 		Function(T&& obj) {
 			set(std::forward<T>(obj));
@@ -47,7 +70,7 @@ namespace oak {
 				}
 				functionSize = sizeof(obj);
 			} else {
-				function = &staticStorage;
+				function = staticStorage;
 			}
 			std::memcpy(function, &obj, sizeof(obj));
 

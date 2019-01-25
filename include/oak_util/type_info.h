@@ -197,6 +197,15 @@ namespace oak {
 			return { nullptr, &noTypeInfo };
 		}
 
+		inline void construct() {
+			if (type->kind == TypeKind::STRUCT) {
+				auto si = static_cast<StructInfo const*>(type);
+				if (si->construct) {
+					si->construct(ptr);
+				}
+			}
+		}
+
 		template<typename T>
 		inline T& to_value() {
 			TypeInfo const *typeInfo = type_info<T>();
