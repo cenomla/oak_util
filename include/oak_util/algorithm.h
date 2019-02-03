@@ -73,6 +73,7 @@ namespace oak {
 
 	template<typename T, typename F>
 	void merge_sort(MemoryArena *arena, T *array, int64_t arrayCount, F&& functor) {
+		if (arrayCount < 2) { return; }
 		auto temp = allocate<T>(arena, arrayCount);
 		std::memcpy(temp, array, arrayCount * sizeof(T));
 		detail::ms_impl_split(array, temp, 0, arrayCount, std::forward<F>(functor));

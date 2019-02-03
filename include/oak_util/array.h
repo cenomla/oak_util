@@ -4,7 +4,7 @@
 #include <cassert>
 #include <initializer_list>
 
-#include "allocator.h"
+#include "memory.h"
 #include "slice.h"
 #include "bit.h"
 

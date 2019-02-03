@@ -19,7 +19,7 @@ void print_pool(oak::MemoryArena *pool) {
 	}
 }
 
-int main(int argc, char **argv) {
+int main(int , char **) {
 	oak::MemoryArena tmp, arena;
 	oak::init_memory_arena(&tmp, 2'000'000);
 	oak::temporaryMemory = &tmp;

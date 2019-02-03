@@ -4,7 +4,6 @@
 #include <cstring>
 #include <type_traits>
 
-#include "allocator.h"
 #include "memory.h"
 
 namespace oak {

@@ -2,8 +2,7 @@
 
 #include <cstring>
 
-#include "oak_util/allocator.h"
-#include "oak_util/memory.h"
+#include <oak_util/memory.h>
 
 namespace oak {
 

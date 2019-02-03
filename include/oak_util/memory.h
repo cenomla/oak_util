@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdlib>
 #include <new>
+
 #include "types.h"
 
 namespace oak {
@@ -32,6 +34,14 @@ namespace oak {
 		size_t size = 0;
 	};
 
+	namespace detail {
+
+		inline void std_free_wrapper(void *ptr, size_t) {
+			std::free(ptr);
+		}
+
+	}
+
 	Result init_memory_arena(MemoryArena *arena, size_t size);
 	Result init_memory_arena(MemoryArena *arena, void *block, size_t size);
 
@@ -49,7 +59,8 @@ namespace oak {
 		MemoryArena *arena = nullptr;
 		void *stackPtr = nullptr;
 
-		ArenaStack(MemoryArena *arena_) : arena{ arena_ }, stackPtr{ push_stack(arena) } {}
+		ArenaStack(MemoryArena *arena_)
+			: arena{ arena_ }, stackPtr{ push_stack(arena) } {}
 
 		~ArenaStack() {
 			pop_stack(arena, stackPtr);
@@ -71,6 +82,9 @@ namespace oak {
 		}
 		return result;
 	}
+
+	inline void* (*alloc)(size_t size) = std::malloc;
+	inline void (*free)(void *ptr, size_t size) = detail::std_free_wrapper;
 
 	inline MemoryArena *temporaryMemory = nullptr;
 

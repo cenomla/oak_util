@@ -3,7 +3,6 @@
 #include <cstring>
 #include <cassert>
 
-#include "allocator.h"
 #include "bit.h"
 
 namespace oak {
