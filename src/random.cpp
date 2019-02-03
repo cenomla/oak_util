@@ -42,7 +42,7 @@ namespace oak {
 	void LFGenerator::init(MemoryArena *arena, int l_, int k_, uint64_t seed) {
 		l = l_;
 		k = k_;
-		state = make_structs<uint64_t>(arena, k);
+		state = make<uint64_t>(arena, k);
 		LCGenerator rng;
 		rng.init(LFG_SEED_A, LFG_SEED_C, LFG_SEED_M, seed);
 		for (int i = 0; i < k; ++i) {

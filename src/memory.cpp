@@ -3,61 +3,73 @@
 #include <cassert>
 
 #include "oak_util/allocator.h"
-#include "oak_util/type_info.h"
+#include "oak_util/ptr.h"
 #include "oak_util/bit.h"
 
 namespace oak {
 
-	MemoryArena create_memory_arena(size_t size) {
+	Result init_memory_arena(MemoryArena *arena, size_t size) {
+		assert(arena);
+		assert(size > 0);
+
 		auto totalSize = sizeof(MemoryArenaHeader) + size;
 		auto block = alloc(totalSize);
 		if (!block) {
-			return {};
+			return Result::OUT_OF_MEMORY;
 		}
-		return create_memory_arena(block, totalSize);
+
+		return init_memory_arena(arena, block, totalSize);
 	}
 
-	MemoryArena create_memory_arena(void *block, size_t size) {
+	Result init_memory_arena(MemoryArena *arena, void *block, size_t size) {
+		assert(arena);
 		assert(block);
 		assert(size > sizeof(MemoryArenaHeader));
+
 		auto header = static_cast<MemoryArenaHeader*>(block);
 		header->allocationCount = 0;
-		header->allocatedMemory = 0;
+		header->requestedMemory = 0;
 		header->usedMemory = sizeof(MemoryArenaHeader);
 		header->next = nullptr;
-		MemoryArena arena{ block, size };
-		return arena;
+
+		*arena = { block, size };
+
+		return Result::SUCCESS;
 	}
 
-	void destroy_memory_arena(MemoryArena *arena) {
-		free(arena->block, arena->size);
-		arena->block = nullptr;
-		arena->size = 0;
-	}
-
-	void *allocate_from_arena(MemoryArena *arena, size_t size, int64_t count, size_t alignment) {
+	Result allocate_from_arena(MemoryArena *arena, void **outPtr, size_t size, int64_t count, size_t alignment) {
 		assert(arena);
 		assert(arena->block);
+		assert(outPtr);
+		assert(size > 0 && count > 0);
+
 		auto header = static_cast<MemoryArenaHeader*>(arena->block);
 		auto memoryToAllocate = size * count;
+
 		if (header->usedMemory + memoryToAllocate < arena->size) {
 			auto result = add_ptr(arena->block, header->usedMemory);
 			auto offset = align_offset(result, alignment);
-			header->allocationCount++;
-			header->allocatedMemory += size * count;
+
+			++header->allocationCount;
+			header->requestedMemory += memoryToAllocate;
 			header->usedMemory += offset + memoryToAllocate;
-			return add_ptr(result, offset);
+
+			*outPtr = add_ptr(result, offset);
+
+			return Result::SUCCESS;
 		}
-		assert("out of memory" && false);
-		return nullptr;
+
+		return Result::OUT_OF_MEMORY;
 	}
 
 	void clear_arena(MemoryArena *arena) {
 		assert(arena);
 		assert(arena->block);
+
 		auto header = static_cast<MemoryArenaHeader*>(arena->block);
+
 		header->allocationCount = 0;
-		header->allocatedMemory = 0;
+		header->requestedMemory = 0;
 		header->usedMemory = sizeof(MemoryArenaHeader);
 	}
 
@@ -66,10 +78,10 @@ namespace oak {
 		auto stackHeader = static_cast<StackHeader*>(add_ptr(arena->block, arenaHeader->usedMemory));
 		//save header state
 		stackHeader->allocationCount = arenaHeader->allocationCount;
-		stackHeader->allocatedMemory = arenaHeader->allocatedMemory;
+		stackHeader->requestedMemory = arenaHeader->requestedMemory;
 		//track this allocation
 		arenaHeader->usedMemory += ssizeof(StackHeader);
-		arenaHeader->allocatedMemory += ssizeof(StackHeader);
+		arenaHeader->requestedMemory += ssizeof(StackHeader);
 		arenaHeader->allocationCount ++;
 		return add_ptr(arena->block, arenaHeader->usedMemory);
 	}
@@ -80,13 +92,14 @@ namespace oak {
 		auto ogUsedMemory = reinterpret_cast<intptr_t>(stackPtr) - reinterpret_cast<intptr_t>(arena->block) - ssizeof(StackHeader);
 		arenaHeader->usedMemory = ogUsedMemory;
 		arenaHeader->allocationCount = stackHeader->allocationCount;
-		arenaHeader->allocatedMemory = stackHeader->allocatedMemory;
+		arenaHeader->requestedMemory = stackHeader->requestedMemory;
 	}
 
 	MemoryArena create_pool(MemoryArena *arena, size_t size) {
 		const auto poolSize = ensure_pow2(size);
 		const auto totalSize = poolSize + sizeof(PoolHeader);
-		auto block = allocate_from_arena(arena, totalSize, 1, sizeof(void*));
+		void *block;
+		allocate_from_arena(arena, &block, totalSize, 1, sizeof(void*));
 		MemoryArena poolArena;
 		poolArena.block = block;
 		poolArena.size = totalSize;

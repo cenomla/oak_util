@@ -8,7 +8,7 @@
 namespace oak::detail {
 
 	String to_str(char v) {
-		auto str = allocate_structs<char>(temporaryMemory, 1);
+		allocate<char>(temporaryMemory, &str, 1);
 		str[0] = v;
 		return String{ str, 1 };
 	}

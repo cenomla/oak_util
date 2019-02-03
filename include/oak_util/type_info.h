@@ -5,13 +5,9 @@
 #include <cassert>
 #include <type_traits>
 
-#include "string.h"
+#include "types.h"
 #include "ptr.h"
-#include "osig_defs.h"
-
-#define ssizeof(x) static_cast<int64_t>(sizeof(x))
-#define array_count(x) (sizeof(x)/sizeof(*x))
-#define sarray_count(x) static_cast<int64_t>(array_count(x))
+#include "string.h"
 
 namespace oak {
 
