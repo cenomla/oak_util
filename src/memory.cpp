@@ -37,10 +37,9 @@ namespace oak {
 		return Result::SUCCESS;
 	}
 
-	Result allocate_from_arena(MemoryArena *arena, void **outPtr, size_t size, int64_t count, size_t alignment) {
+	void* allocate_from_arena(MemoryArena *arena, size_t size, int64_t count, size_t alignment) {
 		assert(arena);
 		assert(arena->block);
-		assert(outPtr);
 		assert(size > 0 && count > 0);
 
 		auto header = static_cast<MemoryArenaHeader*>(arena->block);
@@ -54,12 +53,10 @@ namespace oak {
 			header->requestedMemory += memoryToAllocate;
 			header->usedMemory += offset + memoryToAllocate;
 
-			*outPtr = add_ptr(result, offset);
-
-			return Result::SUCCESS;
+			return add_ptr(result, offset);
 		}
 
-		return Result::OUT_OF_MEMORY;
+		return nullptr;
 	}
 
 	void clear_arena(MemoryArena *arena) {
@@ -98,8 +95,7 @@ namespace oak {
 	MemoryArena create_pool(MemoryArena *arena, size_t size) {
 		const auto poolSize = ensure_pow2(size);
 		const auto totalSize = poolSize + sizeof(PoolHeader);
-		void *block;
-		allocate_from_arena(arena, &block, totalSize, 1, sizeof(void*));
+		auto block = allocate_from_arena(arena, totalSize, 1, sizeof(void*));
 		MemoryArena poolArena;
 		poolArena.block = block;
 		poolArena.size = totalSize;

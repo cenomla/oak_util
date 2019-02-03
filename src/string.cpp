@@ -104,7 +104,7 @@ namespace oak {
 	String copy_str(MemoryArena *arena, const String str) {
 		String string;
 		string.count = str.count;
-		string.data = allocate_structs<char>(arena, string.count);
+		string.data = allocate<char>(arena, string.count);
 		std::memcpy(string.data, str.data, string.count);
 		return string;
 	}

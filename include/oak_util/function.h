@@ -64,7 +64,7 @@ namespace oak {
 			using FT = std::decay_t<T>;
 			if constexpr (sizeof(obj) > sizeof(staticStorage)) {
 				if (arena) {
-					function = allocate_structs<T>(arena, 1);
+					function = allocate<T>(arena, 1);
 				} else {
 					function = alloc(sizeof(obj));
 				}

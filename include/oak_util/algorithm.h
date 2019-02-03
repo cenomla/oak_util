@@ -73,14 +73,14 @@ namespace oak {
 
 	template<typename T, typename F>
 	void merge_sort(MemoryArena *arena, T *array, int64_t arrayCount, F&& functor) {
-		auto temp = allocate_structs<T>(arena, arrayCount);
+		auto temp = allocate<T>(arena, arrayCount);
 		std::memcpy(temp, array, arrayCount * sizeof(T));
 		detail::ms_impl_split(array, temp, 0, arrayCount, std::forward<F>(functor));
 	}
 
 	template<typename T, typename F>
 	void merge_sort(MemoryArena *arena, T *array, int64_t arrayCount) {
-		auto temp = allocate_structs<T>(arena, arrayCount);
+		auto temp = allocate<T>(arena, arrayCount);
 		std::memcpy(temp, array, arrayCount * sizeof(T));
 		detail::ms_impl_split(array, temp, 0, arrayCount, less<T>);
 	}

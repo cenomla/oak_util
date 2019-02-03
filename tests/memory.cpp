@@ -1,7 +1,8 @@
 #include <cassert>
 
-#include "oak_util/fmt.h"
-#include "oak_util/memory.h"
+#include <oak_util/fmt.h>
+#include <oak_util/memory.h>
+#include <oak_util/ptr.h>
 
 struct Obj {
 	int32_t a;
@@ -19,6 +20,7 @@ void print_pool(oak::MemoryArena *pool) {
 }
 
 int main(int argc, char **argv) {
+	oak::MemoryArena tmp, arena;
 	oak::init_memory_arena(&tmp, 2'000'000);
 	oak::temporaryMemory = &tmp;
 	oak::init_memory_arena(&arena, 2'000'000);
