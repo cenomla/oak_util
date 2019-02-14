@@ -5,6 +5,7 @@
 #include <new>
 
 #include "types.h"
+#include "ptr.h"
 
 namespace oak {
 
@@ -65,9 +66,19 @@ namespace oak {
 		return static_cast<T*>(allocator->allocate(sizeof(T) * count, alignof(T)));
 	}
 
+	template<typename... types>
+	void* allocate_soa(Allocator *allocator, i64 count) {
+		return allocator->allocate(soa_offset<sizeof...(types), types...>(count), max_align<types...>());
+	}
+
 	template<typename T>
 	void deallocate(Allocator *allocator, T *ptr, i64 count) {
-		allocator->deallocate(static_cast<void*>(ptr), count);
+		allocator->deallocate(static_cast<void*>(ptr), sizeof(T) * count);
+	}
+
+	template<typename... types>
+	void deallocate_soa(Allocator *allocator, void *ptr, i64 count) {
+		allocator->deallocate(ptr, soa_offset<sizeof...(types), types...>(count));
 	}
 
 	template<typename T, typename... TArgs>

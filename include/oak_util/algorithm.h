@@ -203,18 +203,5 @@ namespace oak {
 		}
 	}
 
-	template<>
-	struct HashFn<String> {
-		constexpr size_t operator()(String const& str) const {
-			size_t hash = 0;
-
-			for (i64 i = 0; i < str.count; i++) {
-				hash = str.data[i] + (hash << 6) + (hash << 16) - hash;
-			}
-
-			return hash + 1;
-		}
-	};
-
 }
 

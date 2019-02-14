@@ -8,11 +8,6 @@
 #include <tuple>
 
 #include <osig_defs.h>
-#include "ptr.h"
-
-#define ssizeof(x) static_cast<int64_t>(sizeof(x))
-#define array_count(x) (sizeof(x)/sizeof(*x))
-#define sarray_count(x) static_cast<int64_t>(array_count(x))
 
 using i8 = int8_t;
 using i16 = int16_t;
@@ -28,6 +23,10 @@ using f32 = float;
 using f64 = double;
 
 using b32 = uint32_t;
+
+#define ssizeof(x) static_cast<i64>(sizeof(x))
+#define array_count(x) (sizeof(x)/sizeof(*x))
+#define sarray_count(x) static_cast<i64>(array_count(x))
 
 namespace oak {
 
@@ -148,83 +147,56 @@ namespace oak {
 	const char* as_c_str(String const str);
 	String copy_str(MemoryArena *arena, String const str);
 
-	template<typename... types>
-	struct SOA {
-		using tuple = std::tuple<types...>;
-
-		void *data = nullptr;
-		i64 count = 0;
-
-		constexpr std::tuple<types&...> operator[](i64 const index) noexcept;
-	};
-
 	template<typename T>
 	struct HashFn {
-		constexpr u64 operator()(T const& value) noexcept {
-			static_assert("hash not supported");
-			return 0;
+		constexpr u64 operator()(T const& value) const noexcept {
+			if constexpr (std::is_integral_v<T>) {
+				return static_cast<u64>(value);
+			} else {
+				static_assert("hash not supported");
+				return 0;
+			}
 		}
 	};
 
-	template<typename T>
+	template<typename T, typename U>
 	struct CmpFn {
-		constexpr u64 operator()(T const& value) noexcept {
-			static_assert("compare not supported");
+		constexpr i64 operator()(T const& lhs, U const& rhs) const noexcept {
+			if constexpr (std::is_integral_v<T> && std::is_integral_v<U>) {
+				return rhs - lhs;
+			} else {
+				static_assert("compare not supported");
+				return 0;
+			}
+		}
+	};
+
+	template<>
+	struct HashFn<String> {
+		constexpr u64 operator()(String const& str) const noexcept {
+			u64 hash = 0;
+
+			for (i64 i = 0; i < str.count; i++) {
+				hash = str.data[i] + (hash << 6) + (hash << 16) - hash;
+			}
+
+			return hash + 1;
+		}
+	};
+
+	template<>
+	struct CmpFn<String, String> {
+		constexpr i64 operator()(String const& lhs, String const& rhs) const noexcept {
+			i64 const count = lhs.count < rhs.count ? lhs.count : rhs.count;
+			for (i64 i = 0; i < count; ++i) {
+				if (lhs[i] != rhs[i]) {
+					return lhs[i] - rhs[i];
+				}
+			}
 			return 0;
 		}
 	};
 
-
-}
-
-namespace std {
-
-	template<typename... types>
-	struct tuple_size<oak::SOA<types...>> {
-		static constexpr size_t value = sizeof...(types);
-	};
-
-	template<size_t index, typename... types>
-	struct tuple_element<index, oak::SOA<types...>> {
-		using type = oak::Slice<typename tuple_element<index, tuple<types...>>::type>;
-	};
-
-}
-
-namespace oak {
-
-	template<size_t index, typename... types>
-	constexpr typename std::tuple_element<index, SOA<types...>>::type get(SOA<types...>& soa) {
-		constexpr size_t sizes[] = { sizeof(types)..., };
-		constexpr size_t aligns[] = { alignof(types)..., };
-
-		i64 offset = 0;
-		for (size_t i = 0; i < index; ++i) {
-			offset = align_int(offset, aligns[i]);
-			offset += soa.count * sizes[i];
-		}
-		offset = align_int(offset, aligns[index]);
-
-		return {
-			static_cast<typename std::tuple_element<index, std::tuple<types...>>::type*>(add_ptr(soa.data, offset)),
-			soa.count
-		};
-	}
-
-	namespace detail {
-
-		template<typename tupleT, typename soaT, size_t... ints>
-		constexpr tupleT soa_sub_script_impl(soaT& soa, i64 const index, std::index_sequence<ints...>) {
-			return { get<ints>(soa)[index]..., };
-		}
-
-	}
-
-	template<typename... types>
-	constexpr std::tuple<types&...> SOA<types...>::operator[](i64 const index) noexcept {
-		using indices = std::make_index_sequence<std::tuple_size<std::tuple<types...>>::value>;
-		return detail::soa_sub_script_impl<std::tuple<types&...>>(*this, index, indices{});
-	}
 
 }
 

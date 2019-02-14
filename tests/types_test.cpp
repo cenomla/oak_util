@@ -5,6 +5,15 @@
 
 using namespace oak;
 
+template<typename Set>
+void print_set(Set const& set) {
+	for (auto [empty, key, value0, value1] : set) {
+		if (!empty) {
+			fprintf(stdout, "[%lu, %d, %d, %lf]\n", set.slot(set.hash_fn(key)), key, value0, value1);
+		}
+	}
+}
+
 int main(int, char**) {
 
 	MemoryArena tempMemory;
@@ -14,8 +23,8 @@ int main(int, char**) {
 	temporaryMemory.allocFn = detail::arena_alloc_wrapper;
 
 	SOA<int, double> soa;
-	soa.data = std::malloc(64 * sizeof(std::tuple<int, double>));
 	soa.count = 64;
+	soa.data = allocate_soa<int, double>(&temporaryMemory, soa.count);
 
 	for (i64 i = 0; i < soa.count; ++i) {
 		auto [v0, v1] = soa[i];
@@ -26,15 +35,28 @@ int main(int, char**) {
 	i = -50;
 	d = .5 * i;
 
+	auto t = soa[1];
+	t = std::make_tuple(-99, .5 * -99);
+
 	for (i64 i = 0; i < soa.count; ++i) {
 		auto &[s0, s1] = soa;
 		fprintf(stdout, "[%d, %lf]\n", s0[i], s1[i]);
 	}
 
 
+	HashSet<int, HashFn<int>, CmpFn<int, int>, int, double> set;
+	set.init(&temporaryMemory, 64);
+	set.insert(1, 1, 1.0);
+	set.insert(65, 2, 2.0);
+	set.insert(129, 3, 3.0);
+	set.insert(193, 4, 4.0);
+	set.insert(257, 5, 5.0);
 
+	print_set(set);
 
-	HashSet<int, String> set;
+	set.remove(set.find(129));
+
+	print_set(set);
 
 	return 0;
 }
