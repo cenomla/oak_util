@@ -2,15 +2,15 @@
 
 #include <cassert>
 
-#include "oak_util/allocator.h"
-#include "oak_util/type_info.h"
-#include "oak_util/bit.h"
+#include <oak_util/allocator.h>
+#include <oak_util/type_info.h>
+#include <oak_util/bit.h>
 
 namespace oak {
 
 	MemoryArena create_memory_arena(size_t size) {
 		auto totalSize = sizeof(MemoryArenaHeader) + size;
-		auto block = alloc(totalSize);
+		auto block = malloc(totalSize);
 		if (!block) {
 			return {};
 		}
@@ -30,7 +30,7 @@ namespace oak {
 	}
 
 	void destroy_memory_arena(MemoryArena *arena) {
-		free(arena->block, arena->size);
+		free(arena->block);
 		arena->block = nullptr;
 		arena->size = 0;
 	}

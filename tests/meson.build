@@ -1,16 +1,9 @@
 
-memory_test = executable(
-	'memory', 'memory.cpp',
-	objects: oak_util.extract_all_objects(),
+types_test = executable(
+	'types', 'types_test.cpp',
+	link_with: oak_util,
 	include_directories: includes,
 	dependencies: deps)
 
-hash_test = executable(
-	'hash', 'hash_container.cpp',
-	objects: oak_util.extract_all_objects(),
-	include_directories: includes,
-	dependencies: deps)
-
-test('memory', memory_test)
-test('hash_container', hash_test)
+test('types', types_test)
 
