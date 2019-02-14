@@ -1,4 +1,4 @@
-#include "oak_util/string.h"
+#include <oak_util/algorithm.h>
 
 #include <cstring>
 
@@ -28,4 +28,3 @@ namespace oak {
 	}
 
 }
-

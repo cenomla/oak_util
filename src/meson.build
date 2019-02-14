@@ -1,8 +1,8 @@
 sources = [
+  'algorithm.cpp',
   'fmt.cpp',
   'memory.cpp',
   'random.cpp',
-  'string.cpp',
 ]
 
 oak_util = library('oaktutil', sources, include_directories: includes)
