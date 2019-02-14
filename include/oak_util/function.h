@@ -15,7 +15,7 @@ namespace oak {
 
 	template<typename Out, typename... In>
 	struct Function<Out(In...)> {
-		MemoryArena *arena = nullptr;
+		Allocator *allocator = nullptr;
 		union {
 			char staticStorage[SMALL_FUNCTION_SIZE]{ 0 };
 			size_t functionSize;
@@ -30,7 +30,7 @@ namespace oak {
 		}
 
 		Function& operator=(Function&& other) {
-			arena = other.arena;
+			allocator = other.allocator;
 			if (other.function == &other.staticStorage) {
 				function = &staticStorage;
 				std::memcpy(staticStorage, other.staticStorage, sizeof(staticStorage));
@@ -41,7 +41,7 @@ namespace oak {
 
 			executeFunction = other.executeFunction;
 
-			other.arena = nullptr;
+			other.allocator = nullptr;
 			std::memset(other.staticStorage, 0, sizeof(other.staticStorage));
 			other.function = nullptr;
 			other.executeFunction = nullptr;
@@ -54,7 +54,7 @@ namespace oak {
 		}
 
 		template<typename T>
-		Function(MemoryArena *arena_, T&& obj) : arena{ arena_ } {
+		Function(Allocator *allocator_ = &globalAllocator, T&& obj) : allocator{ allocator_ } {
 			set(std::forward<T>(obj));
 		}
 
@@ -62,11 +62,7 @@ namespace oak {
 		void set(T&& obj) {
 			using FT = std::decay_t<T>;
 			if constexpr (sizeof(obj) > sizeof(staticStorage)) {
-				if (arena) {
-					function = allocate<T>(arena, 1);
-				} else {
-					function = alloc(sizeof(obj));
-				}
+				function = allocate<T>(allocator, 1);
 				functionSize = sizeof(obj);
 			} else {
 				function = staticStorage;
@@ -91,11 +87,7 @@ namespace oak {
 			// If the object was dynamically allocated
 			if (function != &staticStorage) {
 				assert(functionSize);
-				if (arena) {
-					// We dont free from memory arenas
-				} else {
-					free(function, functionSize);
-				}
+				deallocate<T>(allocator, function, functionSize);
 			}
 			function = nullptr;
 		}

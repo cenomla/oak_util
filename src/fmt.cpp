@@ -8,7 +8,7 @@
 namespace oak::detail {
 
 	String to_str(char v) {
-		auto str = allocate<char>(temporaryMemory, 1);
+		auto str = allocate<char>(&temporaryMemory, 1);
 		str[0] = v;
 		return String{ str, 1 };
 	}
@@ -18,7 +18,7 @@ namespace oak::detail {
 	}
 
 	String to_str(uint64_t v) {
-		auto str = allocate<char>(temporaryMemory, 32);
+		auto str = allocate<char>(&temporaryMemory, 32);
 		int idx = 0;
 		do {
 			str[idx++] = '0' + static_cast<char>(v % 10);
@@ -34,7 +34,7 @@ namespace oak::detail {
 	}
 
 	String to_str(int64_t v) {
-		auto str = allocate<char>(temporaryMemory, 32);
+		auto str = allocate<char>(&temporaryMemory, 32);
 		bool neg = false;
 		if (v < 0) {
 			neg = true;
@@ -55,13 +55,13 @@ namespace oak::detail {
 	}
 
 	String to_str(float v) {
-		auto str = make<char>(temporaryMemory, 32, char{ 0 });
+		auto str = make<char>(&temporaryMemory, 32);
 		std::sprintf(str, "%f", v);
 		return str;
 	}
 
 	String to_str(double v) {
-		auto str = make<char>(temporaryMemory, 32, char{ 0 });
+		auto str = make<char>(&temporaryMemory, 32);
 		std::sprintf(str, "%lf", v);
 		return str;
 	}
@@ -94,7 +94,7 @@ namespace oak {
 
 	void StringBuffer::resize(size_t size) {
 		size += pos;
-		auto ndata = make<char>(arena, size, char{ 0 });
+		auto ndata = make<char>(allocator, size);
 		if (buffer->data) {
 			std::memcpy(ndata, buffer->data, buffer->count);
 		}

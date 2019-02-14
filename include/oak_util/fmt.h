@@ -4,6 +4,7 @@
 #include <cstdio>
 
 #include "memory.h"
+#include "algorithm.h"
 #include "string.h"
 
 namespace oak::detail {
@@ -26,8 +27,8 @@ namespace oak::detail {
 		// Write each substr replacing % with the argument string
 		while (start < fmtStr.count) {
 			// Find each instance of %
-			auto pos = fmtStr.find('%', start);
-			auto str = substr(fmtStr, start, pos);
+			auto pos = find(fmtStr, '%', start);
+			auto str = sub_slice(fmtStr, start, pos);
 			// %% means just print the %
 			if (0 < pos && pos + 1 < fmtStr.count && fmtStr[pos + 1] == '%') {
 				buffer.write("%", 1);
@@ -73,7 +74,7 @@ namespace oak {
 		void write(void const *data, size_t size);
 		void resize(size_t size);
 
-		MemoryArena *arena = nullptr;
+		Allocator *allocator = nullptr;
 		String *buffer = nullptr;
 		size_t pos = 0;
 	};

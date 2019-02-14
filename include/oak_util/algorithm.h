@@ -96,6 +96,125 @@ namespace oak {
 		detail::qs_impl(array, 0, arrayCount - 1, less<T>);
 	}
 
+	template<typename T>
+	constexpr i64 find(Slice<T> const& slice, T const& value, i64 const start = 0) noexcept {
+		for (i64 i = start; i < slice.count; ++i) {
+			if (slice[i] == value) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	template<typename T>
+	Slice<T> sub_slice(Slice<T> const slice, i64 start, i64 end = -1) {
+		// Bounds checking
+		if (end == -1) { end = slice.count; }
+		return { slice.data + start, end - start };
+	}
+
+	template<typename T>
+	i64 find_first_of(Slice<T> const slice, Slice<T> const delimeters, i64 start = 0) {
+		for (auto i = start; i < slice.count; i++) {
+			for (i64 j = 0; j < delimeters.count; j++) {
+				if (slice.data[i] == delimeters.data[j]) {
+					return i;
+				}
+			}
+		}
+		return -1;
+	}
+
+	template<typename T>
+	i64 find_first_not_of(Slice<T> const slice, Slice<T> const delimeters, i64 start = 0) {
+		bool found;
+		for (auto i = start; i < slice.count; i++) {
+			found = false;
+			for (i64 j = 0; j < delimeters.count; j++) {
+				if (slice.data[i] == delimeters.data[j]) {
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	template<typename T>
+	i64 find_last_of(Slice<T> const slice, Slice<T> const delimeters, i64 start = 0) {
+		for (auto i = slice.count; i > start; --i) {
+			for (i64 j = 0; j < delimeters.count; ++j) {
+				if (slice.data[i - 1] == delimeters.data[j]) {
+					return i - 1;
+				}
+			}
+		}
+		return -1;
+	}
+
+	template<typename T>
+	i64 find_slice(Slice<T> const slice, Slice<T> const value, i64 start = 0) {
+		if (slice.count < value.count) { return -1; }
+		for (auto i = start; i <= slice.count - value.count; i++) {
+			if (value == Slice<T>{ slice.data + i, value.count }) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	template<typename T>
+	Slice<Slice<T>> splitstr(Slice<T> const slice, Slice<T> const delimeters) {
+		i64 tokenCapacity = 64;
+
+		Slice<Slice<T>> tokens;
+		tokens.data = allocate<Slice<T>>(temporaryMemory, tokenCapacity);
+
+		i64 first = 0, last = 0;
+
+		while (last != -1) {
+			first = find_first_not_of(slice, delimeters, first);
+			if (first == -1) { break; } // Rest of string is entirely delimeters
+			last = find_first_of(slice, delimeters, first);
+			if (tokens.count == tokenCapacity) {
+				tokenCapacity *= 2;
+				auto ndata = allocate<Slice<T>>(temporaryMemory, tokenCapacity);
+				memcpy(ndata, tokens.data, tokens.count);
+				tokens.data = ndata;
+			}
+			tokens[tokens.count++] = sub_slice(slice, first, last);
+
+			first = last + 1;
+		}
+
+		return tokens;
+	}
+
+	template<typename T>
+	constexpr void reverse(Slice<T>& slice) {
+		if (slice.count < 2) { return; }
+		for (i64 i = 0; i < slice.count >> 1; ++i) {
+			auto tmp = slice[i];
+			slice[i] = slice[slice.count - 1 - i];
+			slice[slice.count - 1 - i] = tmp;
+		}
+	}
+
+	template<>
+	struct HashFn<String> {
+		constexpr size_t operator()(String const& str) const {
+			size_t hash = 0;
+
+			for (i64 i = 0; i < str.count; i++) {
+				hash = str.data[i] + (hash << 6) + (hash << 16) - hash;
+			}
+
+			return hash + 1;
+		}
+	};
 
 }
 

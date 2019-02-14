@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdlib>
+#include <cstring>
 #include <new>
 
 #include "types.h"
@@ -34,18 +35,10 @@ namespace oak {
 		size_t size = 0;
 	};
 
-	namespace detail {
-
-		inline void std_free_wrapper(void *ptr, size_t) {
-			std::free(ptr);
-		}
-
-	}
-
 	Result init_memory_arena(MemoryArena *arena, size_t size);
 	Result init_memory_arena(MemoryArena *arena, void *block, size_t size);
 
-	void* allocate_from_arena(MemoryArena *arena, size_t size, int64_t count, size_t alignment);
+	void* allocate_from_arena(MemoryArena *arena, size_t size, size_t alignment);
 	void clear_arena(MemoryArena *arena);
 
 	void* push_stack(MemoryArena *arena);
@@ -68,25 +61,44 @@ namespace oak {
 	};
 
 	template<typename T>
-	T* allocate(MemoryArena *arena, int64_t count) {
-		return static_cast<T*>(allocate_from_arena(arena, sizeof(T), count, alignof(T)));
+	T* allocate(Allocator *allocator, i64 count) {
+		return static_cast<T*>(allocator->allocate(sizeof(T) * count, alignof(T)));
+	}
+
+	template<typename T>
+	void deallocate(Allocator *allocator, T *ptr, i64 count) {
+		allocator->deallocate(static_cast<void*>(ptr), count);
 	}
 
 	template<typename T, typename... TArgs>
-	T* make(MemoryArena *arena, int64_t count, TArgs&&... parameters) {
-		auto result = static_cast<T*>(allocate_from_arena(arena, sizeof(T), count, alignof(T)));
+	T* make(Allocator *allocator, i64 count, TArgs&&... parameters) {
+		auto result = allocate<T>(allocator, count);
 		if (result) {
-			for (int64_t i = 0; i < count; i++) {
+			for (i64 i = 0; i < count; ++i) {
 				new (result + i) T{ static_cast<TArgs&&>(parameters)... };
 			}
 		}
 		return result;
 	}
 
-	inline void* (*alloc)(size_t size) = std::malloc;
-	inline void (*free)(void *ptr, size_t size) = detail::std_free_wrapper;
+	namespace detail {
 
-	inline MemoryArena *temporaryMemory = nullptr;
+		inline void* arena_alloc_wrapper(void* arena, u64 size, u64 align) {
+			return allocate_from_arena(static_cast<MemoryArena*>(arena), size, align);
+		}
+
+		inline void* std_aligned_alloc_wrapper(void*, u64 size, u64 align) {
+			return std::aligned_alloc(align, size);
+		}
+
+		inline void std_free_wrapper(void *, void *ptr, u64) {
+			std::free(ptr);
+		}
+
+	}
+
+	inline Allocator globalAllocator{ nullptr, detail::std_aligned_alloc_wrapper, detail::std_free_wrapper };
+	inline Allocator temporaryMemory;
 
 }
 

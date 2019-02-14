@@ -27,10 +27,11 @@ using u64 = uint64_t;
 using f32 = float;
 using f64 = double;
 
-using b8 = bool;
 using b32 = uint32_t;
 
 namespace oak {
+
+	struct MemoryArena;
 
 	enum class _reflect(oak::catagory::none) Result {
 		SUCCESS,
@@ -44,12 +45,46 @@ namespace oak {
 		void *state = nullptr;
 		void *(*allocFn)(void *self, u64 size, u64 alignment) = nullptr;
 		void (*freeFn)(void *self, void *ptr, u64 size) = nullptr;
+
+		void* allocate(u64 size, u64 alignment) {
+			if (allocFn) {
+				return (*allocFn)(state, size, alignment);
+			} else {
+				return nullptr;
+			}
+		}
+
+		void deallocate(void *ptr, u64 size) {
+			if (freeFn) {
+				(*freeFn)(state, ptr, size);
+			}
+		}
 	};
 
 	template<typename type>
 	struct Slice {
 		type *data = nullptr;
 		i64 count = 0;
+
+		constexpr Slice() noexcept = default;
+		constexpr Slice(type *data_, i64 count_) noexcept
+			: data{ data_ }, count{ count_ } {}
+
+		constexpr type* begin() noexcept {
+			return data;
+		}
+
+		constexpr type* end() noexcept {
+			return data + count;
+		}
+
+		constexpr type const* begin() const noexcept {
+			return data;
+		}
+
+		constexpr type const* end() const noexcept {
+			return data + count;
+		}
 
 		constexpr type& operator[](i64 index) noexcept {
 			return data[index];
@@ -60,9 +95,58 @@ namespace oak {
 		}
 	};
 
+	template<typename type>
+	constexpr bool operator==(Slice<type> const& lhs, Slice<type> const rhs) noexcept {
+		if (lhs.count != rhs.count) { return false; }
+		if (lhs.data == rhs.data) { return true; }
+
+		for (i64 i = 0; i < lhs.count; ++i) {
+			if (lhs[i] != rhs[i]) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	constexpr i64 c_str_len(char const *str) noexcept {
+		i64 count = 0;
+		while (*str) {
+			++str;
+			++count;
+		}
+		return count;
+	}
+
 	struct String : Slice<char> {
 		using Slice::Slice;
+
+		constexpr String(Slice<char> const slice) noexcept : Slice{ slice } {}
+		constexpr String(char const* str) noexcept : Slice{ const_cast<char*>(str), c_str_len(str) } {}
+
+		constexpr String& operator=(Slice<char> const slice) noexcept {
+			data = slice.data;
+			count = slice.count;
+			return *this;
+		}
+
+		constexpr operator Slice<char>() const noexcept {
+			return { data, count };
+		}
+
 	};
+
+	constexpr bool operator==(String const& lhs, char const *rhs) noexcept {
+		return lhs == String{ rhs };
+	}
+
+	constexpr bool operator!=(String const& lhs, char const *rhs) noexcept {
+		return !(lhs == String{ rhs });
+	}
+
+	bool is_c_str(String const str);
+	const char* as_c_str(String const str);
+	String copy_str(MemoryArena *arena, String const str);
 
 	template<typename... types>
 	struct SOA {
@@ -73,6 +157,23 @@ namespace oak {
 
 		constexpr std::tuple<types&...> operator[](i64 const index) noexcept;
 	};
+
+	template<typename T>
+	struct HashFn {
+		constexpr u64 operator()(T const& value) noexcept {
+			static_assert("hash not supported");
+			return 0;
+		}
+	};
+
+	template<typename T>
+	struct CmpFn {
+		constexpr u64 operator()(T const& value) noexcept {
+			static_assert("compare not supported");
+			return 0;
+		}
+	};
+
 
 }
 
