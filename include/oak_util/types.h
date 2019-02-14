@@ -1,9 +1,18 @@
 #pragma once
 
 #include <cinttypes>
+#include <cstddef>
+#include <cassert>
+
+#include <type_traits>
 #include <tuple>
 
+#include <osig_defs.h>
 #include "ptr.h"
+
+#define ssizeof(x) static_cast<int64_t>(sizeof(x))
+#define array_count(x) (sizeof(x)/sizeof(*x))
+#define sarray_count(x) static_cast<int64_t>(array_count(x))
 
 using i8 = int8_t;
 using i16 = int16_t;
@@ -23,7 +32,7 @@ using b32 = uint32_t;
 
 namespace oak {
 
-	enum class Result {
+	enum class _reflect(oak::catagory::none) Result {
 		SUCCESS,
 		INVALID_ARGS,
 		OUT_OF_MEMORY,

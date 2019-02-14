@@ -2,8 +2,7 @@
 
 #include <cstring>
 
-#include "oak_util/allocator.h"
-#include "oak_util/memory.h"
+#include <oak_util/memory.h>
 
 namespace oak {
 
@@ -66,7 +65,7 @@ namespace oak {
 		int64_t tokenCapacity = 64;
 
 		Slice<String> tokens;
-		tokens.data = allocate_structs<String>(temporaryMemory, tokenCapacity);
+		tokens.data = allocate<String>(temporaryMemory, tokenCapacity);
 
 		int64_t first = 0, last = 0;
 
@@ -76,7 +75,7 @@ namespace oak {
 			last = find_first_of(str, delimeters, first);
 			if (tokens.count == tokenCapacity) {
 				tokenCapacity *= 2;
-				auto ndata = allocate_structs<String>(temporaryMemory, tokenCapacity);
+				auto ndata = allocate<String>(temporaryMemory, tokenCapacity);
 				memcpy(ndata, tokens.data, tokens.count);
 				tokens.data = ndata;
 			}
@@ -95,7 +94,7 @@ namespace oak {
 	const char* as_c_str(const String str) {
 		if (!str.count) { return ""; }
 		if (is_c_str(str)) { return str.data; }
-		auto cstr = allocate_structs<char>(temporaryMemory, str.count + 1);
+		auto cstr = allocate<char>(temporaryMemory, str.count + 1);
 		std::memmove(cstr, str.data, str.count);
 		cstr[str.count] = 0;
 		return cstr;
@@ -104,7 +103,7 @@ namespace oak {
 	String copy_str(MemoryArena *arena, const String str) {
 		String string;
 		string.count = str.count;
-		string.data = allocate_structs<char>(arena, string.count);
+		string.data = allocate<char>(arena, string.count);
 		std::memcpy(string.data, str.data, string.count);
 		return string;
 	}

@@ -3,7 +3,6 @@
 #include <cstring>
 #include <cassert>
 
-#include "allocator.h"
 #include "bit.h"
 #include "cmp.h"
 #include "hash.h"
@@ -51,8 +50,6 @@ namespace oak {
 			nmap.keys = static_cast<K*>(mem);
 			nmap.values = static_cast<V*>(add_ptr(mem, ncount * sizeof(K)));
 			nmap.hashs = static_cast<size_t*>(add_ptr(mem, ncount * (sizeof(K) + sizeof(V))));
-			std::memset(nmap.keys, 0, ncount * sizeof(K));
-			std::memset(nmap.values, 0, ncount * sizeof(V));
 			std::memset(nmap.hashs, 0xFF, ncount * sizeof(size_t));
 			assert(nmap.hashs[0] == EMPTY_HASH);
 			nmap.count = 0;

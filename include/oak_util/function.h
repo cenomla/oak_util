@@ -4,10 +4,11 @@
 #include <cstring>
 #include <type_traits>
 
-#include "allocator.h"
 #include "memory.h"
 
 namespace oak {
+
+	constexpr size_t SMALL_FUNCTION_SIZE = 16;
 
 	template<typename T>
 	struct Function {};
@@ -16,13 +17,36 @@ namespace oak {
 	struct Function<Out(In...)> {
 		MemoryArena *arena = nullptr;
 		union {
-			char staticStorage[16]{ 0 };
+			char staticStorage[SMALL_FUNCTION_SIZE]{ 0 };
 			size_t functionSize;
 		};
 		void *function = nullptr;
 		Out (*executeFunction)(void *, In&...) = nullptr;
 
 		Function() = default;
+
+		Function(Function&& other) {
+			operator=(static_cast<Function&&>(other));
+		}
+
+		Function& operator=(Function&& other) {
+			arena = other.arena;
+			if (other.function == &other.staticStorage) {
+				function = &staticStorage;
+				std::memcpy(staticStorage, other.staticStorage, sizeof(staticStorage));
+			} else {
+				function = other.function;
+				functionSize = other.functionSize;
+			}
+
+			executeFunction = other.executeFunction;
+
+			other.arena = nullptr;
+			std::memset(other.staticStorage, 0, sizeof(other.staticStorage));
+			other.function = nullptr;
+			other.executeFunction = nullptr;
+			return *this;
+		}
 
 		template<typename T>
 		Function(T&& obj) {
@@ -39,13 +63,13 @@ namespace oak {
 			using FT = std::decay_t<T>;
 			if constexpr (sizeof(obj) > sizeof(staticStorage)) {
 				if (arena) {
-					function = allocate_structs<T>(arena, 1);
+					function = allocate<T>(arena, 1);
 				} else {
 					function = alloc(sizeof(obj));
 				}
 				functionSize = sizeof(obj);
 			} else {
-				function = &staticStorage;
+				function = staticStorage;
 			}
 			std::memcpy(function, &obj, sizeof(obj));
 
@@ -76,7 +100,7 @@ namespace oak {
 			function = nullptr;
 		}
 
-		Out operator()(In&... args) {
+		Out operator()(In... args) {
 			assert(function);
 			assert(executeFunction);
 			// Dont return if the return type is void
@@ -85,6 +109,10 @@ namespace oak {
 			} else {
 				return executeFunction(function, args...);
 			}
+		}
+
+		operator bool() {
+			return function != nullptr;
 		}
 
 	};

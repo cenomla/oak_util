@@ -25,7 +25,7 @@ namespace oak {
 
 	template<>
 	struct HashFunc<String> {
-		constexpr size_t operator()(const String& str) const {
+		constexpr size_t operator()(String const& str) const {
 			size_t hash = 0;
 
 			for (auto i = 0ll; i < str.count; i++) {

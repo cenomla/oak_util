@@ -1,17 +1,19 @@
 #pragma once
 
+#include <utility>
+
 #include "memory.h"
 
 namespace oak {
 
 	template<typename T>
-	inline bool less(const T& lhs, const T& rhs) {
+	inline bool less(T const& lhs, T const& rhs) {
 		return lhs < rhs;
 	}
 
-	template<typename T, typename F>
-	void merge_sort(MemoryArena *arena, T *array, int64_t arrayCount, F&& functor) {
-		static auto top_down_merge = [&functor](T *array, T *buffer, int64_t begin, int64_t middle, int64_t end) {
+	namespace detail {
+		template<typename T, typename F>
+		void ms_impl_merge(T *array, T *buffer, int64_t begin, int64_t middle, int64_t end, F&& functor) {
 			auto i = begin, j = middle;
 			for (auto k = begin; k < end; k++) {
 				if (i < middle && (j >= end || !functor(array[j], array[i]))) {
@@ -22,24 +24,78 @@ namespace oak {
 					j ++;
 				}
 			}
-		};
+		}
 
-		static void(*top_down_split_merge)(T*, T*, int64_t, int64_t) =
-			[](T *array, T *buffer, int64_t begin, int64_t end) {
+		template<typename T, typename F>
+		void ms_impl_split(T *array, T *buffer, int64_t begin, int64_t end, F&& functor) {
 			if (end - begin < 2) {
 				return;
 			}
 			auto middle = (end + begin) / 2;
-			top_down_split_merge(buffer, array, begin, middle);
-			top_down_split_merge(buffer, array, middle, end);
-			top_down_merge(buffer, array, begin, middle, end);
-		};
-		auto temp = allocate_structs<T>(arena, arrayCount);
-		for (int64_t i = 0; i < arrayCount; i++) {
-			temp[i] = array[i];
+			ms_impl_split(buffer, array, begin, middle, std::forward<F>(functor));
+			ms_impl_split(buffer, array, middle, end, std::forward<F>(functor));
+			ms_impl_merge(buffer, array, begin, middle, end, std::forward<F>(functor));
 		}
-		top_down_split_merge(array, temp, 0, arrayCount);
+
+		template<typename T>
+		void qs_impl_swap(T& a, T& b) {
+			auto tmp = a;
+			a = b;
+			b = tmp;
+		}
+
+		template<typename T, typename F>
+		void qs_impl(T *array, int64_t start, int64_t end, F&& functor) {
+			if (start < end) {
+				auto l = start + 1, r = end;
+				auto p = array[start];
+				while (l < r) {
+					if (functor(array[l], p)) {
+						++l;
+					} else if (!functor(array[r], p)) {
+						--r;
+					} else {
+						qs_impl_swap(array[l], array[r]);
+					}
+				}
+				if (functor(array[l], p)) {
+					qs_impl_swap(array[l], array[start]);
+					--l;
+				} else {
+					--l;
+					qs_impl_swap(array[l], array[start]);
+				}
+				qs_impl(array, start, l, std::forward<F>(functor));
+				qs_impl(array, r, end, std::forward<F>(functor));
+			}
+		}
 	}
+
+	template<typename T, typename F>
+	void merge_sort(MemoryArena *arena, T *array, int64_t arrayCount, F&& functor) {
+		if (arrayCount < 2) { return; }
+		auto temp = allocate<T>(arena, arrayCount);
+		std::memcpy(temp, array, arrayCount * sizeof(T));
+		detail::ms_impl_split(array, temp, 0, arrayCount, std::forward<F>(functor));
+	}
+
+	template<typename T, typename F>
+	void merge_sort(MemoryArena *arena, T *array, int64_t arrayCount) {
+		auto temp = allocate<T>(arena, arrayCount);
+		std::memcpy(temp, array, arrayCount * sizeof(T));
+		detail::ms_impl_split(array, temp, 0, arrayCount, less<T>);
+	}
+
+	template<typename T, typename F>
+	void quick_sort(MemoryArena*, T *array, int64_t arrayCount, F&& functor) {
+		detail::qs_impl(array, 0, arrayCount - 1, std::forward<F>(functor));
+	}
+
+	template<typename T, typename F>
+	void quick_sort(MemoryArena*, T *array, int64_t arrayCount) {
+		detail::qs_impl(array, 0, arrayCount - 1, less<T>);
+	}
+
 
 }
 

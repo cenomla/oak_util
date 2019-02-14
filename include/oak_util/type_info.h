@@ -1,17 +1,6 @@
 #pragma once
 
-#include <cinttypes>
-#include <cstddef>
-#include <cassert>
-#include <type_traits>
-
-#include <osig_defs.h>
 #include "types.h"
-#include "ptr.h"
-
-#define ssizeof(x) static_cast<int64_t>(sizeof(x))
-#define array_count(x) (sizeof(x)/sizeof(*x))
-#define sarray_count(x) static_cast<int64_t>(array_count(x))
 
 namespace oak {
 
@@ -54,7 +43,7 @@ namespace oak {
 		VAR_VOLATILE = 0x01,
 	};
 
-	struct VarInfo {
+	struct MemberInfo {
 		String name;
 		const TypeInfo *type = nullptr;
 		size_t offset = 0;
@@ -77,59 +66,65 @@ namespace oak {
 
 	struct StructInfo : TypeInfo {
 		void (*construct)(void *) = nullptr;
-		const VarInfo *members = nullptr;
+		MemberInfo const *members = nullptr;
 		int64_t memberCount = 0;
 		size_t tid = 0;
 		size_t catagoryId = 0;
 
-		inline const VarInfo* begin() const { return members; }
-		inline const VarInfo* end() const { return members + memberCount; }
+		inline MemberInfo const* begin() const { return members; }
+		inline MemberInfo const* end() const { return members + memberCount; }
 	};
 
 	struct EnumInfo : TypeInfo {
-		const TypeInfo *underlyingType = nullptr;
-		const EnumConstant *members = nullptr;
+		TypeInfo const *underlyingType = nullptr;
+		EnumConstant const *members = nullptr;
 		int64_t memberCount = 0;
 
-		inline const EnumConstant* begin() const {
+		inline EnumConstant const* begin() const {
 			return members;
 		}
 
-		inline const EnumConstant* end() const {
+		inline EnumConstant const* end() const {
 			return members + memberCount;
 		}
 	};
 
 	template<typename T>
 	constexpr decltype(auto) enum_int(T val) {
-		return static_cast<std::underlying_type_t<T>>(val);
-	}
-
-	template<typename T> std::enable_if_t<
-		!(std::is_pointer_v<T> || std::is_array_v<T>),
-		const TypeInfo*> type_info();
-
-	template<typename T> std::enable_if_t<std::is_pointer_v<T>, const TypeInfo*> type_info() {
-		static const PtrInfo info{
-			{ TypeKind::PTR, "pointer", sizeof(T), alignof(T) },
-			type_info<std::remove_pointer_t<T>>()
-		};
-		return &info;
-	}
-
-	template<typename T> std::enable_if_t<std::is_array_v<T>, const TypeInfo*> type_info() {
-		static const ArrayInfo info{
-			{ TypeKind::ARRAY, "array", sizeof(T), alignof(T) },
-			type_info<std::remove_extent_t<T>>(), std::extent_v<T>
-		};
-		return &info;
+		if constexpr (std::is_enum_v<T>) {
+			return static_cast<std::underlying_type_t<T>>(val);
+		} else {
+			static_assert("\"enum_int\" must be used with an enum type");
+		}
 	}
 
 	template<typename T>
-	const StructInfo* struct_info() {
+	TypeInfo const* type_info_internal();
+
+	template<typename T>
+	TypeInfo const* type_info() {
+		if constexpr(std::is_pointer_v<T>) {
+			static PtrInfo const info{
+				{ TypeKind::PTR, "pointer", sizeof(T), alignof(T) },
+				type_info<std::remove_pointer_t<T>>()
+			};
+			return &info;
+		} else if constexpr(std::is_array_v<T>) {
+			static ArrayInfo const info{
+				{ TypeKind::ARRAY, "array", sizeof(T), alignof(T) },
+				type_info<std::remove_extent_t<T>>(), std::extent_v<T>
+			};
+			return &info;
+		} else {
+			return type_info_internal<T>();
+		}
+	}
+
+	template<typename T>
+	StructInfo const* struct_info() {
 		auto typeInfo = type_info<T>();
 		assert(typeInfo->kind == TypeKind::STRUCT);
-		return static_cast<const StructInfo*>(typeInfo);
+		return static_cast<StructInfo const*>(typeInfo);
 	}
 
 	template<typename T> size_t type_id() {
@@ -137,27 +132,79 @@ namespace oak {
 	}
 
 	template<typename T>
-	Slice<const TypeInfo*> types_in_catagory();
+	Slice<TypeInfo const*> types_in_catagory();
 
 	template<typename T>
 	size_t catagory_id();
 
 	template<typename C>
-	bool is_type_in_catagory(const TypeInfo *typeInfo) {
-		auto catagoryId = typeInfo->kind == TypeKind::STRUCT ? static_cast<const StructInfo*>(typeInfo)->catagoryId : 0;
+	bool is_type_in_catagory(TypeInfo const *typeInfo) {
+		auto catagoryId = typeInfo->kind == TypeKind::STRUCT ? static_cast<StructInfo const*>(typeInfo)->catagoryId : 0;
 		return catagoryId == catagory_id<C>();
 	}
+
+	inline const TypeInfo noTypeInfo{ oak::TypeKind::NONE, "none", 0, 0 };
 
 	struct Any {
 		void *ptr = nullptr;
 		const TypeInfo *type = nullptr;
 
 		Any() = default;
-		Any(void *_ptr, const TypeInfo *_type) : ptr{ _ptr }, type{ _type } {}
-		Any(const Any& other) : ptr{ other.ptr }, type{ other.type } {}
-		template<typename T, typename DT = std::decay_t<T>,
-			std::enable_if_t<!std::is_same_v<DT, Any>, int> = 0>
+		Any(void *ptr_, TypeInfo const *type_) : ptr{ ptr_ }, type{ type_ } {}
+
+		Any(Any const& other) = default;
+		template<typename T, typename DT = std::decay_t<T>, typename = std::enable_if_t<!std::is_same_v<DT, Any>>>
 		Any(T&& thing) : ptr{ &thing }, type{ type_info<DT>() } {}
+
+		inline Any get_member(String name) {
+			if (type->kind == TypeKind::STRUCT ||
+					type->kind == TypeKind::OAK_SLICE) {
+				auto si = static_cast<const StructInfo*>(type);
+				for (auto member : Slice{ si->members, si->memberCount }) {
+					if (member.name == name) {
+						return { add_ptr(ptr, member.offset), member.type };
+					}
+				}
+			}
+			return { nullptr, &noTypeInfo };
+		}
+
+		inline Any get_element(int64_t index) {
+			if (type->kind == TypeKind::ARRAY) {
+				auto ai = static_cast<const ArrayInfo*>(type);
+				if (index < ai->count) {
+					return { add_ptr(ptr, index * ai->of->size), ai->of };
+				}
+			} else if (type->kind == TypeKind::OAK_SLICE) {
+				auto data = get_member("data");
+				auto count = get_member("count");
+				if (index < count.to_value<int64_t>()) {
+					auto pi = static_cast<const PtrInfo*>(data.type);
+					return { add_ptr(data.to_value<void*>(), index * pi->of->size), pi->of };
+				}
+			}
+			return { nullptr, &noTypeInfo };
+		}
+
+		inline void construct() {
+			if (type->kind == TypeKind::STRUCT) {
+				auto si = static_cast<StructInfo const*>(type);
+				if (si->construct) {
+					si->construct(ptr);
+				}
+			}
+		}
+
+		template<typename T>
+		inline T& to_value() {
+			TypeInfo const *typeInfo = type_info<T>();
+			assert(typeInfo == type ||
+					(type->kind == TypeKind::ENUM && static_cast<EnumInfo const*>(type)->underlyingType == typeInfo) ||
+					(type->kind == TypeKind::PTR && typeInfo->kind == TypeKind::PTR &&
+						 static_cast<PtrInfo const*>(typeInfo)->of == type_info<void>()));
+			assert(ptr);
+			return *static_cast<T*>(ptr);
+		}
 	};
 
 }

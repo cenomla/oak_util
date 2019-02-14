@@ -153,7 +153,7 @@ namespace oak {
 			assert(count > 0);
 			hashs[idx] = EMPTY_HASH;
 			--count;
-			if (firstIndex == idx) { //calculate new first index
+			if (firstIndex == idx) { // Calculate new first index
 				firstIndex = capacity;
 				for (int64_t i = 0; i < capacity; ++i) {
 					if (hashs[i] != EMPTY_HASH) {
@@ -210,7 +210,7 @@ namespace oak {
 			auto mem = allocate_from_arena(arena, totalSize, 1, 1);
 			keys = static_cast<size_t*>(mem);
 			values = static_cast<V*>(add_ptr(mem, keysSize));
-			std::memset(keys, NULL_KEY, keysSize);
+			std::memset(keys, 0xFF, keysSize);
 			firstIndex = capacity;
 		}
 
