@@ -28,63 +28,67 @@ namespace oak {
 		STRUCT,
 		ENUM,
 		OAK_SLICE,
-		OAK_ARRAY,
-		OAK_HASH_MAP,
 	};
 
 	struct TypeInfo {
 		TypeKind kind;
 		String name;
-		size_t size = 0;
-		size_t align = 0;
+		u64 size = 0;
+		u64 align = 0;
 	};
 
-	enum VarFlags : uint32_t {
+	enum VarFlags : u32 {
 		VAR_VOLATILE = 0x01,
 	};
 
 	struct MemberInfo {
 		String name;
 		const TypeInfo *type = nullptr;
-		size_t offset = 0;
-		uint32_t flags = 0;
+		u64 offset = 0;
+		u32 flags = 0;
 	};
 
 	struct EnumConstant {
 		String name;
-		int64_t value = 0;
+		i64 value = 0;
 	};
 
 	struct PtrInfo : TypeInfo {
-		const TypeInfo *of = nullptr;
+		TypeInfo const *of = nullptr;
 	};
 
 	struct ArrayInfo : TypeInfo {
-		const TypeInfo *of = nullptr;
-		int64_t count = 0;
+		TypeInfo const *of = nullptr;
+		i64 count = 0;
 	};
 
 	struct StructInfo : TypeInfo {
 		void (*construct)(void *) = nullptr;
 		MemberInfo const *members = nullptr;
-		int64_t memberCount = 0;
-		size_t tid = 0;
-		size_t catagoryId = 0;
+		i64 memberCount = 0;
+		u64 tid = 0;
+		u64 catagoryId = 0;
 
-		inline MemberInfo const* begin() const { return members; }
-		inline MemberInfo const* end() const { return members + memberCount; }
+		constexpr MemberInfo const* begin() const noexcept {
+			return members;
+		}
+
+		constexpr MemberInfo const* end() const noexcept {
+			return members + memberCount;
+		}
+
 	};
 
 	struct EnumInfo : TypeInfo {
 		TypeInfo const *underlyingType = nullptr;
 		EnumConstant const *members = nullptr;
-		int64_t memberCount = 0;
+		i64 memberCount = 0;
 
-		inline EnumConstant const* begin() const {
+		constexpr EnumConstant const* begin() const noexcept {
 			return members;
 		}
 
-		inline EnumConstant const* end() const {
+		constexpr EnumConstant const* end() const noexcept {
 			return members + memberCount;
 		}
 	};
@@ -127,7 +131,7 @@ namespace oak {
 		return static_cast<StructInfo const*>(typeInfo);
 	}
 
-	template<typename T> size_t type_id() {
+	template<typename T> u64 type_id() {
 		return struct_info<T>()->tid;
 	}
 
@@ -135,7 +139,7 @@ namespace oak {
 	Slice<TypeInfo const*> types_in_catagory();
 
 	template<typename T>
-	size_t catagory_id();
+	u64 catagory_id();
 
 	template<typename C>
 	bool is_type_in_catagory(TypeInfo const *typeInfo) {
@@ -147,7 +151,7 @@ namespace oak {
 
 	struct Any {
 		void *ptr = nullptr;
-		const TypeInfo *type = nullptr;
+		TypeInfo const *type = nullptr;
 
 		Any() = default;
 		Any(void *ptr_, TypeInfo const *type_) : ptr{ ptr_ }, type{ type_ } {}
@@ -156,7 +160,7 @@ namespace oak {
 		template<typename T, typename DT = std::decay_t<T>, typename = std::enable_if_t<!std::is_same_v<DT, Any>>>
 		Any(T&& thing) : ptr{ &thing }, type{ type_info<DT>() } {}
 
-		inline Any get_member(String name) {
+		Any get_member(String name) noexcept {
 			if (type->kind == TypeKind::STRUCT ||
 					type->kind == TypeKind::OAK_SLICE) {
 				auto si = static_cast<const StructInfo*>(type);
@@ -169,7 +173,7 @@ namespace oak {
 			return { nullptr, &noTypeInfo };
 		}
 
-		inline Any get_element(int64_t index) {
+		Any get_element(int64_t index) noexcept {
 			if (type->kind == TypeKind::ARRAY) {
 				auto ai = static_cast<const ArrayInfo*>(type);
 				if (index < ai->count) {
@@ -186,7 +190,7 @@ namespace oak {
 			return { nullptr, &noTypeInfo };
 		}
 
-		inline void construct() {
+		void construct() noexcept {
 			if (type->kind == TypeKind::STRUCT) {
 				auto si = static_cast<StructInfo const*>(type);
 				if (si->construct) {
@@ -196,7 +200,7 @@ namespace oak {
 		}
 
 		template<typename T>
-		inline T& to_value() {
+		T& to_value() noexcept {
 			TypeInfo const *typeInfo = type_info<T>();
 			assert(typeInfo == type ||
 					(type->kind == TypeKind::ENUM && static_cast<EnumInfo const*>(type)->underlyingType == typeInfo) ||

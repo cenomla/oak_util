@@ -8,23 +8,15 @@
 
 namespace oak {
 
-	Result init_memory_arena(MemoryArena *arena, size_t size) {
+	Result init_memory_arena(MemoryArena *arena, Allocator *allocator, u64 size) {
 		assert(arena);
-		assert(size > 0);
+		assert(allocator);
+		assert(size > sizeof(MemoryArenaHeader));
 
-		auto totalSize = sizeof(MemoryArenaHeader) + size;
-		auto block = malloc(totalSize);
+		auto block = allocator->allocate(size + sizeof(MemoryArenaHeader), size);
 		if (!block) {
 			return Result::OUT_OF_MEMORY;
 		}
-
-		return init_memory_arena(arena, block, totalSize);
-	}
-
-	Result init_memory_arena(MemoryArena *arena, void *block, size_t size) {
-		assert(arena);
-		assert(block);
-		assert(size > sizeof(MemoryArenaHeader));
 
 		auto header = static_cast<MemoryArenaHeader*>(block);
 		header->allocationCount = 0;
@@ -35,6 +27,11 @@ namespace oak {
 		*arena = { block, size };
 
 		return Result::SUCCESS;
+	}
+
+	void destroy_memory_arena(MemoryArena *arena, Allocator *allocator) {
+		allocator->deallocate(arena->block, arena->size + sizeof(MemoryArenaHeader));
+		*arena = {};
 	}
 
 	void* allocate_from_arena(MemoryArena *arena, u64 size, u64 alignment) {
@@ -79,51 +76,68 @@ namespace oak {
 		// Track this allocation
 		arenaHeader->usedMemory += ssizeof(StackHeader);
 		arenaHeader->requestedMemory += ssizeof(StackHeader);
-		arenaHeader->allocationCount ++;
+		++arenaHeader->allocationCount;
 		return add_ptr(arena->block, arenaHeader->usedMemory);
 	}
 
 	void pop_stack(MemoryArena *arena, void *stackPtr) {
 		auto arenaHeader = static_cast<MemoryArenaHeader*>(arena->block);
 		auto stackHeader = static_cast<StackHeader*>(sub_ptr(stackPtr, sizeof(StackHeader)));
-		auto ogUsedMemory = reinterpret_cast<intptr_t>(stackPtr) - reinterpret_cast<intptr_t>(arena->block) - ssizeof(StackHeader);
+		auto ogUsedMemory = reinterpret_cast<i64>(stackPtr) - reinterpret_cast<i64>(arena->block) - ssizeof(StackHeader);
 		arenaHeader->usedMemory = ogUsedMemory;
 		arenaHeader->allocationCount = stackHeader->allocationCount;
 		arenaHeader->requestedMemory = stackHeader->requestedMemory;
 	}
 
-	MemoryArena create_pool(MemoryArena *arena, size_t size) {
+	Result init_memory_pool(MemoryArena *arena, Allocator *allocator, u64 size, u64 alignment) {
 		auto const poolSize = ensure_pow2(size);
-		auto const totalSize = poolSize + sizeof(PoolHeader);
-		auto block = allocate_from_arena(arena, totalSize, sizeof(void*));
-		MemoryArena poolArena;
-		poolArena.block = block;
-		poolArena.size = totalSize;
-		auto poolNode = static_cast<PoolNode*>(add_ptr(poolArena.block, sizeof(PoolHeader)));
-		poolNode->next = nullptr;
-		poolNode->size = poolSize;
+		auto const totalSize = poolSize + align_size(sizeof(PoolHeader), alignment);
+
+		auto block = allocator->allocate(totalSize, alignment);
+		if (!block) {
+			return Result::OUT_OF_MEMORY;
+		}
+
+		*arena = {
+			block,
+			totalSize
+		};
+
+		auto poolNode = static_cast<PoolNode*>(add_ptr(block, align_size(sizeof(PoolHeader), alignment)));
+		*poolNode = {
+			nullptr,
+			poolSize
+		};
+
 		auto poolHeader = static_cast<PoolHeader*>(block);
-		poolHeader->freeList = poolNode;
-		poolHeader->poolSize = poolSize;
-		return poolArena;
+		*poolHeader = {
+			poolNode,
+			poolSize,
+			alignment
+		};
+
+		return Result::SUCCESS;
 	}
 
-	void* allocate_from_pool(MemoryArena *arena, size_t size, int64_t count) {
+	void* allocate_from_pool(MemoryArena *arena, u64 size, u64) {
 		auto poolHeader = static_cast<PoolHeader*>(arena->block);
-		auto totalSize = size * count;
-		auto targetNodeSize = ensure_pow2(totalSize);
-		if (targetNodeSize < 16) {
-			targetNodeSize = 16;
+
+		auto targetNodeSize = ensure_pow2(align_size(size, poolHeader->alignment));
+		if (targetNodeSize < sizeof(PoolNode)) {
+			targetNodeSize = sizeof(PoolNode);
 		}
+
 		// Get the first node that is bigger than or equal to the target node size
 		auto poolNodePtr = &poolHeader->freeList;
 		while ((*poolNodePtr) && (*poolNodePtr)->size < targetNodeSize) {
 			poolNodePtr = &(*poolNodePtr)->next;
 		}
+
 		if (!(*poolNodePtr)) {
 			// There are no nodes big enough to fit the memory in it so return nullptr
 			return nullptr;
 		}
+
 		// We now have a node big enough to fit the allocation
 		// If the node is bigger than the target size split it in half until it matches the target size
 		while ((*poolNodePtr)->size > targetNodeSize) {
@@ -139,16 +153,19 @@ namespace oak {
 			secondNode->next = next;
 		}
 		assert((*poolNodePtr)->size == targetNodeSize);
+
 		// Remove this node from the freelist and return its pointer
 		auto node = static_cast<void*>(*poolNodePtr);
 		*poolNodePtr = (*poolNodePtr)->next;
+
 		return node;
 	}
 
 namespace {
 
-	void coalesce_memory_pool(const void *block, PoolNode **nodePtr) {
+	void coalesce_memory_pool(void const *block, PoolNode **nodePtr) {
 		if (!*nodePtr) { return; }
+
 		// nodePtr is a pointer to the first node (the address of the next variable from the previous node)
 		auto nodeSize = (*nodePtr)->size;
 		PoolNode **searchNode;
@@ -163,16 +180,19 @@ namespace {
 				}
 				searchNode = &(*searchNode)->next;
 			}
+
 			// searchNode now points to the the next field of the node previous
 			// Since the next node is the first field of the struct a pointer to it is a pointer to the struct
 			auto firstNode = reinterpret_cast<PoolNode*>(searchNode);
 			auto secondNode = firstNode->next;
+
 			// Check if we should collapse these nodes
 			while (secondNode) {
 				auto rfn = ptr_diff(block, firstNode);
-				if (add_ptr(firstNode, firstNode->size) == secondNode && //nodes are neighbours
+				// If nodes are neightbours and the two nodes combined have the correct alignment
+				if (add_ptr(firstNode, firstNode->size) == secondNode &&
 						firstNode->size == secondNode->size &&
-						align_size(rfn, firstNode->size + secondNode->size) == rfn) { //alignment is satisfied
+						align_size(rfn, firstNode->size + secondNode->size) == rfn) {
 					firstNode->next = secondNode->next;
 					firstNode->size += secondNode->size;
 					secondNode = secondNode->next;
@@ -185,20 +205,21 @@ namespace {
 
 }
 
-	void free_from_pool(MemoryArena *arena, const void *ptr, size_t size, int64_t count) {
+	void free_from_pool(MemoryArena *arena, void *ptr, u64 size) {
 		assert(arena->block < ptr && ptr < add_ptr(arena->block, arena->size));
+
 		auto poolHeader = static_cast<PoolHeader*>(arena->block);
-		auto totalSize = size * count;
-		auto nodeSize = ensure_pow2(totalSize);
-		if (nodeSize < 16) {
-			nodeSize = 16;
+		auto nodeSize = ensure_pow2(align_size(size, poolHeader->alignment));
+		if (nodeSize < sizeof(PoolNode)) {
+			nodeSize = sizeof(PoolNode);
 		}
+
 		// Insert node into freelist sorted by ptr
 		auto poolNodePtr = &poolHeader->freeList;
 		while ((*poolNodePtr) && (*poolNodePtr) < ptr) {
 			poolNodePtr = &(*poolNodePtr)->next;
 		}
-		auto node = static_cast<PoolNode*>(const_cast<void *>(ptr));
+		auto node = static_cast<PoolNode*>(ptr);
 		node->next = (*poolNodePtr);
 		node->size = nodeSize;
 		(*poolNodePtr) = node;

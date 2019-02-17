@@ -28,9 +28,17 @@ namespace oak {
 				return *this;
 			}
 
-			constexpr bool operator==(Iterator const& other) const noexcept { return set == other.set && idx == other.idx; }
-			constexpr bool operator!=(Iterator const& other) const noexcept { return !operator==(other); }
-			constexpr auto operator*() const noexcept { return set->data[idx]; }
+			constexpr bool operator==(Iterator const& other) const noexcept {
+				return set == other.set && idx == other.idx;
+			}
+
+			constexpr bool operator!=(Iterator const& other) const noexcept {
+				return !operator==(other);
+			}
+
+			constexpr auto operator*() const noexcept {
+				return set->data[idx];
+			}
 
 			HashSet const *set = nullptr;
 			i64 idx = 0;
@@ -41,8 +49,12 @@ namespace oak {
 		CFn cmp_fn;
 
 		void init(Allocator *allocator, i64 capacity_) {
+			// Allocate storage
 			data.count = ensure_pow2(capacity_);
 			data.data = allocate_soa<bool, Key, Values...>(allocator, data.count);
+			assert(data.data);
+
+			// Initilize empty array
 			for (auto& elem : get<0>(data)) {
 				elem = true;
 			}
@@ -101,22 +113,20 @@ namespace oak {
 
 		constexpr void remove(i64 const idx) noexcept {
 			assert(!is_empty(idx));
-			// Find the last element with the same slot (hash & (data.count - 1)) as the one we are trying to remove
-			// then swap and pop
-			auto const h = hash_fn(get<1>(data)[idx]);
-			auto popIdx = idx;
+			// cidx is the index of the slot we are trying to empty
+			// ridx is the index of the slot we are looking at to try and fill it
+			i64 cidx = idx, ridx;
 			for (i64 d = 1; d < data.count; ++d) {
-				auto ridx = (idx + d) & (data.count - 1);
-				if (slot(hash_fn(get<1>(data)[ridx])) == slot(h)) {
-					popIdx = ridx;
-				} else {
+				ridx = (idx + d) & (data.count - 1);
+				if (is_empty(ridx)) {
 					break;
 				}
+				if (slot(hash_fn(get<1>(data)[ridx])) <= slot(hash_fn(get<1>(data)[cidx]))) {
+					data[cidx] = data[ridx];
+					cidx = ridx;
+				}
 			}
-			if (idx != popIdx) {
-				data[idx] = data[popIdx];
-			}
-			get<0>(data)[popIdx] = true;
+			get<0>(data)[cidx] = true;
 		}
 
 		constexpr Iterator begin() const noexcept {

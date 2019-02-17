@@ -9,45 +9,67 @@
 
 namespace oak {
 
+	struct MemoryArena {
+		void *block = nullptr;
+		u64 size = 0;
+	};
+
 	struct MemoryArenaHeader {
-		int64_t allocationCount;
-		int64_t requestedMemory;
-		int64_t usedMemory;
+		i64 allocationCount;
+		i64 requestedMemory;
+		i64 usedMemory;
 		void *next;
 	};
 
 	struct StackHeader {
-		int64_t allocationCount;
-		int64_t requestedMemory;
+		i64 allocationCount;
+		i64 requestedMemory;
 	};
 
 	struct PoolNode {
 		PoolNode *next;
-		size_t size;
+		u64 size;
 	};
 
 	struct PoolHeader {
 		PoolNode *freeList;
-		size_t poolSize;
+		u64 poolSize;
+		u64 alignment;
 	};
 
-	struct MemoryArena {
-		void *block = nullptr;
-		size_t size = 0;
+	struct Allocator {
+		MemoryArena *arena = nullptr;
+		void *(*allocFn)(MemoryArena *self, u64 size, u64 alignment) = nullptr;
+		void (*freeFn)(MemoryArena *self, void *ptr, u64 size) = nullptr;
+
+		void* allocate(u64 size, u64 alignment) {
+			if (allocFn) {
+				return (*allocFn)(arena, size, alignment);
+			} else {
+				return nullptr;
+			}
+		}
+
+		void deallocate(void *ptr, u64 size) {
+			if (freeFn) {
+				(*freeFn)(arena, ptr, size);
+			}
+		}
 	};
 
-	Result init_memory_arena(MemoryArena *arena, size_t size);
-	Result init_memory_arena(MemoryArena *arena, void *block, size_t size);
+	Result init_memory_arena(MemoryArena *arena, Allocator *allocator, u64 size);
+	void destroy_memory_arena(MemoryArena *arena, Allocator *allocator);
 
-	void* allocate_from_arena(MemoryArena *arena, size_t size, size_t alignment);
+	void* allocate_from_arena(MemoryArena *arena, u64 size, u64 alignment);
 	void clear_arena(MemoryArena *arena);
 
 	void* push_stack(MemoryArena *arena);
 	void pop_stack(MemoryArena *arena, void *stackPtr);
 
-	MemoryArena create_pool(MemoryArena *arena, size_t size);
-	void* allocate_from_pool(MemoryArena *arena, size_t size, int64_t count);
-	void free_from_pool(MemoryArena *arena, const void *ptr, size_t size, int64_t count);
+	Result init_memory_pool(MemoryArena *arena, Allocator *allocator, u64 size, u64 alignment);
+
+	void* allocate_from_pool(MemoryArena *arena, u64 size, u64 alignment);
+	void free_from_pool(MemoryArena *arena, void *ptr, u64 size);
 
 	struct ArenaStack {
 		MemoryArena *arena = nullptr;
@@ -93,19 +115,13 @@ namespace oak {
 	}
 
 	namespace detail {
-
-		inline void* arena_alloc_wrapper(void* arena, u64 size, u64 align) {
-			return allocate_from_arena(static_cast<MemoryArena*>(arena), size, align);
-		}
-
-		inline void* std_aligned_alloc_wrapper(void*, u64 size, u64 align) {
+		inline void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align) {
 			return std::aligned_alloc(align, size);
 		}
 
-		inline void std_free_wrapper(void *, void *ptr, u64) {
+		inline void std_free_wrapper(MemoryArena*, void *ptr, u64) {
 			std::free(ptr);
 		}
-
 	}
 
 	inline Allocator globalAllocator{ nullptr, detail::std_aligned_alloc_wrapper, detail::std_free_wrapper };

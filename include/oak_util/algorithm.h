@@ -203,5 +203,9 @@ namespace oak {
 		}
 	}
 
+	bool is_c_str(String const str);
+	const char* as_c_str(String const str);
+	String copy_str(Allocator *allocator, String const str);
+
 }
 

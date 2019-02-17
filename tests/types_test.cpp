@@ -17,10 +17,10 @@ void print_set(Set const& set) {
 int main(int, char**) {
 
 	MemoryArena tempMemory;
-	init_memory_arena(&tempMemory, 64 * 1024 * 1024);
+	init_memory_arena(&tempMemory, &globalAllocator, 64 * 1024 * 1024);
 
-	temporaryMemory.state = static_cast<void*>(&tempMemory);
-	temporaryMemory.allocFn = detail::arena_alloc_wrapper;
+	temporaryMemory.arena = &tempMemory;
+	temporaryMemory.allocFn = allocate_from_arena;
 
 	SOA<int, double> soa;
 	soa.count = 64;

@@ -20,7 +20,7 @@ namespace oak {
 		return reinterpret_cast<void const*>(reinterpret_cast<u64>(p) - x);
 	}
 
-	inline u64 ptr_diff(const void *p0, const void *p1) {
+	inline u64 ptr_diff(void const *p0, void const *p1) {
 		auto min = reinterpret_cast<u64>(p0);
 		auto max = reinterpret_cast<u64>(p1);
 		if (min > max) {

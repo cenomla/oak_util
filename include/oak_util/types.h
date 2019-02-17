@@ -30,7 +30,7 @@ using b32 = uint32_t;
 
 namespace oak {
 
-	struct MemoryArena;
+	struct Allocator;
 
 	enum class _reflect(oak::catagory::none) Result {
 		SUCCESS,
@@ -38,26 +38,6 @@ namespace oak {
 		OUT_OF_MEMORY,
 		FAILED_IO,
 		FILE_NOT_FOUND,
-	};
-
-	struct Allocator {
-		void *state = nullptr;
-		void *(*allocFn)(void *self, u64 size, u64 alignment) = nullptr;
-		void (*freeFn)(void *self, void *ptr, u64 size) = nullptr;
-
-		void* allocate(u64 size, u64 alignment) {
-			if (allocFn) {
-				return (*allocFn)(state, size, alignment);
-			} else {
-				return nullptr;
-			}
-		}
-
-		void deallocate(void *ptr, u64 size) {
-			if (freeFn) {
-				(*freeFn)(state, ptr, size);
-			}
-		}
 	};
 
 	template<typename type>
@@ -68,6 +48,9 @@ namespace oak {
 		constexpr Slice() noexcept = default;
 		constexpr Slice(type *data_, i64 count_) noexcept
 			: data{ data_ }, count{ count_ } {}
+		template<int C>
+		Slice(type const (&array)[C]) noexcept
+			: data{ const_cast<type*>(&array[0]) }, count{ C } {}
 
 		constexpr type* begin() noexcept {
 			return data;
@@ -143,15 +126,13 @@ namespace oak {
 		return !(lhs == String{ rhs });
 	}
 
-	bool is_c_str(String const str);
-	const char* as_c_str(String const str);
-	String copy_str(MemoryArena *arena, String const str);
-
 	template<typename T>
 	struct HashFn {
 		constexpr u64 operator()(T const& value) const noexcept {
 			if constexpr (std::is_integral_v<T>) {
-				return static_cast<u64>(value);
+				return static_cast<u64>(v);
+			} else if constexpr (std::is_pointer_v<T>) {
+				return reinterpret_cast<u64>(v);
 			} else {
 				static_assert("hash not supported");
 				return 0;
