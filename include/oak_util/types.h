@@ -68,12 +68,14 @@ namespace oak {
 			return data + count;
 		}
 
-		constexpr type& operator[](i64 index) noexcept {
-			return data[index];
+		constexpr type& operator[](i64 const idx) noexcept {
+			assert(0 <= idx && idx < count);
+			return data[idx];
 		}
 
-		constexpr type const& operator[](i64 index) const noexcept {
-			return data[index];
+		constexpr type const& operator[](i64 const idx) const noexcept {
+			assert(0 <= idx && idx < count);
+			return data[idx];
 		}
 	};
 
@@ -130,9 +132,9 @@ namespace oak {
 	struct HashFn {
 		constexpr u64 operator()(T const& value) const noexcept {
 			if constexpr (std::is_integral_v<T>) {
-				return static_cast<u64>(v);
+				return static_cast<u64>(value);
 			} else if constexpr (std::is_pointer_v<T>) {
-				return reinterpret_cast<u64>(v);
+				return reinterpret_cast<u64>(value);
 			} else {
 				static_assert("hash not supported");
 				return 0;

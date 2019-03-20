@@ -16,71 +16,71 @@ namespace oak {
 		}
 	}
 
-	template<> const TypeInfo* type_info<void>() {
+	template<> TypeInfo const* type_info_internal<void>() noexcept {
 		static const TypeInfo info{ TypeKind::VOID, "void", 0, 0 };
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<bool>() {
+	template<> TypeInfo const* type_info_internal<bool>() noexcept {
 		static const TypeInfo info{ TypeKind::BOOL, "bool", 1, 1 };
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<uint8_t>() {
+	template<> TypeInfo const* type_info_internal<uint8_t>() noexcept {
 		static const TypeInfo info{ TypeKind::UINT8, "uint8", 1, 1 };
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<uint16_t>() {
+	template<> TypeInfo const* type_info_internal<uint16_t>() noexcept {
 		static const TypeInfo info{ TypeKind::UINT16, "uint16", 2, 2 };
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<uint32_t>() {
+	template<> TypeInfo const* type_info_internal<uint32_t>() noexcept {
 		static const TypeInfo info{ TypeKind::UINT32, "uint32", 4, 4 };
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<uint64_t>() {
+	template<> TypeInfo const* type_info_internal<uint64_t>() noexcept {
 		static const TypeInfo info{ TypeKind::UINT64, "uint64", 8, 8 };
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<int8_t>() {
+	template<> TypeInfo const* type_info_internal<int8_t>() noexcept {
 		static const TypeInfo info{ TypeKind::INT8, "int8", 1, 1 };
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<int16_t>() {
+	template<> TypeInfo const* type_info_internal<int16_t>() noexcept {
 		static const TypeInfo info{ TypeKind::INT16, "int16", 2, 2 };
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<int32_t>() {
+	template<> TypeInfo const* type_info_internal<int32_t>() noexcept {
 		static const TypeInfo info{ TypeKind::INT32, "int32", 4, 4 };
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<int64_t>() {
+	template<> TypeInfo const* type_info_internal<int64_t>() noexcept {
 		static const TypeInfo info{ TypeKind::INT64, "int64", 8, 8 };
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<float>() {
+	template<> TypeInfo const* type_info_internal<float>() noexcept {
 		static const TypeInfo info{ TypeKind::FLOAT32, "float32", 4, 4 };
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<double>() {
+	template<> TypeInfo const* type_info_internal<double>() noexcept {
 		static const TypeInfo info{ TypeKind::FLOAT64, "float64", 8, 8 };
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<char>() {
+	template<> TypeInfo const* type_info_internal<char>() noexcept {
 		return type_info<int8_t>();
 	}
 
-	template<> const TypeInfo* type_info<Test>() {
+	template<> TypeInfo const* type_info_internal<Test>() noexcept {
 		using T = Test;
 		static const MemberInfo members[] = {
 			{ "a", type_info<decltype(T::a)>(), offsetof(T, a), 0 },
@@ -92,7 +92,7 @@ namespace oak {
 		return &info;
 	}
 
-	template<> const TypeInfo* type_info<Slice<Test>>() {
+	template<> TypeInfo const* type_info_internal<Slice<Test>>() noexcept {
 		using T = oak::Slice<Test>;
 		static const MemberInfo members[] = {
 			{ "data", type_info<decltype(T::data)>(), offsetof(T, data), 0 },

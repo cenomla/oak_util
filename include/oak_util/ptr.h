@@ -48,7 +48,7 @@ namespace oak {
 		return add_ptr(address, align_offset(address, alignment));
 	}
 
-	inline size_t align_offset_with_header(const void *address, u64 alignment, u64 headerSize) {
+	inline u64 align_offset_with_header(void const *address, u64 alignment, u64 headerSize) {
 		u64 adjustment = align_offset(address, alignment);
 
 		u64 neededSpace = headerSize;

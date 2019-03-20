@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include "ptr.h"
 
 namespace oak {
 
@@ -43,7 +44,7 @@ namespace oak {
 
 	struct MemberInfo {
 		String name;
-		const TypeInfo *type = nullptr;
+		TypeInfo const *type = nullptr;
 		u64 offset = 0;
 		u32 flags = 0;
 	};
@@ -94,7 +95,7 @@ namespace oak {
 	};
 
 	template<typename T>
-	constexpr decltype(auto) enum_int(T val) {
+	constexpr decltype(auto) enum_int(T val) noexcept {
 		if constexpr (std::is_enum_v<T>) {
 			return static_cast<std::underlying_type_t<T>>(val);
 		} else {
@@ -103,10 +104,10 @@ namespace oak {
 	}
 
 	template<typename T>
-	TypeInfo const* type_info_internal();
+	TypeInfo const* type_info_internal() noexcept;
 
 	template<typename T>
-	TypeInfo const* type_info() {
+	TypeInfo const* type_info() noexcept {
 		if constexpr(std::is_pointer_v<T>) {
 			static PtrInfo const info{
 				{ TypeKind::PTR, "pointer", sizeof(T), alignof(T) },
@@ -125,24 +126,24 @@ namespace oak {
 	}
 
 	template<typename T>
-	StructInfo const* struct_info() {
+	StructInfo const* struct_info() noexcept {
 		auto typeInfo = type_info<T>();
 		assert(typeInfo->kind == TypeKind::STRUCT);
 		return static_cast<StructInfo const*>(typeInfo);
 	}
 
-	template<typename T> u64 type_id() {
+	template<typename T> u64 type_id() noexcept {
 		return struct_info<T>()->tid;
 	}
 
 	template<typename T>
-	Slice<TypeInfo const*> types_in_catagory();
+	Slice<TypeInfo const*> types_in_catagory() noexcept;
 
 	template<typename T>
-	u64 catagory_id();
+	u64 catagory_id() noexcept;
 
 	template<typename C>
-	bool is_type_in_catagory(TypeInfo const *typeInfo) {
+	bool is_type_in_catagory(TypeInfo const *typeInfo) noexcept {
 		auto catagoryId = typeInfo->kind == TypeKind::STRUCT ? static_cast<StructInfo const*>(typeInfo)->catagoryId : 0;
 		return catagoryId == catagory_id<C>();
 	}

@@ -9,8 +9,15 @@ template<typename Set>
 void print_set(Set const& set) {
 	for (auto [empty, key, value0, value1] : set) {
 		if (!empty) {
-			fprintf(stdout, "[%lu, %d, %d, %lf]\n", set.slot(set.hash_fn(key)), key, value0, value1);
+			fprintf(stdout, "[%lu, %d, %d, %lf]\n", set.slot(set.hash(key)), key, value0, value1);
 		}
+	}
+}
+
+template<typename Vector>
+void print_vector(Vector const& vector) {
+	for (auto &elem : vector) {
+		fprintf(stdout, "[%lu]\n", elem);
 	}
 }
 
@@ -57,6 +64,9 @@ int main(int, char**) {
 	set.remove(set.find(129));
 
 	print_set(set);
+
+	Vector<u64> vector{ &temporaryMemory, { 5, 6, 90, 1lu<<40 } };
+	print_vector(vector);
 
 	return 0;
 }

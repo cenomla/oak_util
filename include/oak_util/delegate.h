@@ -11,25 +11,33 @@ namespace oak {
 	constexpr size_t SMALL_FUNCTION_SIZE = 16;
 
 	template<typename T>
-	struct Function {};
+	struct Delegate;
 
 	template<typename Out, typename... In>
-	struct Function<Out(In...)> {
-		Allocator *allocator = nullptr;
+	struct Delegate<Out(In...)> {
+
 		union {
 			char staticStorage[SMALL_FUNCTION_SIZE]{ 0 };
 			size_t functionSize;
 		};
+
+		Allocator *allocator = nullptr;
 		void *function = nullptr;
-		Out (*executeFunction)(void *, In&...) = nullptr;
+		Out (*invokeFn)(void *, In...) = nullptr;
 
-		Function() = default;
+		Delegate() noexcept = default;
 
-		Function(Function&& other) {
-			operator=(static_cast<Function&&>(other));
+		Delegate(Allocator *allocator_) noexcept
+			: allocator{ allocator_ } {}
+
+		Delegate(Delegate const& other) noexcept = delete;
+		Delegate& operator=(Delegate const& other) noexcept = delete;
+
+		Delegate(Delegate&& other) noexcept {
+			operator=(static_cast<Delegate&&>(other));
 		}
 
-		Function& operator=(Function&& other) {
+		Delegate& operator=(Delegate&& other) noexcept {
 			allocator = other.allocator;
 			if (other.function == &other.staticStorage) {
 				function = &staticStorage;
@@ -39,29 +47,32 @@ namespace oak {
 				functionSize = other.functionSize;
 			}
 
-			executeFunction = other.executeFunction;
+			invokeFn = other.invokeFn;
 
 			other.allocator = nullptr;
 			std::memset(other.staticStorage, 0, sizeof(other.staticStorage));
 			other.function = nullptr;
-			other.executeFunction = nullptr;
+			other.invokeFn = nullptr;
 			return *this;
 		}
 
-		template<typename T>
-		Function(T&& obj) {
+		template<typename T, std::enable_if_t<!std::is_same_v<T, Delegate>>>
+		Delegate(T&& obj) noexcept {
+			set(std::forward<T>(obj));
+		}
+
+		template<typename T, std::enable_if_t<!std::is_same_v<T, Delegate>>>
+		Delegate(Allocator *allocator_, T&& obj) noexcept
+			: allocator{ allocator_ } {
 			set(std::forward<T>(obj));
 		}
 
 		template<typename T>
-		Function(Allocator *allocator_ = &globalAllocator, T&& obj) : allocator{ allocator_ } {
-			set(std::forward<T>(obj));
-		}
-
-		template<typename T>
-		void set(T&& obj) {
+		void set(T&& obj) noexcept {
 			using FT = std::decay_t<T>;
+			static_assert(!std::is_function_v<FT> && "Cannot pass function into delegate, must pass function pointer");
 			if constexpr (sizeof(obj) > sizeof(staticStorage)) {
+				assert(allocator);
 				function = allocate<T>(allocator, 1);
 				functionSize = sizeof(obj);
 			} else {
@@ -71,39 +82,39 @@ namespace oak {
 
 			// Check if this is a function pointer type
 			if constexpr (std::is_function_v<std::remove_pointer_t<FT>>) {
-				executeFunction = [](void *function, In&... args) {
-					return (*static_cast<FT*>(function))(args...);
+				invokeFn = [](void *function, In... args) {
+					return (*static_cast<FT*>(function))(std::forward<In>(args)...);
 				};
 			} else {
-				executeFunction = [](void *function, In&... args) {
-					return static_cast<FT*>(function)->operator()(args...);
+				invokeFn = [](void *function, In... args) {
+					return static_cast<FT*>(function)->operator()(std::forward<In>(args)...);
 				};
 			}
 		}
 
-		void destroy() {
+		void destroy() noexcept {
 			// If the object is empty
 			if (!function) { return; }
 			// If the object was dynamically allocated
 			if (function != &staticStorage) {
 				assert(functionSize);
-				deallocate<T>(allocator, function, functionSize);
+				allocator->deallocate(function, functionSize);
 			}
 			function = nullptr;
 		}
 
-		Out operator()(In... args) {
+		Out operator()(In... args) const noexcept {
 			assert(function);
-			assert(executeFunction);
+			assert(invokeFn);
 			// Dont return if the return type is void
 			if constexpr (std::is_same_v<Out, void>) {
-				executeFunction(function, args...);
+				invokeFn(function, std::forward<In>(args)...);
 			} else {
-				return executeFunction(function, args...);
+				return invokeFn(function, std::forward<In>(args)...);
 			}
 		}
 
-		operator bool() {
+		operator bool() const noexcept {
 			return function != nullptr;
 		}
 
