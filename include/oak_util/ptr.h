@@ -31,11 +31,11 @@ namespace oak {
 		return max - min;
 	}
 
-	inline u64 align_size(u64 size, u64 alignment) {
+	constexpr u64 align_size(u64 size, u64 alignment) {
 		return (size + alignment - 1) & (~(alignment-1));
 	}
 
-	inline i64 align_int(i64 value, u64 alignment) {
+	constexpr i64 align_int(i64 value, u64 alignment) {
 		return (value + alignment - 1) & (~(alignment - 1));
 	}
 

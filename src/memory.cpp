@@ -19,9 +19,9 @@ namespace oak {
 		}
 
 		auto header = static_cast<MemoryArenaHeader*>(block);
-		header->allocationCount = 0;
-		header->requestedMemory = 0;
-		header->usedMemory = sizeof(MemoryArenaHeader);
+		header->allocationCount.store(0, std::memory_order_relaxed);
+		header->requestedMemory.store(0, std::memory_order_relaxed);
+		header->usedMemory.store(sizeof(MemoryArenaHeader), std::memory_order_relaxed);
 		header->next = nullptr;
 
 		*arena = { block, size };
@@ -38,19 +38,27 @@ namespace oak {
 		assert(arena);
 		assert(arena->block);
 		assert(size > 0);
+		assert(alignment > 0);
 
 		auto header = static_cast<MemoryArenaHeader*>(arena->block);
 		auto memoryToAllocate = size;
 
-		if (memoryToAllocate && header->usedMemory + memoryToAllocate < arena->size) {
-			auto result = add_ptr(arena->block, header->usedMemory);
-			auto offset = align_offset(result, alignment);
+		auto usedMemory = header->usedMemory.load(std::memory_order_relaxed);
+		u64 nUsedMemory;
 
-			++header->allocationCount;
-			header->requestedMemory += memoryToAllocate;
-			header->usedMemory += offset + memoryToAllocate;
+		do {
+			nUsedMemory = align_size(usedMemory + memoryToAllocate, alignment);
+		} while (nUsedMemory <= arena->size
+				&& !header->usedMemory.compare_exchange_weak(
+					usedMemory, nUsedMemory,
+					std::memory_order_release, std::memory_order_relaxed));
 
-			return add_ptr(result, offset);
+		if (nUsedMemory <= arena->size) {
+			// If there was enough room for this allocation
+			header->allocationCount.fetch_add(1, std::memory_order_relaxed);
+			header->requestedMemory.fetch_add(memoryToAllocate, std::memory_order_relaxed);
+
+			return add_ptr(arena->block, nUsedMemory);
 		}
 
 		return nullptr;
@@ -62,9 +70,9 @@ namespace oak {
 
 		auto header = static_cast<MemoryArenaHeader*>(arena->block);
 
-		header->allocationCount = 0;
-		header->requestedMemory = 0;
-		header->usedMemory = sizeof(MemoryArenaHeader);
+		header->allocationCount.store(0, std::memory_order_relaxed);
+		header->requestedMemory.store(0, std::memory_order_relaxed);
+		header->usedMemory.store(sizeof(MemoryArenaHeader), std::memory_order_relaxed);
 	}
 
 	void* push_stack(MemoryArena *arena) {
@@ -83,7 +91,7 @@ namespace oak {
 	void pop_stack(MemoryArena *arena, void *stackPtr) {
 		auto arenaHeader = static_cast<MemoryArenaHeader*>(arena->block);
 		auto stackHeader = static_cast<StackHeader*>(sub_ptr(stackPtr, sizeof(StackHeader)));
-		auto ogUsedMemory = reinterpret_cast<i64>(stackPtr) - reinterpret_cast<i64>(arena->block) - ssizeof(StackHeader);
+		auto ogUsedMemory = reinterpret_cast<u64>(stackPtr) - reinterpret_cast<u64>(arena->block) - sizeof(StackHeader);
 		arenaHeader->usedMemory = ogUsedMemory;
 		arenaHeader->allocationCount = stackHeader->allocationCount;
 		arenaHeader->requestedMemory = stackHeader->requestedMemory;

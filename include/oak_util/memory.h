@@ -15,9 +15,9 @@ namespace oak {
 	};
 
 	struct MemoryArenaHeader {
-		i64 allocationCount;
-		i64 requestedMemory;
-		i64 usedMemory;
+		std::atomic<u64> allocationCount;
+		std::atomic<u64> requestedMemory;
+		std::atomic<u64> usedMemory;
 		void *next;
 	};
 

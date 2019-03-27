@@ -5,6 +5,7 @@
 #include <cassert>
 
 #include <type_traits>
+#include <atomic>
 #include <tuple>
 
 #include <osig_defs.h>
@@ -27,6 +28,9 @@ using b32 = uint32_t;
 #define ssizeof(x) static_cast<i64>(sizeof(x))
 #define array_count(x) (sizeof(x)/sizeof(*x))
 #define sarray_count(x) static_cast<i64>(array_count(x))
+
+#define MACRO_CAT_IMPL(x, y) x##y
+#define MACRO_CAT(x, y) MACRO_CAT_IMPL(x, y)
 
 namespace oak {
 
@@ -180,6 +184,37 @@ namespace oak {
 		}
 	};
 
+	struct SpinLock {
+		std::atomic_flag flag = ATOMIC_FLAG_INIT;
+
+		bool try_lock() {
+			return !flag.test_and_set(std::memory_order_acquire);
+		}
+
+		void lock() {
+			while (flag.test_and_set(std::memory_order_acquire));
+		}
+
+		void unlock() {
+			flag.clear(std::memory_order_release);
+		}
+
+	};
+
+
+	template<typename T>
+	struct ScopeExit {
+
+		T &&functor;
+
+		constexpr ScopeExit(T &&functor_) : functor{ std::forward<T>(functor_) } {}
+
+		~ScopeExit() {
+			functor();
+		}
+	};
+
+#define SCOPE_EXIT(x) ScopeExit MACRO_CAT(_oak_scope_exit_, __LINE__){ [](){ (x); }}
 
 }
 
