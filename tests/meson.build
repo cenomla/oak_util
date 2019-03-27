@@ -5,6 +5,9 @@ test('types', types_test)
 memory_test = executable('memory', 'memory.cpp', dependencies: test_deps)
 test('memory', memory_test)
 
+threaded_memory_test = executable('threaded_memory', 'threaded_memory.cpp', dependencies: test_deps)
+test('threaded_memory', threaded_memory_test)
+
 any_test = executable('any', 'any_test.cpp', dependencies: test_deps)
 test('any', any_test)
 
