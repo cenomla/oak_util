@@ -105,7 +105,7 @@ namespace oak {
 
 }
 
-int main(int argc, char **argv) {
+int main(int, char **) {
 
 	Test test;
 	oak::Any thing{ test };

@@ -118,10 +118,6 @@ namespace oak {
 			return *this;
 		}
 
-		constexpr operator Slice<char>() const noexcept {
-			return { data, count };
-		}
-
 	};
 
 	constexpr bool operator==(String const& lhs, char const *rhs) noexcept {
@@ -187,15 +183,15 @@ namespace oak {
 	struct SpinLock {
 		std::atomic_flag flag = ATOMIC_FLAG_INIT;
 
-		bool try_lock() {
+		bool try_lock() noexcept {
 			return !flag.test_and_set(std::memory_order_acquire);
 		}
 
-		void lock() {
+		void lock() noexcept {
 			while (flag.test_and_set(std::memory_order_acquire));
 		}
 
-		void unlock() {
+		void unlock() noexcept {
 			flag.clear(std::memory_order_release);
 		}
 
@@ -207,9 +203,9 @@ namespace oak {
 
 		T &&functor;
 
-		constexpr ScopeExit(T &&functor_) : functor{ std::forward<T>(functor_) } {}
+		constexpr ScopeExit(T &&functor_) noexcept : functor{ std::forward<T>(functor_) } {}
 
-		~ScopeExit() {
+		~ScopeExit() noexcept {
 			functor();
 		}
 	};

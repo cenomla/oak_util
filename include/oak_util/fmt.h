@@ -3,6 +3,7 @@
 #include <utility>
 #include <cstdio>
 
+#include "types.h"
 #include "memory.h"
 #include "algorithm.h"
 #include "string.h"
@@ -10,20 +11,19 @@
 namespace oak::detail {
 
 	String to_str(char v);
-	String to_str(uint32_t v);
-	String to_str(uint64_t v);
-	String to_str(int32_t v);
-	String to_str(int64_t v);
-	String to_str(float v);
-	String to_str(double v);
-	String to_str(const char *v);
-	String to_str(const unsigned char *v);
+	String to_str(u32 v);
+	String to_str(u64 v);
+	String to_str(i32 v);
+	String to_str(i64 v);
+	String to_str(f32 v);
+	String to_str(f64 v);
+	String to_str(char const *v);
+	String to_str(unsigned char const *v);
 	String to_str(String str);
 
 	template<typename Buffer>
-	void print_fmt_impl(Buffer&& buffer, String fmtStr, String const *strings, int64_t stringCount) {
-		int64_t idx = 0;
-		int64_t start = 0;
+	void print_fmt_impl(Buffer&& buffer, String fmtStr, String const *strings, i64 stringCount) {
+		i64 idx = 0, start = 0;
 		// Write each substr replacing % with the argument string
 		while (start < fmtStr.count) {
 			// Find each instance of %
@@ -58,7 +58,7 @@ namespace oak {
 
 	template<typename T>
 	struct HasResizeMethod {
-		template<typename U, void (U::*)(size_t)> struct SFINAE {};
+		template<typename U, void (U::*)(u64)> struct SFINAE {};
 		template<typename U> static char test(SFINAE<U, &U::resize>*);
 		template<typename U> static int test(...);
 		static constexpr bool value = sizeof(test<T>(0)) == sizeof(char);
@@ -76,7 +76,7 @@ namespace oak {
 
 		Allocator *allocator = nullptr;
 		String *buffer = nullptr;
-		size_t pos = 0;
+		u64 pos = 0;
 	};
 
 	template<typename Buffer, typename... TArgs>
@@ -87,7 +87,7 @@ namespace oak {
 		};
 		// If we have control over the buffer size make sure it is of valid size
 		if constexpr(HasResizeMethod<std::decay_t<Buffer>>::value) {
-			size_t totalSize = 0;
+			u64 totalSize = 0;
 			for (auto str : argStrings) {
 				totalSize += str.count;
 			}
@@ -99,7 +99,10 @@ namespace oak {
 
 	template<typename... TArgs>
 	void print_fmt(String fmtStr, TArgs&&... args) {
+		static SpinLock printLock;
+		printLock.lock();
 		buffer_fmt(FileBuffer{ stdout }, fmtStr, std::forward<TArgs>(args)...);
+		printLock.unlock();
 	}
 
 	template<typename... TArgs>

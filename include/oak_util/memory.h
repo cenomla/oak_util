@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdlib>
-#include <cstring>
 #include <new>
 
 #include "types.h"
@@ -15,6 +13,13 @@ namespace oak {
 	};
 
 	struct MemoryArenaHeader {
+		u64 allocationCount;
+		u64 requestedMemory;
+		u64 usedMemory;
+		void *next;
+	};
+
+	struct AtomicMemoryArenaHeader {
 		std::atomic<u64> allocationCount;
 		std::atomic<u64> requestedMemory;
 		std::atomic<u64> usedMemory;
@@ -58,10 +63,15 @@ namespace oak {
 	};
 
 	Result init_memory_arena(MemoryArena *arena, Allocator *allocator, u64 size);
+	Result init_atomic_memory_arena(MemoryArena *arena, Allocator *allocator, u64 size);
+
 	void destroy_memory_arena(MemoryArena *arena, Allocator *allocator);
 
 	void* allocate_from_arena(MemoryArena *arena, u64 size, u64 alignment);
+	void* allocate_from_atomic_arena(MemoryArena *arena, u64 size, u64 alignment);
+
 	void clear_arena(MemoryArena *arena);
+	void clear_atomic_arena(MemoryArena *arena);
 
 	void* push_stack(MemoryArena *arena);
 	void pop_stack(MemoryArena *arena, void *stackPtr);
@@ -115,13 +125,8 @@ namespace oak {
 	}
 
 	namespace detail {
-		inline void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align) {
-			return std::aligned_alloc(align, size);
-		}
-
-		inline void std_free_wrapper(MemoryArena*, void *ptr, u64) {
-			std::free(ptr);
-		}
+		void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align);
+		void std_free_wrapper(MemoryArena*, void *ptr, u64);
 	}
 
 	inline Allocator globalAllocator{ nullptr, detail::std_aligned_alloc_wrapper, detail::std_free_wrapper };

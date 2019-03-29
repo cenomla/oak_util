@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstring>
+
 #include "types.h"
 #include "bit.h"
 #include "memory.h"
@@ -123,7 +125,7 @@ namespace oak {
 	struct HashSet : HFn, CFn {
 
 		struct Iterator {
-			Iterator& operator++() {
+			Iterator& operator++() noexcept {
 				do {
 					++idx;
 				} while (idx != set->data.count && set->is_empty(idx));

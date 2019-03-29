@@ -1,6 +1,7 @@
 #include <oak_util/types.h>
 #include <oak_util/containers.h>
 #include <oak_util/memory.h>
+#include <oak_util/algorithm.h>
 #include <cstdio>
 
 using namespace oak;
@@ -67,6 +68,12 @@ int main(int, char**) {
 
 	Vector<u64> vector{ &temporaryMemory, { 5, 6, 90, 1lu<<40 } };
 	print_vector(vector);
+
+	String string = " Hello barn! ";
+	reverse(string);
+
+	String string0{ "Test" };
+	assert(find(string0, 'e') != -1);
 
 	return 0;
 }
