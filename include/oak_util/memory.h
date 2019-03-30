@@ -46,7 +46,9 @@ namespace oak {
 	Result init_memory_arena(MemoryArena *arena, void *block, size_t size);
 
 	void* allocate_from_arena(MemoryArena *arena, size_t size, int64_t count, size_t alignment);
+	void copy_arena(MemoryArena *dst, MemoryArena *src);
 	void clear_arena(MemoryArena *arena);
+	bool arena_contains(MemoryArena *arena, void *ptr);
 
 	void* push_stack(MemoryArena *arena);
 	void pop_stack(MemoryArena *arena, void *stackPtr);

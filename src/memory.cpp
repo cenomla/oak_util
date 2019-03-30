@@ -1,6 +1,7 @@
 #include "oak_util/memory.h"
 
 #include <cassert>
+#include <cstring>
 
 #include <oak_util/ptr.h>
 #include <oak_util/bit.h>
@@ -9,15 +10,13 @@ namespace oak {
 
 	Result init_memory_arena(MemoryArena *arena, size_t size) {
 		assert(arena);
-		assert(size > 0);
 
-		auto totalSize = sizeof(MemoryArenaHeader) + size;
-		auto block = alloc(totalSize);
+		auto block = alloc(size);
 		if (!block) {
 			return Result::OUT_OF_MEMORY;
 		}
 
-		return init_memory_arena(arena, block, totalSize);
+		return init_memory_arena(arena, block, size);
 	}
 
 	Result init_memory_arena(MemoryArena *arena, void *block, size_t size) {
@@ -58,6 +57,12 @@ namespace oak {
 		return nullptr;
 	}
 
+	void copy_arena(MemoryArena *dst, MemoryArena *src) {
+		assert(dst->size >= src->size);
+		auto srcHeader = static_cast<MemoryArenaHeader*>(src->block);
+		std::memcpy(dst->block, src->block, srcHeader->usedMemory);
+	}
+
 	void clear_arena(MemoryArena *arena) {
 		assert(arena);
 		assert(arena->block);
@@ -67,6 +72,13 @@ namespace oak {
 		header->allocationCount = 0;
 		header->requestedMemory = 0;
 		header->usedMemory = sizeof(MemoryArenaHeader);
+	}
+
+	bool arena_contains(MemoryArena *arena, void *ptr) {
+		auto start = reinterpret_cast<uint64_t>(arena->block);
+		auto end = reinterpret_cast<uint64_t>(add_ptr(arena->block, arena->size));
+		auto p = reinterpret_cast<uint64_t>(ptr);
+		return start < p && p <= end;
 	}
 
 	void* push_stack(MemoryArena *arena) {

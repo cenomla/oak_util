@@ -5,6 +5,8 @@
 #include <cassert>
 #include <type_traits>
 
+#include <osig_defs.h>
+
 #include "types.h"
 #include "ptr.h"
 #include "string.h"
@@ -150,16 +152,17 @@ namespace oak {
 		return catagoryId == catagory_id<C>();
 	}
 
+	TypeInfo const* get_type_info_by_name(String name);
+
 	inline const TypeInfo noTypeInfo{ oak::TypeKind::NONE, "none", 0, 0 };
 
-	struct Any {
+	struct _reflect(oak::catagory::none) Any {
 		void *ptr = nullptr;
-		const TypeInfo *type = nullptr;
+		TypeInfo const *type _opaque = nullptr;
 
 		Any() = default;
 		Any(void *ptr_, TypeInfo const *type_) : ptr{ ptr_ }, type{ type_ } {}
 
-		Any(Any const& other) = default;
 		template<typename T, typename DT = std::decay_t<T>, typename = std::enable_if_t<!std::is_same_v<DT, Any>>>
 		Any(T&& thing) : ptr{ &thing }, type{ type_info<DT>() } {}
 
@@ -211,6 +214,40 @@ namespace oak {
 						 static_cast<PtrInfo const*>(typeInfo)->of == type_info<void>()));
 			assert(ptr);
 			return *static_cast<T*>(ptr);
+		}
+
+		inline void set_enum_value(int64_t ev) {
+			assert(type->kind == TypeKind::ENUM);
+			auto ei = static_cast<EnumInfo const*>(type);
+			switch (ei->underlyingType->kind) {
+				case TypeKind::INT8: to_value<int8_t>() = static_cast<int8_t>(ev); break;
+				case TypeKind::INT16: to_value<int16_t>() = static_cast<int16_t>(ev); break;
+				case TypeKind::INT32: to_value<int32_t>() = static_cast<int32_t>(ev); break;
+				case TypeKind::INT64: to_value<int64_t>() = static_cast<int64_t>(ev); break;
+				case TypeKind::UINT8: to_value<uint8_t>() = static_cast<uint8_t>(ev); break;
+				case TypeKind::UINT16: to_value<uint16_t>() = static_cast<uint16_t>(ev); break;
+				case TypeKind::UINT32: to_value<uint32_t>() = static_cast<uint32_t>(ev); break;
+				case TypeKind::UINT64: to_value<uint64_t>() = static_cast<uint64_t>(ev); break;
+				default: break;
+			}
+		}
+
+		inline int64_t get_enum_value() {
+			assert(type->kind == TypeKind::ENUM);
+			auto ei = static_cast<EnumInfo const*>(type);
+			int64_t ev = 0;
+			switch (ei->underlyingType->kind) {
+				case oak::TypeKind::INT8: ev = to_value<int8_t>(); break;
+				case oak::TypeKind::INT16: ev = to_value<int16_t>(); break;
+				case oak::TypeKind::INT32: ev = to_value<int32_t>(); break;
+				case oak::TypeKind::INT64: ev = to_value<int64_t>(); break;
+				case oak::TypeKind::UINT8: ev = static_cast<int64_t>(to_value<uint8_t>()); break;
+				case oak::TypeKind::UINT16: ev = static_cast<int64_t>(to_value<uint16_t>()); break;
+				case oak::TypeKind::UINT32: ev = static_cast<int64_t>(to_value<uint32_t>()); break;
+				case oak::TypeKind::UINT64: ev = static_cast<int64_t>(to_value<uint64_t>()); break;
+				default: break;
+			}
+			return ev;
 		}
 	};
 

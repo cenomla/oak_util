@@ -100,7 +100,7 @@ namespace oak {
 			function = nullptr;
 		}
 
-		Out operator()(In... args) {
+		Out operator()(In... args) const {
 			assert(function);
 			assert(executeFunction);
 			// Dont return if the return type is void
@@ -111,7 +111,7 @@ namespace oak {
 			}
 		}
 
-		operator bool() {
+		operator bool() const {
 			return function != nullptr;
 		}
 
