@@ -97,10 +97,9 @@ namespace oak {
 		return true;
 	}
 
-	constexpr i64 c_str_len(char const *str) noexcept {
+	constexpr i64 c_str_len(char const *const str) noexcept {
 		i64 count = 0;
-		while (*str) {
-			++str;
+		while (str[count]) {
 			++count;
 		}
 		return count;
@@ -109,14 +108,11 @@ namespace oak {
 	struct String : Slice<char> {
 		using Slice::Slice;
 
-		constexpr String(Slice<char> const slice) noexcept : Slice{ slice } {}
+		using Slice<char>::Slice;
+
 		constexpr String(char const* str) noexcept : Slice{ const_cast<char*>(str), c_str_len(str) } {}
 
-		constexpr String& operator=(Slice<char> const slice) noexcept {
-			data = slice.data;
-			count = slice.count;
-			return *this;
-		}
+		constexpr String(Slice<char> const other) noexcept : Slice{ other } {}
 
 	};
 

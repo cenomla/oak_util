@@ -70,7 +70,7 @@ int main(int, char**) {
 	print_vector(vector);
 
 	String string = " Hello barn! ";
-	reverse(string);
+	assert(find(string, 'o') != -1);
 
 	String string0{ "Test" };
 	assert(find(string0, 'e') != -1);
