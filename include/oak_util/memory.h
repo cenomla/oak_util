@@ -1,61 +1,89 @@
 #pragma once
 
-#include <cstdlib>
 #include <new>
 
 #include "types.h"
+#include "ptr.h"
 
 namespace oak {
 
+	struct MemoryArena {
+		void *block = nullptr;
+		u64 size = 0;
+	};
+
 	struct MemoryArenaHeader {
-		int64_t allocationCount;
-		int64_t requestedMemory;
-		int64_t usedMemory;
+		u64 allocationCount;
+		u64 requestedMemory;
+		u64 usedMemory;
+		void *next;
+	};
+
+	struct AtomicMemoryArenaHeader {
+		std::atomic<u64> allocationCount;
+		std::atomic<u64> requestedMemory;
+		std::atomic<u64> usedMemory;
 		void *next;
 	};
 
 	struct StackHeader {
-		int64_t allocationCount;
-		int64_t requestedMemory;
+		i64 allocationCount;
+		i64 requestedMemory;
 	};
 
 	struct PoolNode {
 		PoolNode *next;
-		size_t size;
+		u64 size;
 	};
 
 	struct PoolHeader {
 		PoolNode *freeList;
-		size_t poolSize;
+		u64 poolSize;
+		u64 alignment;
 	};
 
-	struct MemoryArena {
-		void *block = nullptr;
-		size_t size = 0;
-	};
+	struct Allocator {
+		MemoryArena *arena = nullptr;
+		void *(*allocFn)(MemoryArena *self, u64 size, u64 alignment) = nullptr;
+		void (*freeFn)(MemoryArena *self, void *ptr, u64 size) = nullptr;
 
-	namespace detail {
-
-		inline void std_free_wrapper(void *ptr, size_t) {
-			std::free(ptr);
+		void* allocate(u64 size, u64 alignment) {
+			if (allocFn) {
+				return (*allocFn)(arena, size, alignment);
+			} else {
+				return nullptr;
+			}
 		}
 
-	}
+		void deallocate(void *ptr, u64 size) {
+			if (freeFn) {
+				(*freeFn)(arena, ptr, size);
+			}
+		}
+	};
 
-	Result init_memory_arena(MemoryArena *arena, size_t size);
-	Result init_memory_arena(MemoryArena *arena, void *block, size_t size);
+	Result init_memory_arena(MemoryArena *arena, Allocator *allocator, u64 size);
+	Result init_atomic_memory_arena(MemoryArena *arena, Allocator *allocator, u64 size);
 
-	void* allocate_from_arena(MemoryArena *arena, size_t size, int64_t count, size_t alignment);
+	void destroy_memory_arena(MemoryArena *arena, Allocator *allocator);
+
+	void* allocate_from_arena(MemoryArena *arena, u64 size, u64 alignment);
+	void* allocate_from_atomic_arena(MemoryArena *arena, u64 size, u64 alignment);
+
 	void copy_arena(MemoryArena *dst, MemoryArena *src);
-	void clear_arena(MemoryArena *arena);
+	void copy_atomic_arena(MemoryArena *dst, MemoryArena *src);
 	bool arena_contains(MemoryArena *arena, void *ptr);
+
+	void clear_arena(MemoryArena *arena);
+	void clear_atomic_arena(MemoryArena *arena);
 
 	void* push_stack(MemoryArena *arena);
 	void pop_stack(MemoryArena *arena, void *stackPtr);
 
-	MemoryArena create_pool(MemoryArena *arena, size_t size);
-	void* allocate_from_pool(MemoryArena *arena, size_t size, int64_t count);
-	void free_from_pool(MemoryArena *arena, const void *ptr, size_t size, int64_t count);
+	Result init_memory_pool(MemoryArena *arena, Allocator *allocator, u64 size, u64 alignment);
+
+	void* allocate_from_pool(MemoryArena *arena, u64 size, u64 alignment);
+	void free_from_pool(MemoryArena *arena, void *ptr, u64 size);
 
 	struct ArenaStack {
 		MemoryArena *arena = nullptr;
@@ -70,25 +98,43 @@ namespace oak {
 	};
 
 	template<typename T>
-	T* allocate(MemoryArena *arena, int64_t count) {
-		return static_cast<T*>(allocate_from_arena(arena, sizeof(T), count, alignof(T)));
+	T* allocate(Allocator *allocator, i64 count) {
+		return static_cast<T*>(allocator->allocate(sizeof(T) * count, alignof(T)));
+	}
+
+	template<typename... types>
+	void* allocate_soa(Allocator *allocator, i64 count) {
+		return allocator->allocate(soa_offset<sizeof...(types), types...>(count), max_align<types...>());
+	}
+
+	template<typename T>
+	void deallocate(Allocator *allocator, T *ptr, i64 count) {
+		allocator->deallocate(static_cast<void*>(ptr), sizeof(T) * count);
+	}
+
+	template<typename... types>
+	void deallocate_soa(Allocator *allocator, void *ptr, i64 count) {
+		allocator->deallocate(ptr, soa_offset<sizeof...(types), types...>(count));
 	}
 
 	template<typename T, typename... TArgs>
-	T* make(MemoryArena *arena, int64_t count, TArgs&&... parameters) {
-		auto result = static_cast<T*>(allocate_from_arena(arena, sizeof(T), count, alignof(T)));
+	T* make(Allocator *allocator, i64 count, TArgs&&... parameters) {
+		auto result = allocate<T>(allocator, count);
 		if (result) {
-			for (int64_t i = 0; i < count; i++) {
+			for (i64 i = 0; i < count; ++i) {
 				new (result + i) T{ static_cast<TArgs&&>(parameters)... };
 			}
 		}
 		return result;
 	}
 
-	inline void* (*alloc)(size_t size) = std::malloc;
-	inline void (*free)(void *ptr, size_t size) = detail::std_free_wrapper;
+	namespace detail {
+		void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align);
+		void std_free_wrapper(MemoryArena*, void *ptr, u64);
+	}
 
-	inline MemoryArena *temporaryMemory = nullptr;
+	inline Allocator globalAllocator{ nullptr, detail::std_aligned_alloc_wrapper, detail::std_free_wrapper };
+	inline Allocator temporaryMemory;
 
 }
 
