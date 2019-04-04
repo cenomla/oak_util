@@ -106,9 +106,9 @@ namespace oak {
 	}
 
 	template<typename... TArgs>
-	String fmt(MemoryArena *arena, String fmtStr, TArgs&&... args) {
+	String fmt(Allocator *allocator, String fmtStr, TArgs&&... args) {
 		String string;
-		buffer_fmt(StringBuffer{ arena, &string }, fmtStr, std::forward<TArgs>(args)...);
+		buffer_fmt(StringBuffer{ allocator, &string }, fmtStr, std::forward<TArgs>(args)...);
 		return string;
 	}
 

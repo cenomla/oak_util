@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstring>
 #include <type_traits>
+#include <utility>
 
 #include "memory.h"
 
@@ -56,12 +57,12 @@ namespace oak {
 			return *this;
 		}
 
-		template<typename T, std::enable_if_t<!std::is_same_v<T, Delegate>>>
+		template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Delegate>>>
 		Delegate(T&& obj) noexcept {
 			set(std::forward<T>(obj));
 		}
 
-		template<typename T, std::enable_if_t<!std::is_same_v<T, Delegate>>>
+		template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Delegate>>>
 		Delegate(Allocator *allocator_, T&& obj) noexcept
 			: allocator{ allocator_ } {
 			set(std::forward<T>(obj));

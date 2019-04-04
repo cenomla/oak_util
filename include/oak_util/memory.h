@@ -44,7 +44,7 @@ namespace oak {
 
 	struct Allocator {
 		MemoryArena *arena = nullptr;
-		void *(*allocFn)(MemoryArena *self, u64 size, u64 alignment) = nullptr;
+		void* (*allocFn)(MemoryArena *self, u64 size, u64 alignment) = nullptr;
 		void (*freeFn)(MemoryArena *self, void *ptr, u64 size) = nullptr;
 
 		void* allocate(u64 size, u64 alignment) {

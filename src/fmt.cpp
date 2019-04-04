@@ -14,7 +14,7 @@ namespace oak::detail {
 	}
 
 	String to_str(u32 v) {
-		return to_str(static_cast<uint64_t>(v));
+		return to_str(static_cast<u64>(v));
 	}
 
 	String to_str(u64 v) {
@@ -30,7 +30,7 @@ namespace oak::detail {
 	}
 
 	String to_str(i32 v) {
-		return to_str(static_cast<int64_t>(v));
+		return to_str(static_cast<i64>(v));
 	}
 
 	String to_str(i64 v) {

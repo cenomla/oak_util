@@ -15,7 +15,7 @@ namespace oak {
 		assert(allocator);
 		assert(size > sizeof(MemoryArenaHeader));
 
-		auto block = allocator->allocate(size + sizeof(MemoryArenaHeader), size);
+		auto block = allocator->allocate(size, 2048);
 		if (!block) {
 			return Result::OUT_OF_MEMORY;
 		}
@@ -26,7 +26,7 @@ namespace oak {
 		header->usedMemory = sizeof(MemoryArenaHeader);
 		header->next = nullptr;
 
-		*arena = { block, size };
+		*arena = { block, size  };
 
 		return Result::SUCCESS;
 	}
@@ -36,7 +36,7 @@ namespace oak {
 		assert(allocator);
 		assert(size > sizeof(AtomicMemoryArenaHeader));
 
-		auto block = allocator->allocate(size + sizeof(AtomicMemoryArenaHeader), size);
+		auto block = allocator->allocate(size, 2048);
 		if (!block) {
 			return Result::OUT_OF_MEMORY;
 		}
@@ -53,7 +53,7 @@ namespace oak {
 	}
 
 	void destroy_memory_arena(MemoryArena *arena, Allocator *allocator) {
-		allocator->deallocate(arena->block, arena->size + sizeof(MemoryArenaHeader));
+		allocator->deallocate(arena->block, arena->size);
 		*arena = {};
 	}
 
@@ -66,15 +66,16 @@ namespace oak {
 		auto header = static_cast<MemoryArenaHeader*>(arena->block);
 		auto memoryToAllocate = size;
 
-		auto nUsedMemory = align_size(header->usedMemory + memoryToAllocate, alignment);
+		auto offset = align_size(header->usedMemory, alignment);
+		auto nUsedMemory = offset + memoryToAllocate;
 
-		if (nUsedMemory <= arena->size) {
+		if (nUsedMemory < arena->size) {
 			// If there was enough room for this allocation
 			header->usedMemory = nUsedMemory;
 			++header->allocationCount;
 			header->requestedMemory += memoryToAllocate;
 
-			return add_ptr(arena->block, nUsedMemory);
+			return add_ptr(arena->block, offset);
 		}
 
 		return nullptr;
@@ -90,10 +91,11 @@ namespace oak {
 		auto memoryToAllocate = size;
 
 		auto usedMemory = header->usedMemory.load(std::memory_order_relaxed);
-		u64 nUsedMemory;
+		u64 offset, nUsedMemory;
 
 		do {
-			nUsedMemory = align_size(usedMemory + memoryToAllocate, alignment);
+			offset = align_size(usedMemory + memoryToAllocate, alignment);
+			nUsedMemory = offset + memoryToAllocate;
 		} while (nUsedMemory <= arena->size
 				&& !header->usedMemory.compare_exchange_weak(
 					usedMemory, nUsedMemory,
@@ -104,7 +106,7 @@ namespace oak {
 			header->allocationCount.fetch_add(1, std::memory_order_relaxed);
 			header->requestedMemory.fetch_add(memoryToAllocate, std::memory_order_relaxed);
 
-			return add_ptr(arena->block, nUsedMemory);
+			return add_ptr(arena->block, offset);
 		}
 
 		return nullptr;
@@ -316,7 +318,8 @@ namespace detail {
 
 
 	void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align) {
-		return std::aligned_alloc(align, size);
+		//return std::aligned_alloc(align, align_size(size, align));
+		return std::malloc(align_size(size, align));
 	}
 
 	void std_free_wrapper(MemoryArena*, void *ptr, u64) {

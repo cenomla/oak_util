@@ -73,16 +73,16 @@ namespace oak {
 	}
 
 	template<typename T, typename F>
-	void merge_sort(MemoryArena *arena, T *array, int64_t arrayCount, F&& functor) {
+	void merge_sort(Allocator *allocator, T *array, int64_t arrayCount, F&& functor) {
 		if (arrayCount < 2) { return; }
-		auto temp = allocate<T>(arena, arrayCount);
+		auto temp = allocate<T>(allocator, arrayCount);
 		std::memcpy(temp, array, arrayCount * sizeof(T));
 		detail::ms_impl_split(array, temp, 0, arrayCount, std::forward<F>(functor));
 	}
 
 	template<typename T, typename F>
-	void merge_sort(MemoryArena *arena, T *array, int64_t arrayCount) {
-		auto temp = allocate<T>(arena, arrayCount);
+	void merge_sort(Allocator *allocator, T *array, int64_t arrayCount) {
+		auto temp = allocate<T>(allocator, arrayCount);
 		std::memcpy(temp, array, arrayCount * sizeof(T));
 		detail::ms_impl_split(array, temp, 0, arrayCount, less<T>);
 	}
@@ -168,11 +168,11 @@ namespace oak {
 	}
 
 	template<typename T>
-	Slice<Slice<T>> splitstr(Slice<T> const slice, Slice<T> const delimeters) {
+	Slice<Slice<T>> split_slice(Slice<T> const slice, Slice<T> const delimeters) {
 		i64 tokenCapacity = 64;
 
 		Slice<Slice<T>> tokens;
-		tokens.data = allocate<Slice<T>>(temporaryMemory, tokenCapacity);
+		tokens.data = allocate<Slice<T>>(&temporaryMemory, tokenCapacity);
 
 		i64 first = 0, last = 0;
 
@@ -182,7 +182,7 @@ namespace oak {
 			last = find_first_of(slice, delimeters, first);
 			if (tokens.count == tokenCapacity) {
 				tokenCapacity *= 2;
-				auto ndata = allocate<Slice<T>>(temporaryMemory, tokenCapacity);
+				auto ndata = allocate<Slice<T>>(&temporaryMemory, tokenCapacity);
 				memcpy(ndata, tokens.data, tokens.count);
 				tokens.data = ndata;
 			}

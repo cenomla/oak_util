@@ -24,6 +24,12 @@ int main(int, char**) {
 	Delegate<int(int *)> delegate;
 	delegate.set(&dFn);
 
+	Delegate<int()> ld{ []() -> int { return 4; } };
+	/*
+	Delegate<int()> ld;
+	ld.set([]() -> int { return 4; } );
+	*/
+
 	int i = 49;
 	fprintf(stdout, "%d\n", delegate(&i));
 	fprintf(stdout, "%d\n", i);

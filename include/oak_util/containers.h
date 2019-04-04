@@ -32,13 +32,13 @@ namespace oak {
 
 		Vector(Allocator *allocator, T *data_, i64 count_) noexcept : Slice<T>{}, capacity{ 0 } {
 			resize(allocator, count_);
-			std::memcpy(this->data, data_, count_ * sizeof(T));
+			std::memcpy(data, data_, count_ * sizeof(T));
 		}
 
 		template<int C>
 		Vector(Allocator *allocator, T const (&array)[C]) noexcept : Slice<T>{}, capacity{ 0 } {
 			resize(allocator, C);
-			std::memcpy(this->data, array, C * sizeof(T));
+			std::memcpy(data, array, C * sizeof(T));
 		}
 
 		Vector(Allocator *allocator, std::initializer_list<T> list) noexcept : Slice<T>{}, capacity{ 0 } {
@@ -90,23 +90,23 @@ namespace oak {
 
 		T* push(Allocator *allocator, T const& value) noexcept {
 			if (count == capacity) {
-				reserve(capacity == 0 ? 4 : capacity * 2);
+				reserve(allocator, capacity == 0 ? 4 : capacity * 2);
 			}
 			data[count++] = value;
 			return data + count - 1;
 		}
 
-		T* insert(T const& value, i64 idx) noexcept {
+		T* insert(Allocator *allocator, T const& value, i64 idx) noexcept {
 			if (idx == -1 || idx == count) {
-				return push(value);
+				return push(allocator, value);
 			}
-			resize(count + 1);
+			resize(allocator, count + 1);
 			std::memmove(data + idx + 1, data + idx, (count - 1 - idx) * sizeof(T));
 			data[idx] = value;
 			return data + idx;
 		}
 
-		void remove(i64 idx) noexcept {
+		constexpr void remove(i64 idx) noexcept {
 			assert(0 <= idx && idx < count);
 			// Swap and pop
 			data[idx] = data[--count];
@@ -117,6 +117,10 @@ namespace oak {
 			// Move the elements after idx down one index
 			std::memmove(data + idx, data + idx + 1, (count - 1 - idx) * sizeof(T));
 			--count;
+		}
+
+		constexpr void clear() noexcept {
+			count = 0;
 		}
 	};
 
@@ -149,6 +153,7 @@ namespace oak {
 		};
 
 		SOA<bool, Key, Values...> data;
+		i64 firstIndex = 0;
 
 		void init(Allocator *allocator, i64 capacity_) noexcept {
 			// Allocate storage
@@ -160,6 +165,8 @@ namespace oak {
 			for (auto& elem : get<0>(data)) {
 				elem = true;
 			}
+
+			firstIndex = data.count;
 		}
 
 		void destroy(Allocator *allocator) noexcept {
@@ -185,13 +192,15 @@ namespace oak {
 
 		constexpr i64 first_index() const noexcept {
 			i64 idx = 0;
-			while (is_empty(idx)) {
+			for (auto empty : get<0>(data)) {
+				if (!empty) { break; }
 				++idx;
 			}
 			return idx;
 		}
 
 		constexpr i64 find(Key const& key) const noexcept {
+			auto const& keys = get<1>(data);
 			auto const idx = slot(hash(key));
 			for (i64 d = 0; d < data.count; ++d) {
 				auto ridx = (idx + d) & (data.count - 1);
@@ -200,7 +209,7 @@ namespace oak {
 					return -1;
 				}
 				// We found the key so return
-				if (cmp(get<1>(data)[ridx], key) == 0) {
+				if (cmp(keys[ridx], key) == 0) {
 					return ridx;
 				}
 			}
@@ -208,12 +217,16 @@ namespace oak {
 		}
 
 		constexpr i64 insert(Key const& key, Values const&... values) noexcept {
+			auto const& keys = get<1>(data);
 			auto const idx = slot(hash(key));
 			for (i64 d = 0; d < data.count; ++d) {
 				auto ridx = (idx + d) & (data.count - 1);
 
-				if (is_empty(ridx) || cmp(get<1>(data)[ridx], key) == 0) {
+				if (is_empty(ridx) || cmp(keys[ridx], key) == 0) {
 					data[ridx] = std::make_tuple(false, key, values...);
+					if (ridx < firstIndex) {
+						firstIndex = ridx;
+					}
 					return ridx;
 				}
 
@@ -225,22 +238,35 @@ namespace oak {
 			assert(!is_empty(idx));
 			// cidx is the index of the slot we are trying to empty
 			// ridx is the index of the slot we are looking at to try and fill it
-			i64 cidx = idx, ridx;
+			auto const &keys = get<1>(data);
+			auto cidx = idx;
 			for (i64 d = 1; d < data.count; ++d) {
-				ridx = (idx + d) & (data.count - 1);
+				auto ridx = (idx + d) & (data.count - 1);
 				if (is_empty(ridx)) {
 					break;
 				}
-				if (slot(hash(get<1>(data)[ridx])) <= slot(hash(get<1>(data)[cidx]))) {
+				// If the element in the slot we are looking at belongs at an earlier slot
+				auto const scidx = slot(hash(keys[cidx]));
+				auto const sridx = slot(hash(keys[ridx]));
+				if ((ridx > cidx || sridx > ridx) && sridx <= scidx) {
 					data[cidx] = data[ridx];
 					cidx = ridx;
 				}
 			}
 			get<0>(data)[cidx] = true;
+			firstIndex = first_index();
+		}
+
+		constexpr void clear() noexcept {
+			// Set all slots to empty, effectively removing all elements
+			for (auto& elem : get<0>(data)) {
+				elem = true;
+			}
+			firstIndex = data.count;
 		}
 
 		constexpr Iterator begin() const noexcept {
-			return Iterator{ this, first_index() };
+			return Iterator{ this, firstIndex };
 		}
 
 		constexpr Iterator end() const noexcept {
@@ -248,6 +274,9 @@ namespace oak {
 		}
 
 	};
+
+	template<typename K, typename V>
+	using HashMap = HashSet<K, HashFn<K>, CmpFn<K, K>, V>;
 
 }
 
