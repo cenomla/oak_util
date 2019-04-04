@@ -13,3 +13,5 @@ pipelines:
           - meson build .
           - ninja -C build
           - ninja -C build test
+        artifacts:
+          - build/meson-logs/**
