@@ -128,12 +128,12 @@ namespace oak {
 	template<typename T>
 	struct HashFn {
 		constexpr u64 operator()(T const& value) const noexcept {
+			static_assert("hash not supported" && (std::is_integral_v<T> || std::is_pointer_v<T>));
 			if constexpr (std::is_integral_v<T>) {
 				return static_cast<u64>(value);
 			} else if constexpr (std::is_pointer_v<T>) {
 				return reinterpret_cast<u64>(value);
 			} else {
-				static_assert("hash not supported");
 				return 0;
 			}
 		}
@@ -142,10 +142,14 @@ namespace oak {
 	template<typename T, typename U>
 	struct CmpFn {
 		constexpr i64 operator()(T const& lhs, U const& rhs) const noexcept {
+			static_assert("compare not supported" &&
+					((std::is_integral_v<T> && std::is_integral_v<U>)
+					 || (std::is_pointer_v<T> && std::is_pointer_v<U>)));
 			if constexpr (std::is_integral_v<T> && std::is_integral_v<U>) {
 				return rhs - lhs;
+			} else if constexpr (std::is_pointer_v<T> && std::is_pointer_v<U>) {
+				return reinterpret_cast<i64>(lhs) - reinterpret_cast<i64>(rhs);
 			} else {
-				static_assert("compare not supported");
 				return 0;
 			}
 		}
