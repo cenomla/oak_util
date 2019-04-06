@@ -9,9 +9,9 @@ using namespace oak;
 
 
 template<typename Soa>
-void print_soa(Soa const& soa) {
+void print_soa(Soa const& soa, i64 const count) {
 	oak::print_fmt("--------------------------\n");
-	for (i64 i = 0; i < soa.count; ++i) {
+	for (i64 i = 0; i < count; ++i) {
 		auto [v0, v1, v2] = soa[i];
 		oak::print_fmt("[%, %, %]\n", v0 ? "true" : "false", v1, v2);
 	}
@@ -36,18 +36,18 @@ void print_vector(Vector const& vector) {
 int test_soa() {
 
 	SOA<bool, i64, f32> soa;
-	soa.count = 64;
+	i64 soaCount = 64;
 
-	soa.data = allocate_soa<bool, i64, f32>(&temporaryMemory, soa.count);
+	soa.init(&temporaryMemory, soaCount);
 
-	for (i64 i = 0; i < soa.count; ++i) {
+	for (i64 i = 0; i < soaCount; ++i) {
 		auto [v0, v1, v2] = soa[i];
 		v0 = true;
 		v1 = i;
 		v2 = .25 * i;
 	}
 
-	print_soa(soa);
+	print_soa(soa, soaCount);
 
 	return 0;
 
@@ -69,10 +69,10 @@ int main(int, char**) {
 	set1.init(&temporaryMemory, 20);
 
 
-	for (int i = 0; i < set1.data.count; ++i) {
-		set1.insert(i, i + set0.data.count, i + set0.data.count);
+	for (int i = 0; i < set1.capacity; ++i) {
+		set1.insert(i, i + set0.capacity, i + set0.capacity);
 	}
-	for (int i = 0; i < set0.data.count; ++i) {
+	for (int i = 0; i < set0.capacity; ++i) {
 		set0.insert(i, i, i);
 	}
 

@@ -153,7 +153,7 @@ namespace oak {
 		return catagoryId == catagory_id<C>();
 	}
 
-	TypeInfo const* get_type_info_by_name(String name);
+	TypeInfo const* get_type_info_by_name(String name) noexcept;
 
 	inline const TypeInfo noTypeInfo{ oak::TypeKind::NONE, "none", 0, 0 };
 

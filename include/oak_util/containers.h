@@ -9,9 +9,21 @@
 namespace oak {
 
 	template<typename... types>
-	struct SOA {
-		void *data = nullptr;
-		i64 count = 0;
+	struct SOA : std::tuple<types*...> {
+
+		using Base = std::tuple<types*...>;
+
+		template<size_t... ints>
+		void init_impl(void *const data, i64 const count, std::index_sequence<ints...>) noexcept {
+			((void)(std::get<ints>(*this) = static_cast<types*>(add_ptr(data, soa_offset<ints, types...>(count)))), ...);
+		}
+
+		void init(Allocator *allocator, i64 const count) noexcept {
+			auto data = allocate_soa<types...>(allocator, count);
+
+			using indices = std::make_index_sequence<std::tuple_size<std::tuple<types...>>::value>;
+			init_impl(data, count, indices{});
+		}
 
 		constexpr std::tuple<types&...> operator[](i64 const index) const noexcept;
 	};
@@ -30,13 +42,13 @@ namespace oak {
 
 		constexpr Vector() noexcept = default;
 
-		Vector(Allocator *allocator, T *data_, i64 count_) noexcept : Slice<T>{}, capacity{ 0 } {
+		Vector(Allocator *const allocator, T *const data_, i64 const count_) noexcept : Slice<T>{}, capacity{ 0 } {
 			resize(allocator, count_);
 			std::memcpy(data, data_, count_ * sizeof(T));
 		}
 
 		template<int C>
-		Vector(Allocator *allocator, T const (&array)[C]) noexcept : Slice<T>{}, capacity{ 0 } {
+		Vector(Allocator *const allocator, T const (&array)[C]) noexcept : Slice<T>{}, capacity{ 0 } {
 			resize(allocator, C);
 			std::memcpy(data, array, C * sizeof(T));
 		}
@@ -51,7 +63,7 @@ namespace oak {
 		}
 
 
-		void reserve(Allocator *allocator, i64 nCapacity) noexcept {
+		void reserve(Allocator *const allocator, i64 nCapacity) noexcept {
 			if (nCapacity <= capacity) {
 				// If the array is already big enough no need to resize
 				return;
@@ -66,12 +78,12 @@ namespace oak {
 			capacity = nCapacity;
 		}
 
-		void resize(Allocator *allocator, i64 nCount) noexcept {
+		void resize(Allocator *const allocator, i64 const nCount) noexcept {
 			reserve(allocator, nCount);
 			count = nCount;
 		}
 
-		Vector clone(Allocator *allocator) const noexcept {
+		Vector clone(Allocator *const allocator) const noexcept {
 			Vector nVec;
 			nVec.reserve(allocator, capacity);
 			nVec.count = count;
@@ -79,7 +91,7 @@ namespace oak {
 			return nVec;
 		}
 
-		void destroy(Allocator *allocator) noexcept {
+		void destroy(Allocator *const allocator) noexcept {
 			if (data) {
 				deallocate(allocator, data, capacity * sizeof(T));
 				data = nullptr;
@@ -88,7 +100,7 @@ namespace oak {
 			capacity = 0;
 		}
 
-		T* push(Allocator *allocator, T const& value) noexcept {
+		T* push(Allocator *const allocator, T const& value) noexcept {
 			if (count == capacity) {
 				reserve(allocator, capacity == 0 ? 4 : capacity * 2);
 			}
@@ -96,7 +108,7 @@ namespace oak {
 			return data + count - 1;
 		}
 
-		T* insert(Allocator *allocator, T const& value, i64 idx) noexcept {
+		T* insert(Allocator *const allocator, T const& value, i64 const idx) noexcept {
 			if (idx == -1 || idx == count) {
 				return push(allocator, value);
 			}
@@ -106,13 +118,13 @@ namespace oak {
 			return data + idx;
 		}
 
-		constexpr void remove(i64 idx) noexcept {
+		constexpr void remove(i64 const idx) noexcept {
 			assert(0 <= idx && idx < count);
 			// Swap and pop
 			data[idx] = data[--count];
 		}
 
-		void remove_ordered(i64 idx) noexcept {
+		void remove_ordered(i64 const idx) noexcept {
 			assert(0 <= idx && idx < count);
 			// Move the elements after idx down one index
 			std::memmove(data + idx, data + idx + 1, (count - 1 - idx) * sizeof(T));
@@ -132,7 +144,7 @@ namespace oak {
 			Iterator& operator++() noexcept {
 				do {
 					++idx;
-				} while (idx != set->data.count && set->is_empty(idx));
+				} while (idx != set->capacity && empty[idx]);
 				return *this;
 			}
 
@@ -149,33 +161,33 @@ namespace oak {
 			}
 
 			HashSet const *set = nullptr;
+			bool *empty = nullptr;
 			i64 idx = 0;
 		};
 
 		SOA<bool, Key, Values...> data;
-		i64 firstIndex = 0;
+		i64 capacity = 0, firstIndex = 0;
 
-		void init(Allocator *allocator, i64 capacity_) noexcept {
+		void init(Allocator *const allocator, i64 const capacity_) noexcept {
 			// Allocate storage
-			data.count = ensure_pow2(capacity_);
-			data.data = allocate_soa<bool, Key, Values...>(allocator, data.count);
-			assert(data.data);
+			capacity = ensure_pow2(capacity_);
+			data.init(allocator, capacity);
 
 			// Initilize empty array
-			for (auto& elem : get<0>(data)) {
+			for (auto& elem : Slice{ std::get<0>(data), capacity }) {
 				elem = true;
 			}
 
-			firstIndex = data.count;
+			firstIndex = capacity;
 		}
 
-		void destroy(Allocator *allocator) noexcept {
-			deallocate_soa<bool, Key, Values...>(allocator, data.count);
+		void destroy(Allocator *const allocator) noexcept {
+			deallocate_soa<bool, Key, Values...>(allocator, capacity);
 			data = {};
 		}
 
 		constexpr bool is_empty(i64 const idx) const noexcept {
-			return get<0>(data)[idx];
+			return std::get<0>(data)[idx];
 		}
 
 		constexpr u64 hash(Key const& key) const noexcept {
@@ -187,12 +199,12 @@ namespace oak {
 		}
 
 		constexpr i64 slot(u64 const hash) const noexcept {
-			return hash & (data.count - 1);
+			return hash & (capacity - 1);
 		}
 
 		constexpr i64 first_index() const noexcept {
 			i64 idx = 0;
-			for (auto empty : get<0>(data)) {
+			for (auto empty : Slice{ std::get<0>(data), capacity }) {
 				if (!empty) { break; }
 				++idx;
 			}
@@ -200,10 +212,10 @@ namespace oak {
 		}
 
 		constexpr i64 find(Key const& key) const noexcept {
-			auto const& keys = get<1>(data);
+			auto const keys = std::get<1>(data);
 			auto const idx = slot(hash(key));
-			for (i64 d = 0; d < data.count; ++d) {
-				auto ridx = (idx + d) & (data.count - 1);
+			for (i64 d = 0; d < capacity; ++d) {
+				auto ridx = (idx + d) & (capacity - 1);
 				// If we reach an empty cell then exit because the key is not in the table
 				if (is_empty(ridx)) {
 					return -1;
@@ -217,10 +229,10 @@ namespace oak {
 		}
 
 		constexpr i64 insert(Key const& key, Values const&... values) noexcept {
-			auto const& keys = get<1>(data);
+			auto const keys = std::get<1>(data);
 			auto const idx = slot(hash(key));
-			for (i64 d = 0; d < data.count; ++d) {
-				auto ridx = (idx + d) & (data.count - 1);
+			for (i64 d = 0; d < capacity; ++d) {
+				auto ridx = (idx + d) & (capacity - 1);
 
 				if (is_empty(ridx) || cmp(keys[ridx], key) == 0) {
 					data[ridx] = std::make_tuple(false, key, values...);
@@ -238,10 +250,10 @@ namespace oak {
 			assert(!is_empty(idx));
 			// cidx is the index of the slot we are trying to empty
 			// ridx is the index of the slot we are looking at to try and fill it
-			auto const &keys = get<1>(data);
+			auto const keys = std::get<1>(data);
 			auto cidx = idx;
-			for (i64 d = 1; d < data.count; ++d) {
-				auto ridx = (idx + d) & (data.count - 1);
+			for (i64 d = 1; d < capacity; ++d) {
+				auto ridx = (idx + d) & (capacity - 1);
 				if (is_empty(ridx)) {
 					break;
 				}
@@ -253,24 +265,24 @@ namespace oak {
 					cidx = ridx;
 				}
 			}
-			get<0>(data)[cidx] = true;
+			std::get<0>(data)[cidx] = true;
 			firstIndex = first_index();
 		}
 
 		constexpr void clear() noexcept {
 			// Set all slots to empty, effectively removing all elements
-			for (auto& elem : get<0>(data)) {
+			for (auto& elem : Slice{ std::get<0>(data), capacity }) {
 				elem = true;
 			}
-			firstIndex = data.count;
+			firstIndex = capacity;
 		}
 
 		constexpr Iterator begin() const noexcept {
-			return Iterator{ this, firstIndex };
+			return Iterator{ this, std::get<0>(data), firstIndex };
 		}
 
 		constexpr Iterator end() const noexcept {
-			return Iterator{ this, data.count };
+			return Iterator{ this, std::get<0>(data), capacity };
 		}
 
 	};
@@ -278,39 +290,11 @@ namespace oak {
 	template<typename K, typename V>
 	using HashMap = HashSet<K, HashFn<K>, CmpFn<K, K>, V>;
 
-}
-
-namespace std {
-
-	template<typename... types>
-	struct tuple_size<oak::SOA<types...>> {
-		static constexpr size_t value = sizeof...(types);
-	};
-
-	template<size_t index, typename... types>
-	struct tuple_element<index, oak::SOA<types...>> {
-		using type = oak::Slice<typename tuple_element<index, tuple<types...>>::type>;
-	};
-
-}
-
-namespace oak {
-
-	template<size_t index, typename... types>
-	constexpr typename std::tuple_element<index, SOA<types...>>::type get(SOA<types...> const& soa) noexcept {
-		using type = typename std::tuple_element<index, std::tuple<types...>>::type;
-
-		auto offset = soa_offset<index, types...>(soa.count);
-		offset = align_int(offset, alignof(type));
-
-		return { static_cast<type*>(add_ptr(soa.data, offset)), soa.count };
-	}
-
 	namespace detail {
 
 		template<typename tupleT, typename soaT, size_t... ints>
 		constexpr tupleT soa_sub_script_impl(soaT const& soa, i64 const index, std::index_sequence<ints...>) noexcept {
-			return { get<ints>(soa)[index]..., };
+			return { std::get<ints>(soa)[index]..., };
 		}
 
 	}

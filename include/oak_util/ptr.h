@@ -86,9 +86,14 @@ namespace oak {
 		constexpr u64 aligns[] = { alignof(types)... };
 
 		i64 offset = 0;
-		for (i32 i = 0; i < index; ++i) {
+		i32 i = 0;
+		for (; i < index; ++i) {
 			offset = align_int(offset, aligns[i]);
 			offset += count * sizes[i];
+		}
+
+		if (i < static_cast<i64>(sizeof...(types))) {
+			offset = align_int(offset, aligns[i]);
 		}
 
 		return offset;
