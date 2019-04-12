@@ -171,12 +171,15 @@ namespace oak {
 	template<>
 	struct CmpFn<String, String> {
 		constexpr i64 operator()(String const& lhs, String const& rhs) const noexcept {
-			i64 const count = lhs.count < rhs.count ? lhs.count : rhs.count;
-			for (i64 i = 0; i < count; ++i) {
+			if (lhs.count > rhs.count) { return lhs[rhs.count]; }
+			if (rhs.count > lhs.count) { return rhs[lhs.count]; }
+
+			for (i64 i = 0; i < lhs.count; ++i) {
 				if (lhs[i] != rhs[i]) {
 					return lhs[i] - rhs[i];
 				}
 			}
+
 			return 0;
 		}
 	};

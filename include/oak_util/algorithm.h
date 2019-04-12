@@ -80,8 +80,9 @@ namespace oak {
 		detail::ms_impl_split(array, temp, 0, arrayCount, std::forward<F>(functor));
 	}
 
-	template<typename T, typename F>
+	template<typename T>
 	void merge_sort(Allocator *allocator, T *array, int64_t arrayCount) {
+		if (arrayCount < 2) { return; }
 		auto temp = allocate<T>(allocator, arrayCount);
 		std::memcpy(temp, array, arrayCount * sizeof(T));
 		detail::ms_impl_split(array, temp, 0, arrayCount, less<T>);
@@ -92,9 +93,26 @@ namespace oak {
 		detail::qs_impl(array, 0, arrayCount - 1, std::forward<F>(functor));
 	}
 
-	template<typename T, typename F>
+	template<typename T>
 	void quick_sort(MemoryArena*, T *array, int64_t arrayCount) {
 		detail::qs_impl(array, 0, arrayCount - 1, less<T>);
+	}
+
+	template<typename T>
+	constexpr i64 bfind(Slice<T> const& slice, T const& value, i64 const first, i64 const last) noexcept {
+		assert(first >= 0 && first < slice.count);
+		assert(last >= 0 && last < slice.count);
+		assert(first <= last);
+		auto partIdx = first + (last + 1 - first) / 2;
+		if (slice[partIdx] < value && (last - partIdx) > 0) {
+			return bfind(slice, value, partIdx + 1, last);
+		} else if (slice[partIdx] > value && (partIdx - first) > 0) {
+			return bfind(slice, value, first, partIdx - 1);
+		} else if (slice[partIdx] == value) {
+			return partIdx;
+		} else {
+			return -1;
+		}
 	}
 
 	template<typename T>
