@@ -3,6 +3,7 @@ sources = [
   'fmt.cpp',
   'memory.cpp',
   'random.cpp',
+  'type_info.cpp',
 ]
 
 oak_util = library('oakutil', sources, include_directories: includes)

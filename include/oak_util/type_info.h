@@ -167,90 +167,33 @@ namespace oak {
 		template<typename T, typename DT = std::decay_t<T>, typename = std::enable_if_t<!std::is_same_v<DT, Any>>>
 		Any(T&& thing) : ptr{ &thing }, type{ type_info<DT>() } {}
 
-		Any get_member(String name) noexcept {
-			if (type->kind == TypeKind::STRUCT ||
-					type->kind == TypeKind::OAK_SLICE) {
-				auto si = static_cast<const StructInfo*>(type);
-				for (auto member : Slice{ si->members, si->memberCount }) {
-					if (member.name == name) {
-						return { add_ptr(ptr, member.offset), member.type };
-					}
-				}
-			}
-			return { nullptr, &noTypeInfo };
-		}
+		Any get_member(String name) noexcept;
+		Any get_member(String name) const noexcept;
+		Any get_element(i64 index) noexcept;
 
-		Any get_element(i64 index) noexcept {
-			if (type->kind == TypeKind::ARRAY) {
-				auto ai = static_cast<ArrayInfo const*>(type);
-				if (index < ai->count) {
-					return { add_ptr(ptr, index * ai->of->size), ai->of };
-				}
-			} else if (type->kind == TypeKind::OAK_SLICE) {
-				auto data = get_member("data");
-				auto count = get_member("count");
-				if (index < count.to_value<i64>()) {
-					auto pi = static_cast<PtrInfo const*>(data.type);
-					return { add_ptr(data.to_value<void*>(), index * pi->of->size), pi->of };
-				}
-			}
-			return { nullptr, &noTypeInfo };
-		}
+		void construct() noexcept;
 
-		void construct() noexcept {
-			if (type->kind == TypeKind::STRUCT) {
-				auto si = static_cast<StructInfo const*>(type);
-				if (si->construct) {
-					si->construct(ptr);
-				}
-			}
+		template<typename T>
+		T const& to_value() const noexcept {
+			return *static_cast<T const*>(ptr);
 		}
 
 		template<typename T>
 		T& to_value() noexcept {
-			TypeInfo const *typeInfo = type_info<T>();
-			assert(typeInfo == type ||
-					(type->kind == TypeKind::ENUM && static_cast<EnumInfo const*>(type)->underlyingType == typeInfo) ||
-					(type->kind == TypeKind::PTR && typeInfo->kind == TypeKind::PTR &&
-						 static_cast<PtrInfo const*>(typeInfo)->of == type_info<void>()));
-			assert(ptr);
 			return *static_cast<T*>(ptr);
 		}
 
-		inline void set_enum_value(i64 ev) noexcept {
-			assert(type->kind == TypeKind::ENUM);
-			auto ei = static_cast<EnumInfo const*>(type);
-			switch (ei->underlyingType->kind) {
-				case TypeKind::INT8: to_value<i8>() = static_cast<i8>(ev); break;
-				case TypeKind::INT16: to_value<i16>() = static_cast<i16>(ev); break;
-				case TypeKind::INT32: to_value<i32>() = static_cast<i32>(ev); break;
-				case TypeKind::INT64: to_value<i64>() = static_cast<i64>(ev); break;
-				case TypeKind::UINT8: to_value<u8>() = static_cast<u8>(ev); break;
-				case TypeKind::UINT16: to_value<u16>() = static_cast<u16>(ev); break;
-				case TypeKind::UINT32: to_value<u32>() = static_cast<u32>(ev); break;
-				case TypeKind::UINT64: to_value<u64>() = static_cast<u64>(ev); break;
-				default: break;
-			}
-		}
+		void set_enum_value(i64 ev) noexcept;
+		i64 get_enum_value() const noexcept;
 
-		inline i64 get_enum_value() noexcept {
-			assert(type->kind == TypeKind::ENUM);
-			auto ei = static_cast<EnumInfo const*>(type);
-			i64 ev = 0;
-			switch (ei->underlyingType->kind) {
-				case oak::TypeKind::INT8: ev = to_value<i8>(); break;
-				case oak::TypeKind::INT16: ev = to_value<i16>(); break;
-				case oak::TypeKind::INT32: ev = to_value<i32>(); break;
-				case oak::TypeKind::INT64: ev = to_value<i64>(); break;
-				case oak::TypeKind::UINT8: ev = static_cast<i64>(to_value<u8>()); break;
-				case oak::TypeKind::UINT16: ev = static_cast<i64>(to_value<u16>()); break;
-				case oak::TypeKind::UINT32: ev = static_cast<i64>(to_value<u32>()); break;
-				case oak::TypeKind::UINT64: ev = static_cast<i64>(to_value<u64>()); break;
-				default: break;
-			}
-			return ev;
-		}
 	};
 
+	bool operator==(Any const& lhs, Any const& rhs) noexcept;
+
+	inline bool operator!=(Any const& lhs, Any const& rhs) noexcept {
+		return !(lhs == rhs);
+	}
+
+	void copy_fields(Any dst, Any src);
 }
 
