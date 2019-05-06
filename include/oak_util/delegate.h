@@ -9,80 +9,65 @@
 
 namespace oak {
 
-	constexpr size_t SMALL_FUNCTION_SIZE = 16;
-
 	template<typename T>
 	struct Delegate;
 
 	template<typename Out, typename... In>
 	struct Delegate<Out(In...)> {
 
-		union {
-			char staticStorage[SMALL_FUNCTION_SIZE]{ 0 };
-			size_t functionSize;
+		static constexpr u64 DYNAMIC_BIT = u64{ 1 } << 63;
+
+		struct DynamicStorage {
+			Allocator *allocator;
+			void *function;
+			u64 functionSize;
+
+			DynamicStorage() noexcept = default;
 		};
 
-		Allocator *allocator = nullptr;
-		void *function = nullptr;
+		union {
+			char staticStorage[sizeof(DynamicStorage)]{ 0 };
+			DynamicStorage dynamicStorage;
+		};
+
 		Out (*invokeFn)(void *, In...) = nullptr;
 
 		Delegate() noexcept = default;
 
-		Delegate(Allocator *allocator_) noexcept
-			: allocator{ allocator_ } {}
-
-		Delegate(Delegate const& other) noexcept = delete;
-		Delegate& operator=(Delegate const& other) noexcept = delete;
-
-		Delegate(Delegate&& other) noexcept {
-			operator=(static_cast<Delegate&&>(other));
+		template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Delegate>>>
+		Delegate(T&& obj, Allocator *allocator_ = nullptr) noexcept {
+			set(std::forward<T>(obj), allocator_);
 		}
 
-		Delegate& operator=(Delegate&& other) noexcept {
-			allocator = other.allocator;
-			if (other.function == &other.staticStorage) {
-				function = &staticStorage;
-				std::memcpy(staticStorage, other.staticStorage, sizeof(staticStorage));
-			} else {
-				function = other.function;
-				functionSize = other.functionSize;
-			}
-
-			invokeFn = other.invokeFn;
-
-			other.allocator = nullptr;
-			std::memset(other.staticStorage, 0, sizeof(other.staticStorage));
-			other.function = nullptr;
-			other.invokeFn = nullptr;
+		template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Delegate>>>
+		Delegate& operator=(T&& obj) noexcept {
+			set(std::forward<T>(obj));
 			return *this;
 		}
 
-		template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Delegate>>>
-		Delegate(T&& obj) noexcept {
-			set(std::forward<T>(obj));
-		}
-
-		template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Delegate>>>
-		Delegate(Allocator *allocator_, T&& obj) noexcept
-			: allocator{ allocator_ } {
-			set(std::forward<T>(obj));
+		bool is_dynamic() const noexcept {
+			return reinterpret_cast<u64>(invokeFn) & DYNAMIC_BIT;
 		}
 
 		template<typename T>
-		void set(T&& obj) noexcept {
+		void set(T&& obj, Allocator *allocator_ = nullptr) noexcept {
 			using FT = std::decay_t<T>;
-			static_assert(!std::is_function_v<FT> && "Cannot pass function into delegate, must pass function pointer");
-			if constexpr (sizeof(obj) > sizeof(staticStorage)) {
-				assert(allocator);
-				function = allocate<T>(allocator, 1);
-				functionSize = sizeof(obj);
-			} else {
-				function = staticStorage;
-			}
-			std::memcpy(function, &obj, sizeof(obj));
 
-			// Check if this is a function pointer type
-			if constexpr (std::is_function_v<std::remove_pointer_t<FT>>) {
+			// Copy the object into the apropriate storage
+			if constexpr (sizeof(obj) > sizeof(staticStorage)) {
+				if (!allocator_) {
+					return;
+				}
+				dynamicStorage.allocator = allocator_;
+				dynamicStorage.function = allocate<T>(dynamicStorage.allocator, 8);
+				dynamicStorage.functionSize = sizeof(obj);
+				std::memcpy(dynamicStorage.function, &obj, sizeof(obj));
+			} else {
+				std::memcpy(staticStorage, &obj, sizeof(obj));
+			}
+
+			// Set invokeFn based on invoke synatax of the passed functor
+			if constexpr (std::is_function_v<FT> || std::is_pointer_v<FT>) {
 				invokeFn = [](void *function, In... args) {
 					return (*static_cast<FT*>(function))(std::forward<In>(args)...);
 				};
@@ -91,32 +76,41 @@ namespace oak {
 					return static_cast<FT*>(function)->operator()(std::forward<In>(args)...);
 				};
 			}
+
+			assert(!(reinterpret_cast<u64>(invokeFn) & DYNAMIC_BIT) && "invokeFn is at an invalid alignment");
+
+			// If the object is allocated in dynamic storage, set the dynamically allocated bit
+			if constexpr(sizeof(obj) > sizeof(staticStorage)) {
+				*reinterpret_cast<u64*>(&invokeFn) |= DYNAMIC_BIT;
+			}
 		}
 
 		void destroy() noexcept {
-			// If the object is empty
-			if (!function) { return; }
 			// If the object was dynamically allocated
-			if (function != &staticStorage) {
-				assert(functionSize);
-				allocator->deallocate(function, functionSize);
+			if (is_dynamic()) {
+				dynamicStorage.allocator->deallocate(dynamicStorage.function, dynamicStorage.functionSize);
 			}
-			function = nullptr;
+			invokeFn = nullptr;
 		}
 
 		Out operator()(In... args) const noexcept {
-			assert(function);
 			assert(invokeFn);
+			auto realInvoke = invokeFn;
+			*reinterpret_cast<u64*>(&realInvoke) &= ~DYNAMIC_BIT;
 			// Dont return if the return type is void
 			if constexpr (std::is_same_v<Out, void>) {
-				invokeFn(function, std::forward<In>(args)...);
+				realInvoke(
+						is_dynamic() ? dynamicStorage.function : const_cast<void*>(static_cast<void const*>(staticStorage)),
+						std::forward<In>(args)...);
 			} else {
-				return invokeFn(function, std::forward<In>(args)...);
+				return realInvoke(
+						is_dynamic() ? dynamicStorage.function : const_cast<void*>(static_cast<void const*>(staticStorage)),
+						std::forward<In>(args)...);
 			}
 		}
 
 		operator bool() const noexcept {
-			return function != nullptr;
+			return invokeFn != nullptr;
 		}
 
 	};
