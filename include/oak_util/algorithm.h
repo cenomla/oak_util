@@ -99,6 +99,16 @@ namespace oak {
 	}
 
 	template<typename T>
+	constexpr void swap_and_pop(Slice<T>& slice, i64 const index) noexcept {
+		slice[index] = slice[--slice.count];
+	}
+
+	template<typename T>
+	constexpr void remove(Slice<T>& slice, i64 const index) noexcept {
+		std::memmove(slice.data + index, slice.data + index + 1, (--slice.count - index) * sizeof(T));
+	}
+
+	template<typename T>
 	constexpr i64 bfind(Slice<T> const& slice, T const& value, i64 const first, i64 const last) noexcept {
 		assert(first >= 0 && first < slice.count);
 		assert(last >= 0 && last < slice.count);
@@ -220,6 +230,17 @@ namespace oak {
 			slice[i] = slice[slice.count - 1 - i];
 			slice[slice.count - 1 - i] = tmp;
 		}
+	}
+
+	template<typename T>
+	constexpr Slice<T> copy_slice(Allocator *allocator, Slice<T> const slice) {
+		Slice<T> nSlice;
+		nSlice.count = slice.count;
+		nSlice.data = allocate<T>(allocator, nSlice.count);
+		for (i64 i = 0; i < nSlice.count; ++i) {
+			nSlice[i] = slice[i];
+		}
+		return nSlice;
 	}
 
 	bool is_c_str(String const str);

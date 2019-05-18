@@ -118,19 +118,6 @@ namespace oak {
 			return data + idx;
 		}
 
-		constexpr void remove(i64 const idx) noexcept {
-			assert(0 <= idx && idx < count);
-			// Swap and pop
-			data[idx] = data[--count];
-		}
-
-		void remove_ordered(i64 const idx) noexcept {
-			assert(0 <= idx && idx < count);
-			// Move the elements after idx down one index
-			std::memmove(data + idx, data + idx + 1, (count - 1 - idx) * sizeof(T));
-			--count;
-		}
-
 		constexpr void clear() noexcept {
 			count = 0;
 		}
