@@ -59,7 +59,7 @@ namespace oak {
 					return;
 				}
 				dynamicStorage.allocator = allocator_;
-				dynamicStorage.function = allocate<T>(dynamicStorage.allocator, 8);
+				dynamicStorage.function = allocate<FT>(dynamicStorage.allocator, 8);
 				dynamicStorage.functionSize = sizeof(obj);
 				std::memcpy(dynamicStorage.function, &obj, sizeof(obj));
 			} else {

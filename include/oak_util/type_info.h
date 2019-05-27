@@ -155,6 +155,23 @@ namespace oak {
 
 	TypeInfo const* get_type_info_by_name(String name) noexcept;
 
+	template<typename T>
+	String enum_name(T val) noexcept {
+		if constexpr (std::is_enum_v<T>) {
+			String result;
+			auto ei = static_cast<EnumInfo const*>(type_info<T>());
+			for (auto ev : Slice{ ei->members, ei->memberCount }) {
+				if (ev.value == static_cast<i64>(val)) {
+					result = ev.name;
+					break;
+				}
+			}
+			return result;
+		} else {
+			return "";
+		}
+	}
+
 	inline const TypeInfo noTypeInfo{ oak::TypeKind::NONE, "none", 0, 0 };
 
 	struct _reflect(oak::catagory::none) Any {
