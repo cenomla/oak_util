@@ -6,7 +6,6 @@
 #include "types.h"
 #include "memory.h"
 #include "algorithm.h"
-#include "string.h"
 
 namespace oak::detail {
 
@@ -75,7 +74,7 @@ namespace oak {
 		void resize(size_t size);
 
 		Allocator *allocator = nullptr;
-		String *buffer = nullptr;
+		Slice<char> *buffer = nullptr;
 		u64 pos = 0;
 	};
 
@@ -107,7 +106,7 @@ namespace oak {
 
 	template<typename... TArgs>
 	String fmt(Allocator *allocator, String fmtStr, TArgs&&... args) {
-		String string;
+		Slice<char> string;
 		buffer_fmt(StringBuffer{ allocator, &string }, fmtStr, std::forward<TArgs>(args)...);
 		return string;
 	}

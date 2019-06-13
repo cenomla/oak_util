@@ -24,7 +24,7 @@ namespace oak::detail {
 			str[idx++] = '0' + static_cast<char>(v % 10);
 			v /= 10;
 		} while (v > 0);
-		String string{ str, idx };
+		Slice<char> string{ str, idx };
 		reverse(string);
 		return string;
 	}
@@ -49,7 +49,7 @@ namespace oak::detail {
 		if (neg) {
 			str[idx++] = '-';
 		}
-		String string{ str, idx };
+		Slice<char> string{ str, idx };
 		reverse(string);
 		return string;
 	}

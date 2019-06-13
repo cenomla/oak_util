@@ -8,13 +8,13 @@
 namespace oak {
 
 	template<typename T>
-	inline bool less(T const& lhs, T const& rhs) {
+	constexpr bool less(T const& lhs, T const& rhs) noexcept {
 		return lhs < rhs;
 	}
 
 	namespace detail {
 		template<typename T, typename F>
-		void ms_impl_merge(T *array, T *buffer, int64_t begin, int64_t middle, int64_t end, F&& functor) {
+		constexpr void ms_impl_merge(T *array, T *buffer, i64 begin, i64 middle, i64 end, F&& functor) noexcept {
 			auto i = begin, j = middle;
 			for (auto k = begin; k < end; k++) {
 				if (i < middle && (j >= end || !functor(array[j], array[i]))) {
@@ -28,7 +28,7 @@ namespace oak {
 		}
 
 		template<typename T, typename F>
-		void ms_impl_split(T *array, T *buffer, int64_t begin, int64_t end, F&& functor) {
+		constexpr void ms_impl_split(T *array, T *buffer, i64 begin, i64 end, F&& functor) noexcept {
 			if (end - begin < 2) {
 				return;
 			}
@@ -39,14 +39,14 @@ namespace oak {
 		}
 
 		template<typename T>
-		void qs_impl_swap(T& a, T& b) {
+		constexpr void qs_impl_swap(T& a, T& b) noexcept {
 			auto tmp = a;
 			a = b;
 			b = tmp;
 		}
 
 		template<typename T, typename F>
-		void qs_impl(T *array, int64_t start, int64_t end, F&& functor) {
+		constexpr void qs_impl(T *array, i64 start, i64 end, F&& functor) noexcept {
 			if (start < end) {
 				auto l = start + 1, r = end;
 				auto p = array[start];
@@ -73,7 +73,7 @@ namespace oak {
 	}
 
 	template<typename T, typename F>
-	void merge_sort(Allocator *allocator, T *array, int64_t arrayCount, F&& functor) {
+	constexpr void merge_sort(Allocator *allocator, T *array, i64 arrayCount, F&& functor) noexcept {
 		if (arrayCount < 2) { return; }
 		auto temp = allocate<T>(allocator, arrayCount);
 		std::memcpy(temp, array, arrayCount * sizeof(T));
@@ -81,7 +81,7 @@ namespace oak {
 	}
 
 	template<typename T>
-	void merge_sort(Allocator *allocator, T *array, int64_t arrayCount) {
+	constexpr void merge_sort(Allocator *allocator, T *array, i64 arrayCount) noexcept {
 		if (arrayCount < 2) { return; }
 		auto temp = allocate<T>(allocator, arrayCount);
 		std::memcpy(temp, array, arrayCount * sizeof(T));
@@ -89,12 +89,12 @@ namespace oak {
 	}
 
 	template<typename T, typename F>
-	void quick_sort(MemoryArena*, T *array, int64_t arrayCount, F&& functor) {
+	constexpr void quick_sort(MemoryArena*, T *array, i64 arrayCount, F&& functor) noexcept {
 		detail::qs_impl(array, 0, arrayCount - 1, std::forward<F>(functor));
 	}
 
 	template<typename T>
-	void quick_sort(MemoryArena*, T *array, int64_t arrayCount) {
+	constexpr void quick_sort(MemoryArena*, T *array, i64 arrayCount) noexcept {
 		detail::qs_impl(array, 0, arrayCount - 1, less<T>);
 	}
 
@@ -108,8 +108,8 @@ namespace oak {
 		std::memmove(slice.data + index, slice.data + index + 1, (--slice.count - index) * sizeof(T));
 	}
 
-	template<typename T>
-	constexpr i64 bfind(Slice<T> const& slice, T const& value, i64 const first, i64 const last) noexcept {
+	template<typename T, typename V>
+	constexpr i64 bfind(Slice<T> const& slice, V const& value, i64 const first, i64 const last) noexcept {
 		assert(first >= 0 && first < slice.count);
 		assert(last >= 0 && last < slice.count);
 		assert(first <= last);
@@ -125,8 +125,8 @@ namespace oak {
 		}
 	}
 
-	template<typename T>
-	constexpr i64 find(Slice<T> const& slice, T const& value, i64 const start = 0) noexcept {
+	template<typename T, typename V>
+	constexpr i64 find(Slice<T> const slice, V const& value, i64 const start = 0) noexcept {
 		for (i64 i = start; i < slice.count; ++i) {
 			if (slice[i] == value) {
 				return i;
@@ -136,14 +136,14 @@ namespace oak {
 	}
 
 	template<typename T>
-	Slice<T> sub_slice(Slice<T> const slice, i64 start, i64 end = -1) {
+	constexpr Slice<T> sub_slice(Slice<T> const slice, i64 start, i64 end = -1) noexcept {
 		// Bounds checking
 		if (end == -1) { end = slice.count; }
 		return { slice.data + start, end - start };
 	}
 
 	template<typename T>
-	i64 find_first_of(Slice<T> const slice, Slice<T> const delimeters, i64 start = 0) {
+	constexpr i64 find_first_of(Slice<T> const slice, Slice<T> const delimeters, i64 start = 0) noexcept {
 		for (auto i = start; i < slice.count; i++) {
 			for (i64 j = 0; j < delimeters.count; j++) {
 				if (slice.data[i] == delimeters.data[j]) {
@@ -155,8 +155,8 @@ namespace oak {
 	}
 
 	template<typename T>
-	i64 find_first_not_of(Slice<T> const slice, Slice<T> const delimeters, i64 start = 0) {
-		bool found;
+	constexpr i64 find_first_not_of(Slice<T> const slice, Slice<T> const delimeters, i64 start = 0) noexcept {
+		bool found{};
 		for (auto i = start; i < slice.count; i++) {
 			found = false;
 			for (i64 j = 0; j < delimeters.count; j++) {
@@ -173,7 +173,7 @@ namespace oak {
 	}
 
 	template<typename T>
-	i64 find_last_of(Slice<T> const slice, Slice<T> const delimeters, i64 start = 0) {
+	constexpr i64 find_last_of(Slice<T> const slice, Slice<T> const delimeters, i64 start = 0) noexcept {
 		for (auto i = slice.count; i > start; --i) {
 			for (i64 j = 0; j < delimeters.count; ++j) {
 				if (slice.data[i - 1] == delimeters.data[j]) {
@@ -185,7 +185,7 @@ namespace oak {
 	}
 
 	template<typename T>
-	i64 find_slice(Slice<T> const slice, Slice<T> const value, i64 start = 0) {
+	constexpr i64 find_slice(Slice<T> const slice, Slice<T> const value, i64 start = 0) noexcept {
 		if (slice.count < value.count) { return -1; }
 		for (auto i = start; i <= slice.count - value.count; i++) {
 			if (value == Slice<T>{ slice.data + i, value.count }) {
@@ -196,7 +196,7 @@ namespace oak {
 	}
 
 	template<typename T>
-	Slice<Slice<T>> split_slice(Slice<T> const slice, Slice<T> const delimeters) {
+	constexpr Slice<Slice<T>> split_slice(Slice<T> const slice, Slice<T> const delimeters) noexcept {
 		i64 tokenCapacity = 64;
 
 		Slice<Slice<T>> tokens;
@@ -211,7 +211,7 @@ namespace oak {
 			if (tokens.count == tokenCapacity) {
 				tokenCapacity *= 2;
 				auto ndata = allocate<Slice<T>>(&temporaryMemory, tokenCapacity);
-				memcpy(ndata, tokens.data, tokens.count);
+				std::memcpy(ndata, tokens.data, tokens.count);
 				tokens.data = ndata;
 			}
 			tokens[tokens.count++] = sub_slice(slice, first, last);
@@ -223,7 +223,7 @@ namespace oak {
 	}
 
 	template<typename T>
-	constexpr void reverse(Slice<T>& slice) {
+	constexpr void reverse(Slice<T>& slice) noexcept {
 		if (slice.count < 2) { return; }
 		for (i64 i = 0; i < slice.count >> 1; ++i) {
 			auto tmp = slice[i];
@@ -233,19 +233,22 @@ namespace oak {
 	}
 
 	template<typename T>
-	constexpr Slice<T> copy_slice(Allocator *allocator, Slice<T> const slice) {
+	constexpr Slice<T> copy_slice(Allocator *allocator, Slice<T> const slice) noexcept {
 		Slice<T> nSlice;
 		nSlice.count = slice.count;
 		nSlice.data = allocate<T>(allocator, nSlice.count);
+		if (!nSlice.data) {
+			return {};
+		}
 		for (i64 i = 0; i < nSlice.count; ++i) {
 			nSlice[i] = slice[i];
 		}
 		return nSlice;
 	}
 
-	bool is_c_str(String const str);
-	const char* as_c_str(String const str);
-	String copy_str(Allocator *allocator, String const str);
+	bool is_c_str(String const str) noexcept;
+	char const* as_c_str(String const str) noexcept;
+	String copy_str(Allocator *allocator, String const str) noexcept;
 
 }
 
