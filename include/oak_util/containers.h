@@ -18,11 +18,15 @@ namespace oak {
 			((void)(std::get<ints>(*this) = static_cast<types*>(add_ptr(data, soa_offset<ints, types...>(count)))), ...);
 		}
 
-		void init(Allocator *allocator, i64 const count) noexcept {
+		void init(Allocator *const allocator, i64 const count) noexcept {
 			auto data = allocate_soa<types...>(allocator, count);
 
 			using indices = std::make_index_sequence<std::tuple_size<std::tuple<types...>>::value>;
 			init_impl(data, count, indices{});
+		}
+
+		void destroy(Allocator *const allocator, i64 const count) noexcept {
+			deallocate_soa<types...>(allocator, std::get<0>(*this), count);
 		}
 
 		constexpr std::tuple<types&...> operator[](i64 const index) const noexcept;
@@ -169,8 +173,10 @@ namespace oak {
 		}
 
 		void destroy(Allocator *const allocator) noexcept {
-			deallocate_soa<bool, Key, Values...>(allocator, capacity);
+			data.destroy(allocator, capacity);
 			data = {};
+			capacity = 0;
+			firstIndex = 0;
 		}
 
 		constexpr bool is_empty(i64 const idx) const noexcept {
