@@ -318,8 +318,7 @@ namespace detail {
 
 
 	void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align) {
-		//return std::aligned_alloc(align, align_size(size, align));
-		return std::malloc(align_size(size, align));
+		return std::aligned_alloc(align, size);
 	}
 
 	void std_free_wrapper(MemoryArena*, void *ptr, u64) {
