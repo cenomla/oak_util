@@ -56,9 +56,9 @@ int test_soa() {
 int main(int, char**) {
 
 	MemoryArena tempMemory;
-	init_memory_arena(&tempMemory, &globalAllocator, 64 * 1024 * 1024);
+	init_linear_arena(&tempMemory, &globalAllocator, 64 * 1024 * 1024);
 
-	temporaryMemory = { &tempMemory, allocate_from_arena, nullptr };
+	temporaryMemory = { &tempMemory, allocate_from_linear_arena, nullptr };
 
 	test_soa();
 

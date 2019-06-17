@@ -7,7 +7,7 @@
 #include <oak_util/ptr.h>
 
 void print_atomic_arena(oak::MemoryArena *arena) {
-	auto header = static_cast<oak::AtomicMemoryArenaHeader*>(arena->block);
+	auto header = static_cast<oak::AtomicLinearArenaHeader*>(arena->block);
 	oak::print_fmt("Arena: [%, %, %, %, %]\n",
 			reinterpret_cast<u64>(arena->block),
 			arena->size,
@@ -24,11 +24,11 @@ void print_stuff(int i) {
 
 int main(int , char **) {
 	oak::MemoryArena tmp;
-	if (oak::init_atomic_memory_arena(&tmp, &oak::globalAllocator, 2 * 1024 * 1024) != oak::Result::SUCCESS) {
+	if (oak::init_atomic_linear_arena(&tmp, &oak::globalAllocator, 2 * 1024 * 1024) != oak::Result::SUCCESS) {
 		return -1;
 	}
 
-	oak::temporaryMemory = { &tmp, oak::allocate_from_atomic_arena, nullptr };
+	oak::temporaryMemory = { &tmp, oak::allocate_from_atomic_linear_arena, nullptr };
 
 	print_atomic_arena(&tmp);
 

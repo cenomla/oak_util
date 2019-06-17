@@ -20,16 +20,22 @@ void print_pool(oak::MemoryArena *pool) {
 }
 
 int main(int , char **) {
-	oak::MemoryArena tmp, poolArena;
-	if (oak::init_memory_arena(&tmp, &oak::globalAllocator, 2 * 1024 * 1024) != oak::Result::SUCCESS) {
+	oak::MemoryArena tmp, poolArena, ringArena;
+	if (oak::init_linear_arena(&tmp, &oak::globalAllocator, 2 * 1024 * 1024) != oak::Result::SUCCESS) {
 		return -1;
 	}
 
-	oak::temporaryMemory = { &tmp, oak::allocate_from_arena, nullptr };
+	oak::temporaryMemory = { &tmp, oak::allocate_from_linear_arena, nullptr };
 
 	if (oak::init_memory_pool(&poolArena, &oak::globalAllocator, 1024 * 1024, 8) != oak::Result::SUCCESS) {
 		return -1;
 	}
+
+	if (oak::init_ring_arena(&ringArena, &oak::globalAllocator, 1024 * 1024) != oak::Result::SUCCESS) {
+		return -1;
+	}
+
+	{
 
 	oak::Allocator pool{ &poolArena, oak::allocate_from_pool, oak::free_from_pool };
 
@@ -72,6 +78,52 @@ int main(int , char **) {
 		}
 		node = &(*node)->next;
 	}
+	}
 
+	{
+		auto header = static_cast<oak::RingArenaHeader*>(ringArena.block);
+		auto obj0 = oak::allocate_from_ring_arena(&ringArena, 53, 8);
+		auto obj1 = oak::allocate_from_ring_arena(&ringArena, 1024, 8);
+		auto obj2 = oak::allocate_from_ring_arena(&ringArena, 1024 * 1024, 8);
+		auto obj3 = oak::allocate_from_ring_arena(&ringArena, 4, 8);
+		auto obj4 = oak::allocate_from_ring_arena(&ringArena, 8, 8);
+
+		assert(!obj2);
+
+		assert(obj0);
+		assert(obj1);
+		assert(obj3);
+		assert(obj4);
+
+		oak::deallocate_from_ring_arena(&ringArena, obj0, 53);
+		oak::deallocate_from_ring_arena(&ringArena, obj1, 1024);
+		oak::deallocate_from_ring_arena(&ringArena, obj3, 4);
+		oak::deallocate_from_ring_arena(&ringArena, obj4, 8);
+
+		assert(header->requestedMemory == 0);
+		assert(header->usedMemory == sizeof(oak::RingArenaHeader));
+		assert(header->allocationCount == 0);
+
+
+		for (i32 i = 0; i < 200; ++i) {
+			oak::allocate_from_ring_arena(&ringArena, 97, 8);
+		}
+
+		oak::print_fmt(
+				"ring arena efficiency: %\n",
+				static_cast<double>(header->requestedMemory) / static_cast<double>(header->usedMemory));
+
+		oak::clear_ring_arena(&ringArena);
+
+		for (i32 i = 0; i < 10; ++i) {
+			auto p = oak::allocate_from_ring_arena(&ringArena, 300 * 1024, 8);
+			oak::deallocate_from_ring_arena(&ringArena, p, 300 * 1024);
+		}
+
+		assert(header->requestedMemory == 0);
+		assert(header->usedMemory == sizeof(oak::RingArenaHeader));
+		assert(header->allocationCount == 0);
+
+	}
 	return 0;
 }

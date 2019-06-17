@@ -12,17 +12,25 @@ namespace oak {
 		u64 size = 0;
 	};
 
-	struct MemoryArenaHeader {
+	struct LinearArenaHeader {
 		u64 allocationCount;
 		u64 requestedMemory;
 		u64 usedMemory;
 		void *next;
 	};
 
-	struct AtomicMemoryArenaHeader {
+	struct AtomicLinearArenaHeader {
 		std::atomic<u64> allocationCount;
 		std::atomic<u64> requestedMemory;
 		std::atomic<u64> usedMemory;
+		void *next;
+	};
+
+	struct RingArenaHeader {
+		u32 offset;
+		u64 allocationCount;
+		u64 requestedMemory;
+		u32 usedMemory;
 		void *next;
 	};
 
@@ -62,20 +70,22 @@ namespace oak {
 		}
 	};
 
-	Result init_memory_arena(MemoryArena *arena, Allocator *allocator, u64 size);
-	Result init_atomic_memory_arena(MemoryArena *arena, Allocator *allocator, u64 size);
+	Result init_linear_arena(MemoryArena *arena, Allocator *allocator, u64 size);
+	Result init_atomic_linear_arena(MemoryArena *arena, Allocator *allocator, u64 size);
+	void* allocate_from_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
+	void* allocate_from_atomic_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
+	Result copy_linear_arena(MemoryArena *dst, MemoryArena *src);
+	Result copy_atomic_linear_arena(MemoryArena *dst, MemoryArena *src);
+	void clear_linear_arena(MemoryArena *arena);
+	void clear_atomic_linear_arena(MemoryArena *arena);
 
-	void destroy_memory_arena(MemoryArena *arena, Allocator *allocator);
+	Result init_ring_arena(MemoryArena *arena, Allocator *allocator, u64 size);
+	void* allocate_from_ring_arena(MemoryArena *arena, u64 size, u64 alignment);
+	void deallocate_from_ring_arena(MemoryArena *arena, void *ptr, u64 size);
+	void clear_ring_arena(MemoryArena *arena);
 
-	void* allocate_from_arena(MemoryArena *arena, u64 size, u64 alignment);
-	void* allocate_from_atomic_arena(MemoryArena *arena, u64 size, u64 alignment);
-
-	void copy_arena(MemoryArena *dst, MemoryArena *src);
-	void copy_atomic_arena(MemoryArena *dst, MemoryArena *src);
+	void destroy_arena(MemoryArena *arena, Allocator *allocator);
 	bool arena_contains(MemoryArena *arena, void *ptr);
-
-	void clear_arena(MemoryArena *arena);
-	void clear_atomic_arena(MemoryArena *arena);
 
 	void* push_stack(MemoryArena *arena);
 	void pop_stack(MemoryArena *arena, void *stackPtr);
