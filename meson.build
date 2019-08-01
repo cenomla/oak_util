@@ -4,8 +4,8 @@ cxx = meson.get_compiler('cpp')
 
 deps = [
 	dependency('threads'),
-	cxx.find_library('m'),
-	cxx.find_library('dl'),
+	cxx.find_library('m', required: false),
+	cxx.find_library('dl', required: false),
 ]
 
 includes = include_directories('include')

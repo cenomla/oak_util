@@ -4,13 +4,20 @@
 
 namespace oak {
 
+	struct DefaultRngParams {};
+	constexpr auto default_rng_params = DefaultRngParams{};
+
 	struct LCGenerator {
 		u64 state = 0;
 		u64 a = 0;
 		u64 c = 0;
 		u64 m = 0;
 
-		void init(u64 a, u64 c, u64 m, u64 seed);
+		LCGenerator() = default;
+		LCGenerator(u64 a, u64 c, u64 m);
+		LCGenerator(DefaultRngParams);
+
+		void init(u64 seed);
 
 		void advance_state();
 		i32 random_int();
@@ -24,7 +31,11 @@ namespace oak {
 		i32 k = 0;
 		u64 *state = nullptr;
 
-		void init(Allocator *allocator, i32 l, i32 k, u64 seed);
+		LFGenerator() = default;
+		LFGenerator(i32 l, i32 k);
+		LFGenerator(DefaultRngParams);
+
+		void init(Allocator *allocator, u64 seed);
 
 		void advance_state();
 		i32 random_int();

@@ -138,6 +138,14 @@ namespace oak {
 		return result;
 	}
 
+	template<typename T>
+	void destroy(Allocator *allocator, T *ptr, i64 count) {
+		for (i64 i = 0; i < count; ++i) {
+			ptr[i].~T();
+		}
+		deallocate<T>(allocator, ptr, count);
+	}
+
 	namespace detail {
 		void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align);
 		void std_free_wrapper(MemoryArena*, void *ptr, u64);

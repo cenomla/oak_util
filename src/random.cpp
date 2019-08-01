@@ -13,10 +13,12 @@
 
 namespace oak {
 
-	void LCGenerator::init(u64 a_, u64 c_, u64 m_, u64 seed) {
-		a = a_;
-		c = c_;
-		m = (u64{ 1 } << m_) - 1;
+	LCGenerator::LCGenerator(u64 a_, u64 c_, u64 m_)
+		: a{ a_ }, c{ c_ }, m{ (u64{ 1 } << m_) - 1 } {}
+
+	LCGenerator::LCGenerator(DefaultRngParams) : LCGenerator(25214903917, 11, 45) {}
+
+	void LCGenerator::init(u64 const seed) {
 		state = seed;
 	}
 
@@ -39,12 +41,14 @@ namespace oak {
 		return static_cast<f32>(random_double());
 	}
 
-	void LFGenerator::init(Allocator *allocator, i32 l_, i32 k_, u64 seed) {
-		l = l_;
-		k = k_;
+	LFGenerator::LFGenerator(i32 l_, i32 k_) : l{ l_ }, k{ k_ } {}
+
+	LFGenerator::LFGenerator(DefaultRngParams) : l{ 31 }, k{ 63 } {}
+
+	void LFGenerator::init(Allocator *allocator, u64 seed) {
 		state = make<u64>(allocator, k);
-		LCGenerator rng;
-		rng.init(LFG_SEED_A, LFG_SEED_C, LFG_SEED_M, seed);
+		LCGenerator rng{ default_rng_params };
+		rng.init(seed);
 		for (i32 i = 0; i < k; ++i) {
 			state[i] = rng.state;
 			rng.advance_state();
