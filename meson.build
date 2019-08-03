@@ -14,3 +14,8 @@ subdir('src')
 
 test_deps = deps + [ oak_util_dep ]
 subdir('tests')
+
+reflection_sources = files([
+  'include/oak_util/types.h',
+  'include/oak_util/type_info.h',
+])

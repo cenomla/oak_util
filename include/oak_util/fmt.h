@@ -137,9 +137,6 @@ namespace oak {
 				totalSize -= sizeof...(args);
 				buffer.resize(totalSize);
 			}
-			for (auto const& s : argStrings) {
-				std::printf("%.*s\n", static_cast<int>(s.count), s.data);
-			}
 			detail::fmt_impl(std::forward<Buffer>(buffer), fmtStr, argStrings, fmtSpecs, sizeof...(args));
 		} else {
 			if constexpr(hasResize)
