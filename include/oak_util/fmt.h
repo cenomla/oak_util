@@ -25,7 +25,7 @@ namespace oak {
 namespace oak::detail {
 
 	template<typename Buffer>
-	void fmt_impl(Buffer&& buffer, String fmtStr, String const *strings, FmtSpec const *specs, i64 const count) {
+	void fmt_impl(Buffer&& buffer, String const fmtStr, String const *const strings, FmtSpec const *const specs, i64 const count) {
 		i64 pos = 0;
 		for (i32 i = 0; i < count; ++i) {
 			if (auto const slice = sub_slice(fmtStr, pos, specs[i].start); slice.count > 0) {
@@ -39,23 +39,35 @@ namespace oak::detail {
 		}
 	}
 
-	inline void fmt_get_spec(String fmtStr, FmtSpec *const specs, i64 const specCount) {
+	inline void fmt_get_spec(String const fmtStr, FmtSpec *const specs, i64 const specCount) {
 		i64 idx = 0, start = 0;
 		// Write each substr replacing % with the argument string
 		while (idx < specCount && start < fmtStr.count) {
 			// Find each instance of {
 			auto pos = find(fmtStr, '%', start);
-			if (pos != -1 && pos + 1 < fmtStr.count) {
-				switch (fmtStr[pos + 1]) {
-					case '.': specs[idx++] = { FmtKind::DEFAULT, pos, pos + 2 }; break;
-					case 'b': specs[idx++] = { FmtKind::BIN, pos, pos + 2 }; break;
-					case 'o': specs[idx++] = { FmtKind::OCT, pos, pos + 2 }; break;
-					case 'd': specs[idx++] = { FmtKind::DEC, pos, pos + 2 }; break;
-					case 'x': specs[idx++] = { FmtKind::HEX, pos, pos + 2 }; break;
-					default:
-						break;
+			if (pos != -1) {
+				if (pos + 1 < fmtStr.count) {
+					if (fmtStr[pos + 1] == '%') {
+						start = pos + 2;
+						continue;
+					}
 				}
-				start = pos + 2;
+				specs[idx++] = { FmtKind::DEFAULT, pos, pos + 1 };
+				start = pos + 1;
+				/*
+				if (pos + 1 < fmtStr.count) {
+					switch (fmtStr[pos + 1]) {
+						case '.': specs[idx++] = { FmtKind::DEFAULT, pos, pos + 2 }; break;
+						case 'b': specs[idx++] = { FmtKind::BIN, pos, pos + 2 }; break;
+						case 'o': specs[idx++] = { FmtKind::OCT, pos, pos + 2 }; break;
+						case 'd': specs[idx++] = { FmtKind::DEC, pos, pos + 2 }; break;
+						case 'x': specs[idx++] = { FmtKind::HEX, pos, pos + 2 }; break;
+						default:
+							break;
+					}
+					start = pos + 2;
+				}
+				*/
 			} else {
 				start = fmtStr.count;
 			}
@@ -107,7 +119,8 @@ namespace oak {
 	};
 
 	template<typename Buffer, typename... TArgs>
-	void buffer_fmt(Buffer&& buffer, String fmtStr, TArgs&&... args) {
+	void buffer_fmt(Buffer&& buffer, String const fmtStr, TArgs&&... args) {
+		constexpr auto hasResize = HasResizeMethod<std::decay_t<Buffer>>::value;
 		if constexpr (sizeof...(args) > 0) {
 			// Since arrays of size zero arent supported just add one to the size of args and keep an empty string at the end
 			FmtSpec fmtSpecs[sizeof...(args)];
@@ -116,7 +129,7 @@ namespace oak {
 			detail::fmt_get_strings(argStrings, fmtSpecs, std::make_index_sequence<sizeof...(args)>{}, std::forward<TArgs>(args)...);
 
 			// If we have control over the buffer size make sure it is of valid size
-			if constexpr(HasResizeMethod<std::decay_t<Buffer>>::value) {
+			if constexpr(hasResize) {
 				u64 totalSize = fmtStr.count;
 				for (auto str : argStrings) {
 					totalSize += str.count;
@@ -124,8 +137,13 @@ namespace oak {
 				totalSize -= sizeof...(args);
 				buffer.resize(totalSize);
 			}
+			for (auto const& s : argStrings) {
+				std::printf("%.*s\n", static_cast<int>(s.count), s.data);
+			}
 			detail::fmt_impl(std::forward<Buffer>(buffer), fmtStr, argStrings, fmtSpecs, sizeof...(args));
 		} else {
+			if constexpr(hasResize)
+				buffer.resize(fmtStr.count);
 			buffer.write(fmtStr.data, fmtStr.count);
 		}
 	}
