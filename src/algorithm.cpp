@@ -6,11 +6,11 @@
 
 namespace oak {
 
-	bool is_c_str(String const str) {
+	bool is_c_str(String const str) noexcept {
 		return str.data + str.count == 0;
 	}
 
-	char const* as_c_str(String const str) {
+	char const* as_c_str(String const str) noexcept {
 		if (!str.count) { return ""; }
 		if (is_c_str(str)) { return str.data; }
 		auto cstr = allocate<char>(&temporaryMemory, str.count + 1);
@@ -19,12 +19,10 @@ namespace oak {
 		return cstr;
 	}
 
-	String copy_str(Allocator *allocator, String const str) {
-		String string;
-		string.count = str.count;
-		string.data = allocate<char>(allocator, string.count);
-		std::memcpy(string.data, str.data, string.count);
-		return string;
+	String copy_str(Allocator *allocator, String const string) noexcept {
+		auto nData = allocate<char>(allocator, string.count);
+		std::memcpy(nData, string.data, string.count);
+		return { nData, string.count };
 	}
 
 }

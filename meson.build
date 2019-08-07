@@ -4,8 +4,8 @@ cxx = meson.get_compiler('cpp')
 
 deps = [
 	dependency('threads'),
-	cxx.find_library('m'),
-	cxx.find_library('dl'),
+	cxx.find_library('m', required: false),
+	cxx.find_library('dl', required: false),
 ]
 
 includes = include_directories('include')
@@ -14,3 +14,8 @@ subdir('src')
 
 test_deps = deps + [ oak_util_dep ]
 subdir('tests')
+
+reflection_sources = files([
+  'include/oak_util/types.h',
+  'include/oak_util/type_info.h',
+])

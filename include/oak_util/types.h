@@ -108,12 +108,13 @@ namespace oak {
 		return count;
 	}
 
-	struct _reflect(oak::catagory::primitive) String : Slice<char> {
-		using Slice<char>::Slice;
+	struct _reflect(oak::catagory::primitive) String : Slice<char const> {
+		using Slice<char const>::Slice;
 
-		constexpr String(char const* str) noexcept : Slice{ const_cast<char*>(str), c_str_len(str) } {}
+		constexpr String(char const* str) noexcept : Slice{ str, c_str_len(str) } {}
 
-		constexpr String(Slice<char> const other) noexcept : Slice{ other } {}
+		constexpr String(Slice<char const> const other) noexcept : Slice{ other } {}
+		constexpr String(Slice<char> const other) noexcept : Slice{ other.data, other.count } {}
 
 	};
 

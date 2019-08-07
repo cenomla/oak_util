@@ -10,20 +10,20 @@
 
 namespace oak {
 
-	Result init_memory_arena(MemoryArena *arena, Allocator *allocator, u64 size) {
-		assert(arena);
-		assert(allocator);
-		assert(size > sizeof(MemoryArenaHeader));
+	Result init_linear_arena(MemoryArena *const arena, Allocator *const allocator, u64 const size) {
+		if (size < sizeof(LinearArenaHeader)) {
+			return Result::INVALID_ARGS;
+		}
 
 		auto block = allocator->allocate(size, 2048);
 		if (!block) {
 			return Result::OUT_OF_MEMORY;
 		}
 
-		auto header = static_cast<MemoryArenaHeader*>(block);
+		auto header = static_cast<LinearArenaHeader*>(block);
 		header->allocationCount = 0;
 		header->requestedMemory = 0;
-		header->usedMemory = sizeof(MemoryArenaHeader);
+		header->usedMemory = sizeof(LinearArenaHeader);
 		header->next = nullptr;
 
 		*arena = { block, size  };
@@ -31,20 +31,20 @@ namespace oak {
 		return Result::SUCCESS;
 	}
 
-	Result init_atomic_memory_arena(MemoryArena *arena, Allocator *allocator, u64 size) {
-		assert(arena);
-		assert(allocator);
-		assert(size > sizeof(AtomicMemoryArenaHeader));
+	Result init_atomic_linear_arena(MemoryArena *const arena, Allocator *const allocator, u64 const size) {
+		if (size < sizeof(AtomicLinearArenaHeader)) {
+			return Result::INVALID_ARGS;
+		}
 
 		auto block = allocator->allocate(size, 2048);
 		if (!block) {
 			return Result::OUT_OF_MEMORY;
 		}
 
-		auto header = static_cast<AtomicMemoryArenaHeader*>(block);
+		auto header = static_cast<AtomicLinearArenaHeader*>(block);
 		header->allocationCount.store(0, std::memory_order_relaxed);
 		header->requestedMemory.store(0, std::memory_order_relaxed);
-		header->usedMemory.store(sizeof(AtomicMemoryArenaHeader), std::memory_order_relaxed);
+		header->usedMemory.store(sizeof(AtomicLinearArenaHeader), std::memory_order_relaxed);
 		header->next = nullptr;
 
 		*arena = { block, size };
@@ -52,28 +52,21 @@ namespace oak {
 		return Result::SUCCESS;
 	}
 
-	void destroy_memory_arena(MemoryArena *arena, Allocator *allocator) {
-		allocator->deallocate(arena->block, arena->size);
-		*arena = {};
-	}
+	void* allocate_from_linear_arena(MemoryArena *const arena, u64 const size, u64 const alignment) {
+		if (size < 1 || alignment < 1) {
+			return nullptr;
+		}
 
-	void* allocate_from_arena(MemoryArena *arena, u64 size, u64 alignment) {
-		assert(arena);
-		assert(arena->block);
-		assert(size > 0);
-		assert(alignment > 0);
+		auto header = static_cast<LinearArenaHeader*>(arena->block);
 
-		auto header = static_cast<MemoryArenaHeader*>(arena->block);
-		auto memoryToAllocate = size;
-
-		auto offset = align_size(header->usedMemory, alignment);
-		auto nUsedMemory = offset + memoryToAllocate;
+		auto offset = align(header->usedMemory, alignment);
+		auto nUsedMemory = offset + size;
 
 		if (nUsedMemory < arena->size) {
 			// If there was enough room for this allocation
 			header->usedMemory = nUsedMemory;
 			++header->allocationCount;
-			header->requestedMemory += memoryToAllocate;
+			header->requestedMemory += size;
 
 			return add_ptr(arena->block, offset);
 		}
@@ -81,21 +74,19 @@ namespace oak {
 		return nullptr;
 	}
 
-	void* allocate_from_atomic_arena(MemoryArena *arena, u64 size, u64 alignment) {
-		assert(arena);
-		assert(arena->block);
-		assert(size > 0);
-		assert(alignment > 0);
+	void* allocate_from_atomic_linear_arena(MemoryArena *const arena, u64 const size, u64 const alignment) {
+		if (size < 1 || alignment < 1) {
+			return nullptr;
+		}
 
-		auto header = static_cast<AtomicMemoryArenaHeader*>(arena->block);
-		auto memoryToAllocate = size;
+		auto header = static_cast<AtomicLinearArenaHeader*>(arena->block);
 
 		auto usedMemory = header->usedMemory.load(std::memory_order_relaxed);
 		u64 offset, nUsedMemory;
 
 		do {
-			offset = align_size(usedMemory + memoryToAllocate, alignment);
-			nUsedMemory = offset + memoryToAllocate;
+			offset = align(usedMemory + size, alignment);
+			nUsedMemory = offset + size;
 		} while (nUsedMemory <= arena->size
 				&& !header->usedMemory.compare_exchange_weak(
 					usedMemory, nUsedMemory,
@@ -104,7 +95,7 @@ namespace oak {
 		if (nUsedMemory <= arena->size) {
 			// If there was enough room for this allocation
 			header->allocationCount.fetch_add(1, std::memory_order_relaxed);
-			header->requestedMemory.fetch_add(memoryToAllocate, std::memory_order_relaxed);
+			header->requestedMemory.fetch_add(size, std::memory_order_relaxed);
 
 			return add_ptr(arena->block, offset);
 		}
@@ -112,16 +103,128 @@ namespace oak {
 		return nullptr;
 	}
 
-	void copy_arena(MemoryArena *dst, MemoryArena *src) {
-		assert(dst->size >= src->size);
-		auto srcHeader = static_cast<MemoryArenaHeader*>(src->block);
+	Result copy_linear_arena(MemoryArena *const dst, MemoryArena *const src) {
+		if (dst->size < src->size) {
+			return Result::INVALID_ARGS;
+		}
+
+		auto srcHeader = static_cast<LinearArenaHeader*>(src->block);
 		std::memcpy(dst->block, src->block, srcHeader->usedMemory);
+
+		return Result::SUCCESS;
 	}
 
-	void copy_atomic_arena(MemoryArena *dst, MemoryArena *src) {
-		assert(dst->size >= src->size);
-		auto srcHeader = static_cast<AtomicMemoryArenaHeader*>(src->block);
+	Result copy_atomic_linear_arena(MemoryArena *const dst, MemoryArena *const src) {
+		if (dst->size < src->size) {
+			return Result::INVALID_ARGS;
+		}
+
+		auto srcHeader = static_cast<AtomicLinearArenaHeader*>(src->block);
 		std::memcpy(dst->block, src->block, srcHeader->usedMemory);
+
+		return Result::SUCCESS;
+	}
+
+	void clear_linear_arena(MemoryArena *const arena) {
+		auto header = static_cast<LinearArenaHeader*>(arena->block);
+
+		header->allocationCount = 0;
+		header->requestedMemory = 0;
+		header->usedMemory = sizeof(LinearArenaHeader);
+	}
+
+	void clear_atomic_linear_arena(MemoryArena *const arena) {
+		auto header = static_cast<AtomicLinearArenaHeader*>(arena->block);
+
+		header->allocationCount.store(0, std::memory_order_relaxed);
+		header->requestedMemory.store(0, std::memory_order_relaxed);
+		header->usedMemory.store(sizeof(AtomicLinearArenaHeader), std::memory_order_relaxed);
+	}
+
+	Result init_ring_arena(MemoryArena *const arena, Allocator *const allocator, u64 const size) {
+		if (size < sizeof(RingArenaHeader)) {
+			return Result::INVALID_ARGS;
+		}
+
+		auto block = allocator->allocate(size, 2048);
+		if (!block) {
+			return Result::OUT_OF_MEMORY;
+		}
+
+		auto header = static_cast<RingArenaHeader*>(block);
+		header->offset = sizeof(RingArenaHeader);
+		header->allocationCount = 0;
+		header->requestedMemory = 0;
+		header->usedMemory = sizeof(RingArenaHeader);
+		header->next = nullptr;
+
+		*arena = { block, size  };
+
+		return Result::SUCCESS;
+	}
+
+	void* allocate_from_ring_arena(MemoryArena *const arena, u64 const size, u64 const alignment) {
+		if (size < 1 || alignment < 1) {
+			return nullptr;
+		}
+
+		auto header = static_cast<RingArenaHeader*>(arena->block);
+
+		// Try to fit allocation at end of buffer
+		auto ao = align_offset_with_header(u64{ header->offset }, alignment, sizeof(u32));
+		auto alignedOffset = header->offset + ao;
+		auto padding = ao;
+		auto usedMemory = header->usedMemory + padding;
+
+		if (alignedOffset + size > arena->size) {
+			// Wrap buffer if allocation doesn't fit at end
+			ao = align_offset_with_header(u64{ sizeof(RingArenaHeader) }, alignment, sizeof(u32));
+			alignedOffset = sizeof(RingArenaHeader) + ao;
+			padding = ao + arena->size - header->offset;
+			usedMemory = header->usedMemory + padding;
+		}
+
+		if (usedMemory + size > arena->size) {
+			// Out of memory
+			return nullptr;
+		}
+
+		auto start = add_ptr(arena->block, alignedOffset);
+
+		// Place allocation header
+		*static_cast<u32*>(sub_ptr(start, sizeof(u32))) = padding;
+
+		usedMemory += size;
+
+		header->offset = alignedOffset + size;
+		header->usedMemory = usedMemory;
+		header->requestedMemory += size;
+		++header->allocationCount;
+
+		return start;
+	}
+
+	void deallocate_from_ring_arena(MemoryArena *const arena, void *const ptr, u64 const size) {
+		auto header = static_cast<RingArenaHeader*>(arena->block);
+
+		auto padding = *static_cast<u32*>(sub_ptr(ptr, sizeof(u32)));
+
+		header->usedMemory -= (size + padding);
+		header->requestedMemory -= size;
+		--header->allocationCount;
+	}
+
+	void clear_ring_arena(MemoryArena *const arena) {
+		auto header = static_cast<RingArenaHeader*>(arena->block);
+		header->offset = sizeof(RingArenaHeader);
+		header->usedMemory = sizeof(RingArenaHeader);
+		header->allocationCount = 0;
+		header->requestedMemory = 0;
+	}
+
+	void destroy_arena(MemoryArena *const arena, Allocator *const allocator) {
+		allocator->deallocate(arena->block, arena->size);
+		*arena = {};
 	}
 
 	bool arena_contains(MemoryArena *arena, void *ptr) {
@@ -132,30 +235,8 @@ namespace oak {
 		return start < p && p <= end;
 	}
 
-	void clear_arena(MemoryArena *arena) {
-		assert(arena);
-		assert(arena->block);
-
-		auto header = static_cast<MemoryArenaHeader*>(arena->block);
-
-		header->allocationCount = 0;
-		header->requestedMemory = 0;
-		header->usedMemory = sizeof(MemoryArenaHeader);
-	}
-
-	void clear_atomic_arena(MemoryArena *arena) {
-		assert(arena);
-		assert(arena->block);
-
-		auto header = static_cast<AtomicMemoryArenaHeader*>(arena->block);
-
-		header->allocationCount.store(0, std::memory_order_relaxed);
-		header->requestedMemory.store(0, std::memory_order_relaxed);
-		header->usedMemory.store(sizeof(AtomicMemoryArenaHeader), std::memory_order_relaxed);
-	}
-
 	void* push_stack(MemoryArena *arena) {
-		auto arenaHeader = static_cast<MemoryArenaHeader*>(arena->block);
+		auto arenaHeader = static_cast<LinearArenaHeader*>(arena->block);
 		auto stackHeader = static_cast<StackHeader*>(add_ptr(arena->block, arenaHeader->usedMemory));
 		// Save header state
 		stackHeader->allocationCount = arenaHeader->allocationCount;
@@ -168,7 +249,7 @@ namespace oak {
 	}
 
 	void pop_stack(MemoryArena *arena, void *stackPtr) {
-		auto arenaHeader = static_cast<MemoryArenaHeader*>(arena->block);
+		auto arenaHeader = static_cast<LinearArenaHeader*>(arena->block);
 		auto stackHeader = static_cast<StackHeader*>(sub_ptr(stackPtr, sizeof(StackHeader)));
 		auto ogUsedMemory = reinterpret_cast<u64>(stackPtr) - reinterpret_cast<u64>(arena->block) - sizeof(StackHeader);
 		arenaHeader->usedMemory = ogUsedMemory;
@@ -178,7 +259,7 @@ namespace oak {
 
 	Result init_memory_pool(MemoryArena *arena, Allocator *allocator, u64 size, u64 alignment) {
 		auto const poolSize = ensure_pow2(size);
-		auto const totalSize = poolSize + align_size(sizeof(PoolHeader), alignment);
+		auto const totalSize = poolSize + align(sizeof(PoolHeader), alignment);
 
 		auto block = allocator->allocate(totalSize, alignment);
 		if (!block) {
@@ -190,7 +271,7 @@ namespace oak {
 			totalSize
 		};
 
-		auto poolNode = static_cast<PoolNode*>(add_ptr(block, align_size(sizeof(PoolHeader), alignment)));
+		auto poolNode = static_cast<PoolNode*>(add_ptr(block, align(sizeof(PoolHeader), alignment)));
 		*poolNode = {
 			nullptr,
 			poolSize
@@ -209,7 +290,7 @@ namespace oak {
 	void* allocate_from_pool(MemoryArena *arena, u64 size, u64) {
 		auto poolHeader = static_cast<PoolHeader*>(arena->block);
 
-		auto targetNodeSize = ensure_pow2(align_size(size, poolHeader->alignment));
+		auto targetNodeSize = ensure_pow2(align(size, poolHeader->alignment));
 		if (targetNodeSize < sizeof(PoolNode)) {
 			targetNodeSize = sizeof(PoolNode);
 		}
@@ -279,7 +360,7 @@ namespace {
 				// If nodes are neightbours and the two nodes combined have the correct alignment
 				if (add_ptr(firstNode, firstNode->size) == secondNode &&
 						firstNode->size == secondNode->size &&
-						align_size(rfn, firstNode->size + secondNode->size) == rfn) {
+						align(rfn, firstNode->size + secondNode->size) == rfn) {
 					firstNode->next = secondNode->next;
 					firstNode->size += secondNode->size;
 					secondNode = secondNode->next;
@@ -296,7 +377,7 @@ namespace {
 		assert(arena->block < ptr && ptr < add_ptr(arena->block, arena->size));
 
 		auto poolHeader = static_cast<PoolHeader*>(arena->block);
-		auto nodeSize = ensure_pow2(align_size(size, poolHeader->alignment));
+		auto nodeSize = ensure_pow2(align(size, poolHeader->alignment));
 		if (nodeSize < sizeof(PoolNode)) {
 			nodeSize = sizeof(PoolNode);
 		}
@@ -318,8 +399,7 @@ namespace detail {
 
 
 	void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align) {
-		//return std::aligned_alloc(align, align_size(size, align));
-		return std::malloc(align_size(size, align));
+		return std::aligned_alloc(align, size);
 	}
 
 	void std_free_wrapper(MemoryArena*, void *ptr, u64) {
