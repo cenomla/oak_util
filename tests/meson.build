@@ -14,3 +14,6 @@ test('any', any_test)
 delegate_test = executable('delegate', 'delegate_test.cpp', dependencies: test_deps)
 test('delegate', delegate_test)
 
+fmt_test = executable('fmt', 'fmt_test.cpp', dependencies: test_deps)
+test('fmt', fmt_test)
+

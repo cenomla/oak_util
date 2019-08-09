@@ -14,6 +14,7 @@ namespace oak {
 		OCT,
 		DEC,
 		HEX,
+		EXP,
 	};
 
 	struct FmtSpec {
@@ -41,33 +42,21 @@ namespace oak::detail {
 
 	inline void fmt_get_spec(String const fmtStr, FmtSpec *const specs, i64 const specCount) {
 		i64 idx = 0, start = 0;
-		// Write each substr replacing % with the argument string
+		// Fill the specs array with fmt specifiers based off of the %<FMT> syntax
 		while (idx < specCount && start < fmtStr.count) {
-			// Find each instance of {
 			auto pos = find(fmtStr, '%', start);
-			if (pos != -1) {
-				if (pos + 1 < fmtStr.count) {
-					if (fmtStr[pos + 1] == '%') {
-						start = pos + 2;
-						continue;
-					}
+			if (pos != -1 && pos + 1 < fmtStr.count) {
+				switch (fmtStr[pos + 1]) {
+					case 'g': specs[idx++] = { FmtKind::DEFAULT, pos, pos + 2 }; break;
+					case 'b': specs[idx++] = { FmtKind::BIN, pos, pos + 2 }; break;
+					case 'o': specs[idx++] = { FmtKind::OCT, pos, pos + 2 }; break;
+					case 'd': specs[idx++] = { FmtKind::DEC, pos, pos + 2 }; break;
+					case 'x': specs[idx++] = { FmtKind::HEX, pos, pos + 2 }; break;
+					case 'e': specs[idx++] = { FmtKind::EXP, pos, pos + 2 }; break;
+					default:
+						break;
 				}
-				specs[idx++] = { FmtKind::DEFAULT, pos, pos + 1 };
-				start = pos + 1;
-				/*
-				if (pos + 1 < fmtStr.count) {
-					switch (fmtStr[pos + 1]) {
-						case '.': specs[idx++] = { FmtKind::DEFAULT, pos, pos + 2 }; break;
-						case 'b': specs[idx++] = { FmtKind::BIN, pos, pos + 2 }; break;
-						case 'o': specs[idx++] = { FmtKind::OCT, pos, pos + 2 }; break;
-						case 'd': specs[idx++] = { FmtKind::DEC, pos, pos + 2 }; break;
-						case 'x': specs[idx++] = { FmtKind::HEX, pos, pos + 2 }; break;
-						default:
-							break;
-					}
-					start = pos + 2;
-				}
-				*/
+				start = pos + 2;
 			} else {
 				start = fmtStr.count;
 			}
@@ -76,24 +65,29 @@ namespace oak::detail {
 	}
 
 	template<typename... TArgs, std::size_t... Is>
-	void fmt_get_strings(String *const strings, FmtSpec *const fmtSpecs, std::index_sequence<Is...>, TArgs&&... args) {
-		((strings[Is] = to_str(std::forward<TArgs>(args), fmtSpecs[Is].kind)), ...);
+	void fmt_get_strings(
+			Allocator *allocator,
+			String *const strings,
+			FmtSpec *const fmtSpecs,
+			std::index_sequence<Is...>,
+			TArgs&&... args) {
+		((strings[Is] = to_str(allocator, std::forward<TArgs>(args), fmtSpecs[Is].kind)), ...);
 	}
 
 }
 
 namespace oak {
 
-	String to_str(char v, FmtKind = FmtKind::DEFAULT);
-	String to_str(u32 v, FmtKind = FmtKind::DEFAULT);
-	String to_str(u64 v, FmtKind = FmtKind::DEFAULT);
-	String to_str(i32 v, FmtKind = FmtKind::DEFAULT);
-	String to_str(i64 v, FmtKind = FmtKind::DEFAULT);
-	String to_str(f32 v, FmtKind = FmtKind::DEFAULT);
-	String to_str(f64 v, FmtKind = FmtKind::DEFAULT);
-	String to_str(char const *v, FmtKind = FmtKind::DEFAULT);
-	String to_str(unsigned char const *v, FmtKind = FmtKind::DEFAULT);
-	String to_str(String str, FmtKind = FmtKind::DEFAULT);
+	String to_str(Allocator *allocator, char v, FmtKind = FmtKind::DEFAULT);
+	String to_str(Allocator *allocator, u32 v, FmtKind = FmtKind::DEFAULT);
+	String to_str(Allocator *allocator, u64 v, FmtKind = FmtKind::DEFAULT);
+	String to_str(Allocator *allocator, i32 v, FmtKind = FmtKind::DEFAULT);
+	String to_str(Allocator *allocator, i64 v, FmtKind = FmtKind::DEFAULT);
+	String to_str(Allocator *allocator, f32 v, FmtKind = FmtKind::DEFAULT);
+	String to_str(Allocator *allocator, f64 v, FmtKind = FmtKind::DEFAULT);
+	String to_str(Allocator *allocator, char const *v, FmtKind = FmtKind::DEFAULT);
+	String to_str(Allocator *allocator, unsigned char const *v, FmtKind = FmtKind::DEFAULT);
+	String to_str(Allocator *allocator, String str, FmtKind = FmtKind::DEFAULT);
 
 	template<typename T>
 	struct HasResizeMethod {
@@ -126,7 +120,12 @@ namespace oak {
 			FmtSpec fmtSpecs[sizeof...(args)];
 			String argStrings[sizeof...(args)];
 			detail::fmt_get_spec(fmtStr, fmtSpecs, sizeof...(args));
-			detail::fmt_get_strings(argStrings, fmtSpecs, std::make_index_sequence<sizeof...(args)>{}, std::forward<TArgs>(args)...);
+			detail::fmt_get_strings(
+					&temporaryMemory,
+					argStrings,
+					fmtSpecs,
+					std::make_index_sequence<sizeof...(args)>{},
+					std::forward<TArgs>(args)...);
 
 			// If we have control over the buffer size make sure it is of valid size
 			if constexpr(hasResize) {
@@ -134,19 +133,20 @@ namespace oak {
 				for (auto str : argStrings) {
 					totalSize += str.count;
 				}
-				totalSize -= sizeof...(args);
+				totalSize -= sizeof...(args) * 2;
 				buffer.resize(totalSize);
 			}
 			detail::fmt_impl(std::forward<Buffer>(buffer), fmtStr, argStrings, fmtSpecs, sizeof...(args));
 		} else {
 			if constexpr(hasResize)
 				buffer.resize(fmtStr.count);
+
 			buffer.write(fmtStr.data, fmtStr.count);
 		}
 	}
 
 	template<typename... TArgs>
-	void print_fmt(String fmtStr, TArgs&&... args) {
+	void print_fmt(String const fmtStr, TArgs&&... args) {
 		static SpinLock printLock;
 		printLock.lock();
 		buffer_fmt(FileBuffer{ stdout }, fmtStr, std::forward<TArgs>(args)...);
@@ -154,7 +154,7 @@ namespace oak {
 	}
 
 	template<typename... TArgs>
-	String fmt(Allocator *allocator, String fmtStr, TArgs&&... args) {
+	String fmt(Allocator *const allocator, String fmtStr, TArgs&&... args) {
 		Slice<char> string;
 		buffer_fmt(StringBuffer{ allocator, &string }, fmtStr, std::forward<TArgs>(args)...);
 		return string;
