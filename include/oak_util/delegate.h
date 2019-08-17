@@ -81,7 +81,9 @@ namespace oak {
 
 			// If the object is allocated in dynamic storage, set the dynamically allocated bit
 			if constexpr(sizeof(obj) > sizeof(staticStorage)) {
-				*reinterpret_cast<u64*>(&invokeFn) |= DYNAMIC_BIT;
+				auto invokeInt = reinterpret_cast<u64>(invokeFn);
+				invokeInt |= DYNAMIC_BIT;
+				invokeFn = reinterpret_cast<decltype(invokeFn)>(invokeInt);
 			}
 		}
 
@@ -95,8 +97,9 @@ namespace oak {
 
 		Out operator()(In... args) const noexcept {
 			assert(invokeFn);
-			auto realInvoke = invokeFn;
-			*reinterpret_cast<u64*>(&realInvoke) &= ~DYNAMIC_BIT;
+			auto invokeInt = reinterpret_cast<u64>(invokeFn);
+			invokeInt &= ~DYNAMIC_BIT;
+			auto realInvoke = reinterpret_cast<decltype(invokeFn)>(invokeInt);
 			// Dont return if the return type is void
 			if constexpr (std::is_same_v<Out, void>) {
 				realInvoke(
