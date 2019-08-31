@@ -53,8 +53,8 @@ namespace oak {
 		constexpr Slice(type *data_, i64 count_) noexcept
 			: data{ data_ }, count{ count_ } {}
 		template<int C>
-		Slice(type const (&array)[C]) noexcept
-			: data{ const_cast<type*>(&array[0]) }, count{ C } {}
+		constexpr Slice(type (&array)[C]) noexcept
+			: data{ &array[0] }, count{ C } {}
 
 		constexpr type* begin() noexcept {
 			return data;
