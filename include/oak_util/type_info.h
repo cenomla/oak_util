@@ -182,7 +182,7 @@ namespace oak {
 		Any(void *ptr_, TypeInfo const *type_) : ptr{ ptr_ }, type{ type_ } {}
 
 		template<typename T, typename DT = std::decay_t<T>, typename = std::enable_if_t<!std::is_same_v<DT, Any>>>
-		Any(T&& thing) : ptr{ &thing }, type{ type_info<DT>() } {}
+		explicit Any(T&& thing) : ptr{ &thing }, type{ type_info<DT>() } {}
 
 		Any get_member(String name) noexcept;
 		Any get_member(String name) const noexcept;
