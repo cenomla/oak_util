@@ -6,10 +6,7 @@
 
 // Used to convert an i32 to f64
 #define TWO_M52 2.2204460492503131e-16
-// The parameters for the lcg that seeds the lfg
-#define LFG_SEED_A 25214903917
-#define LFG_SEED_C 11
-#define LFG_SEED_M 45
+#define TWO_M32 2.3283064365386962890625e-10
 
 namespace oak {
 
@@ -77,6 +74,43 @@ namespace oak {
 	f32 LFGenerator::random_float() {
 		return static_cast<f32>(random_double());
 	}
+
+	PCGenerator::PCGenerator(u64 const seq_) : seq{ seq_ << 1 | 1 }{
+	}
+
+	PCGenerator::PCGenerator(DefaultRngParams) : state{ u64{ 0x853c49e6748fea9b } }, seq{ u64{ 0xda3e39cb94b95bdb } } {
+	}
+
+	void PCGenerator::init(u64 const seed) {
+		state = 0;
+		advance_state();
+		state += seed;
+		advance_state();
+	}
+
+	u32 PCGenerator::advance_state() {
+		u64 oldState = state;
+		state = oldState * u64{ 6364136223846793005 };
+		auto xorshift = static_cast<u32>( ((oldState >> 18) ^ oldState) >> 27 );
+		auto rot = static_cast<i32>(oldState >> 59);
+
+		return (xorshift >> rot) | (xorshift << ((-rot) & 31));
+	}
+
+	i32 PCGenerator::random_int() {
+		return static_cast<i32>(advance_state());
+	}
+
+	f64 PCGenerator::random_double() {
+		return static_cast<f64>(advance_state()) * TWO_M32;
+	}
+
+	f32 PCGenerator::random_float() {
+		return static_cast<f32>(random_double());
+	}
+
+
+
 
 }
 
