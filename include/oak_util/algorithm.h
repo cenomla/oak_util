@@ -232,8 +232,8 @@ namespace oak {
 		}
 	}
 
-	template<typename T>
-	constexpr Slice<T> copy_slice(Allocator *allocator, Slice<T> const slice) noexcept {
+	template<typename T, typename U>
+	constexpr Slice<T> copy_slice(Allocator *allocator, Slice<U> const slice) noexcept {
 		Slice<T> nSlice;
 		nSlice.count = slice.count;
 		nSlice.data = allocate<T>(allocator, nSlice.count);
