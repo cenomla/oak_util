@@ -246,6 +246,11 @@ namespace oak {
 		return nSlice;
 	}
 
+	constexpr u64 hash_combine(u64 const a, u64 const b) noexcept {
+		// Combine the two hash values using a bunch of random large primes
+		return 262147 + a * 131101 + b * 65599;
+	}
+
 	bool is_c_str(String const str) noexcept;
 	char const* as_c_str(String const str) noexcept;
 	String copy_str(Allocator *allocator, String const str) noexcept;
