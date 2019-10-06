@@ -12,6 +12,14 @@ namespace oak {
 		return __builtin_ctzll(value);
 	}
 
+	constexpr uint64_t rotate_left(uint64_t const value, int32_t const amount) noexcept {
+		return (value << amount) | (value >> (64 - amount));
+	}
+
+	constexpr uint64_t rotate_right(uint64_t const value, int32_t const amount) noexcept {
+		return (value >> amount) | (value << (64 - amount));
+	}
+
 	constexpr uint64_t next_pow2(uint64_t value) {
 		return 1ull << (64 - clz(value));
 	}
