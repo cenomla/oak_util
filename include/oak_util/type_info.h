@@ -100,15 +100,6 @@ namespace oak {
 	};
 
 	template<typename T>
-	constexpr auto enum_int(T val) noexcept {
-		if constexpr (std::is_enum_v<T>) {
-			return static_cast<std::underlying_type_t<T>>(val);
-		} else {
-			static_assert("\"enum_int\" must be used with an enum type");
-		}
-	}
-
-	template<typename T>
 	TypeInfo const* type_info_internal() noexcept;
 
 	template<typename T>

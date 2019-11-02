@@ -25,6 +25,8 @@ using f64 = double;
 
 using b32 = uint32_t;
 
+using byte = unsigned char;
+
 #define ssizeof(x) static_cast<i64>(sizeof(x))
 #define array_count(x) (sizeof(x)/sizeof(*x))
 #define sarray_count(x) static_cast<i64>(array_count(x))
@@ -53,8 +55,8 @@ namespace oak {
 		constexpr Slice(type *data_, i64 count_) noexcept
 			: data{ data_ }, count{ count_ } {}
 		template<int C>
-		Slice(type const (&array)[C]) noexcept
-			: data{ const_cast<type*>(&array[0]) }, count{ C } {}
+		constexpr Slice(type (&array)[C]) noexcept
+			: data{ &array[0] }, count{ C } {}
 
 		constexpr type* begin() noexcept {
 			return data;
@@ -216,6 +218,15 @@ namespace oak {
 	};
 
 #define SCOPE_EXIT(x) ScopeExit MACRO_CAT(_oak_scope_exit_, __LINE__){ [](){ (x); }}
+
+	template<typename T>
+	constexpr auto enum_int(T val) noexcept {
+		if constexpr (std::is_enum_v<T>) {
+			return static_cast<std::underlying_type_t<T>>(val);
+		} else {
+			static_assert("\"enum_int\" must be used with an enum type");
+		}
+	}
 
 }
 

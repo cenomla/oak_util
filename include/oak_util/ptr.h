@@ -70,9 +70,24 @@ namespace oak {
 		return align_offset_with_header(reinterpret_cast<u64>(address), alignment, headerSize);
 	}
 
-	template<typename... types>
+	template<typename... Types>
+	constexpr u64 max_size() noexcept {
+		constexpr u64 sizes[] = { sizeof(Types)... };
+
+		// Calculate the max alignment of the types
+		u64 size = 0;
+		for (auto elem : sizes) {
+			if (elem > size) {
+				size = elem;
+			}
+		}
+
+		return size;
+	}
+
+	template<typename... Types>
 	constexpr u64 max_align() noexcept {
-		constexpr u64 aligns[] = { alignof(types)... };
+		constexpr u64 aligns[] = { alignof(Types)... };
 
 		// Calculate the max alignment of the types
 		u64 align = 0;
@@ -85,19 +100,19 @@ namespace oak {
 		return align;
 	}
 
-	template<int index, typename... types>
+	template<int Index, typename... Types>
 	constexpr i64 soa_offset(i64 const count) noexcept {
-		constexpr u64 sizes[] = { sizeof(types)... };
-		constexpr u64 aligns[] = { alignof(types)... };
+		constexpr u64 sizes[] = { sizeof(Types)... };
+		constexpr u64 aligns[] = { alignof(Types)... };
 
 		i64 offset = 0;
 		i32 i = 0;
-		for (; i < index; ++i) {
+		for (; i < Index; ++i) {
 			offset = align(offset, aligns[i]);
 			offset += count * sizes[i];
 		}
 
-		if (i < static_cast<i64>(sizeof...(types))) {
+		if (i < static_cast<i64>(sizeof...(Types))) {
 			offset = align(offset, aligns[i]);
 		}
 
