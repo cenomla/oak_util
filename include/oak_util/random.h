@@ -43,6 +43,23 @@ namespace oak {
 		f32 random_float();
 	};
 
+	struct PCGenerator {
+		u64 state = 0;
+		u64 seq = 0;
+
+		PCGenerator() = default;
+		PCGenerator(u64 seq);
+		PCGenerator(DefaultRngParams);
+
+		void init(u64 seed);
+
+		u32 advance_state();
+		i32 random_int();
+		f64 random_double();
+		f32 random_float();
+
+	};
+
 	template<typename T>
 	f32 random_range(T *generator, f32 min, f32 max) {
 		return min + (generator->random_float() * (max - min));

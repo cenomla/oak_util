@@ -14,7 +14,7 @@ void print_pool(oak::MemoryArena *pool) {
 	// Print pool contents
 	auto nodePtr = &static_cast<oak::PoolHeader*>(pool->block)->freeList;
 	while ((*nodePtr)) {
-		oak::print_fmt("node[%, %, %]\n", (uintptr_t)(*nodePtr), (uintptr_t)(*nodePtr)->next, (*nodePtr)->size);
+		oak::print_fmt("node[%g, %g, %g]\n", (uintptr_t)(*nodePtr), (uintptr_t)(*nodePtr)->next, (*nodePtr)->size);
 		nodePtr = &(*nodePtr)->next;
 	}
 }
@@ -110,7 +110,7 @@ int main(int , char **) {
 		}
 
 		oak::print_fmt(
-				"ring arena efficiency: %\n",
+				"ring arena efficiency: %g\n",
 				static_cast<double>(header->requestedMemory) / static_cast<double>(header->usedMemory));
 
 		oak::clear_ring_arena(&ringArena);

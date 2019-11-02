@@ -232,8 +232,8 @@ namespace oak {
 		}
 	}
 
-	template<typename T>
-	constexpr Slice<T> copy_slice(Allocator *allocator, Slice<T> const slice) noexcept {
+	template<typename T, typename U>
+	constexpr Slice<T> copy_slice(Allocator *allocator, Slice<U> const slice) noexcept {
 		Slice<T> nSlice;
 		nSlice.count = slice.count;
 		nSlice.data = allocate<T>(allocator, nSlice.count);
@@ -244,6 +244,20 @@ namespace oak {
 			nSlice[i] = slice[i];
 		}
 		return nSlice;
+	}
+
+	template<typename T, typename U>
+	constexpr void concat_slice(Slice<T>& dst, Slice<U> const srcA, Slice<U> const srcB) noexcept {
+		assert(srcA.count + srcB.count <= dst.count);
+		for (i64 i = 0; i < dst.count; ++i) {
+			auto const& src = i < srcA.count ? srcA[i] : srcB[i - srcA.count];
+			dst[i] = src;
+		}
+	}
+
+	constexpr u64 hash_combine(u64 const a, u64 const b) noexcept {
+		// Combine the two hash values using a bunch of random large primes
+		return 262147 + a * 131101 + b * 65599;
 	}
 
 	bool is_c_str(String const str) noexcept;

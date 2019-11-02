@@ -8,7 +8,7 @@
 
 void print_atomic_arena(oak::MemoryArena *arena) {
 	auto header = static_cast<oak::AtomicLinearArenaHeader*>(arena->block);
-	oak::print_fmt("Arena: [%, %, %, %, %]\n",
+	oak::print_fmt("Arena: [%x, %g, %g, %g, %g]\n",
 			reinterpret_cast<u64>(arena->block),
 			arena->size,
 			header->usedMemory.load(std::memory_order_relaxed),
@@ -18,7 +18,7 @@ void print_atomic_arena(oak::MemoryArena *arena) {
 
 void print_stuff(int i) {
 	for (int j = 0; j < 10; ++j) {
-		oak::print_fmt("Henlo %\n", i * 10 + j);
+		oak::print_fmt("Henlo %g\n", i * 10 + j);
 	}
 }
 

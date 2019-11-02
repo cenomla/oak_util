@@ -12,6 +12,14 @@ namespace oak {
 		return __builtin_ctzll(value);
 	}
 
+	constexpr uint64_t rotate_left(uint64_t const value, int32_t const amount) noexcept {
+		return (value << amount) | (value >> (64 - amount));
+	}
+
+	constexpr uint64_t rotate_right(uint64_t const value, int32_t const amount) noexcept {
+		return (value >> amount) | (value << (64 - amount));
+	}
+
 	constexpr uint64_t next_pow2(uint64_t value) {
 		return 1ull << (64 - clz(value));
 	}
@@ -43,6 +51,32 @@ namespace oak {
 
 	constexpr uint64_t blog2(uint64_t value) {
 		return 63ull - clz(value);
+	}
+
+	template<typename T>
+	constexpr void set_bit(T& value, int32_t n) noexcept {
+		value |= (T{1} << n);
+	}
+
+	template<typename T>
+	constexpr bool get_bit(T& value, int32_t n) noexcept {
+		return value & (T{1} << n);
+	}
+
+	template<typename T>
+	constexpr void clear_bit(T& value, int32_t n) noexcept {
+		value &= ~(T{1} << n);
+	}
+
+	template<typename T>
+	constexpr void toggle_bit(T& value, int32_t n) noexcept {
+		value ^= ~(T{1} << n);
+	}
+
+	template<typename T>
+	constexpr void change_bit(T& value, int32_t n, bool set) noexcept {
+		auto x = -static_cast<T>(set);
+		value ^= (-x ^ value) & (T{1} << n);
 	}
 
 }

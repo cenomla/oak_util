@@ -13,7 +13,7 @@ void print_soa(Soa const& soa, i64 const count) {
 	oak::print_fmt("--------------------------\n");
 	for (i64 i = 0; i < count; ++i) {
 		auto [v0, v1, v2] = soa[i];
-		oak::print_fmt("[%, %, %]\n", v0 ? "true" : "false", v1, v2);
+		oak::print_fmt("[%g, %g, %g]\n", v0 ? "true" : "false", v1, v2);
 	}
 }
 
