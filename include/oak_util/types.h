@@ -8,8 +8,6 @@
 #include <atomic>
 #include <tuple>
 
-#include <osig_defs.h>
-
 using i8 = int8_t;
 using i16 = int16_t;
 using i32 = int32_t;
@@ -33,6 +31,16 @@ using byte = unsigned char;
 
 #define MACRO_CAT_IMPL(x, y) x##y
 #define MACRO_CAT(x, y) MACRO_CAT_IMPL(x, y)
+
+#ifndef __OSIG_REFLECT_MACRO__
+
+#ifdef __OSIG__
+#define _reflect(...) __attribute__((annotate("reflect;" #__VA_ARGS__)))
+#else
+#define _reflect(...)
+#endif
+
+#endif //__OSIG_REFLECT_MACRO__
 
 namespace oak {
 

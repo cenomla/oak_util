@@ -7,6 +7,7 @@ struct Test {
 	float b;
 };
 
+/*
 namespace oak {
 
 	template<typename T>
@@ -144,3 +145,7 @@ int main(int, char **) {
 	return 0;
 }
 
+*/
+
+int main(int, char**) {
+}

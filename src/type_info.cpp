@@ -4,6 +4,7 @@
 
 namespace oak {
 
+	/*
 	Any Any::get_member(String name) noexcept {
 		if (type->kind == TypeKind::STRUCT ||
 				type->kind == TypeKind::OAK_SLICE) {
@@ -190,5 +191,6 @@ namespace oak {
 		}
 	}
 
+	*/
 }
 
