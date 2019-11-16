@@ -204,6 +204,16 @@ namespace oak {
 			return idx;
 		}
 
+		constexpr i64 count() const noexcept {
+			i64 count = 0;
+			for (auto empty : Slice{ std::get<0>(data), capacity }) {
+				if (!empty)
+					++count;
+			}
+
+			return count;
+		}
+
 		constexpr i64 find(Key const& key) const noexcept {
 			auto const keys = std::get<1>(data);
 			auto const idx = slot(hash(key));

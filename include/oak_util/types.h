@@ -55,7 +55,7 @@ namespace oak {
 	};
 
 	template<typename type>
-	struct Slice {
+	struct _reflect(array) Slice {
 		type *data = nullptr;
 		i64 count = 0;
 
