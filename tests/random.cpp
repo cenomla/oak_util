@@ -12,7 +12,9 @@ int main(int, char**) {
 
 	f32 sum = 0.f;
 	for (i32 i = 0; i < 10000; ++i) {
-		sum += rng.random_float();
+		auto rn = rng.random_float();
+		assert(rn <= 1.0);
+		sum += rn;
 	}
 	oak::print_fmt("Random sum: %g\n", sum);
 
