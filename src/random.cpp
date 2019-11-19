@@ -90,9 +90,9 @@ namespace oak {
 
 	u32 PCGenerator::advance_state() {
 		u64 oldState = state;
-		state = oldState * u64{ 6364136223846793005 };
+		state = oldState * u64{ 6364136223846793005 } + (seq|1);
 		auto xorshift = static_cast<u32>( ((oldState >> 18) ^ oldState) >> 27 );
-		auto rot = static_cast<i32>(oldState >> 59);
+		auto rot = static_cast<u32>(oldState >> 59);
 
 		return (xorshift >> rot) | (xorshift << ((-rot) & 31));
 	}
