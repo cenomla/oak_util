@@ -17,5 +17,4 @@ subdir('tests')
 
 reflection_sources = files([
   'include/oak_util/types.h',
-  'include/oak_util/type_info.h',
 ])

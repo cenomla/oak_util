@@ -8,9 +8,6 @@ test('memory', memory_test)
 threaded_memory_test = executable('threaded_memory', 'threaded_memory.cpp', dependencies: test_deps)
 test('threaded_memory', threaded_memory_test)
 
-any_test = executable('any', 'any_test.cpp', dependencies: test_deps)
-test('any', any_test)
-
 delegate_test = executable('delegate', 'delegate_test.cpp', dependencies: test_deps)
 test('delegate', delegate_test)
 
