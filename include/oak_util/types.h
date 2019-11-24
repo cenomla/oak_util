@@ -56,8 +56,8 @@ namespace oak {
 
 	template<typename type>
 	struct _reflect(array) Slice {
-		type *data = nullptr;
-		i64 count = 0;
+		_reflect() type *data = nullptr;
+		_reflect() i64 count = 0;
 
 		constexpr Slice() noexcept = default;
 		constexpr Slice(type *data_, i64 count_) noexcept

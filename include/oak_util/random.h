@@ -5,7 +5,10 @@
 namespace oak {
 
 	struct DefaultRngParams {};
-	constexpr auto default_rng_params = DefaultRngParams{};
+	constexpr auto default_rng_params = DefaultRngParams{
+	};
+
+
 
 	struct LCGenerator {
 		u64 state = 0;
