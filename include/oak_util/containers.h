@@ -13,7 +13,7 @@ namespace oak {
 
 		using Base = std::tuple<types*...>;
 
-		template<size_t... ints>
+		template<usize... ints>
 		void init_impl(void *const data, i64 const count, std::index_sequence<ints...>) noexcept {
 			((void)(std::get<ints>(*this) = static_cast<types*>(add_ptr(data, soa_offset<ints, types...>(count)))), ...);
 		}
@@ -32,7 +32,7 @@ namespace oak {
 		constexpr std::tuple<types&...> operator[](i64 const index) const noexcept;
 	};
 
-	template<size_t index, typename... types>
+	template<usize index, typename... types>
 	constexpr typename std::tuple_element<index, SOA<types...>>::type get(SOA<types...> const& soa) noexcept;
 
 	template<typename T>
@@ -126,6 +126,202 @@ namespace oak {
 			count = 0;
 		}
 	};
+
+
+	/*
+u64 hash(f32 value) {
+    auto bytes = reinterpret_cast<char*>(&value);
+
+    u64 hash = 0;
+    // Is this even a hash function lulz
+    for (u64 i = 0; i < sizeof(value); ++i) {
+        hash += bytes[i];
+        hash *= 65593;
+        hash = (hash << 35 | hash >> 29);
+    }
+
+    return hash;
+
+}
+
+struct DenseHashSet {
+    f32 *values = nullptr;
+    i32 *dense = nullptr;
+    i32 *sparse = nullptr;
+
+    i64 count = 0;
+    i64 capacity = 0;
+
+    bool exists(i32 sparseIdx) const {
+        assert(sparseIdx < capacity);
+        auto denseIdx = sparse[sparseIdx];
+        return denseIdx < count && dense[denseIdx] == sparseIdx;
+    }
+
+    i64 insert(f32 value) {
+        // Sparse index
+        auto sIdx = static_cast<i64>(hash(value) & (capacity - 1));
+
+        for (i64 d = 0; d < capacity; ++d) {
+            auto rsIdx = (sIdx + d) & (capacity - 1);
+            if (!exists(rsIdx)) {
+                // We've found an empty spot
+                auto denseIdx = count;
+                dense[denseIdx] = rsIdx;
+                sparse[rsIdx] = denseIdx;
+                values[count++] = value;
+                return denseIdx;
+
+            }
+            if (values[sparse[rsIdx]] == value) {
+                return sparse[rsIdx];
+            }
+        }
+
+        return -1;
+
+    }
+
+    i64 find(f32 value) const {
+        // Sparse index
+        auto sIdx = static_cast<i64>(hash(value) & (capacity - 1));
+
+        for (i64 d = 0; d < capacity; ++d) {
+            auto rsIdx = (sIdx + d) & (capacity - 1);
+            if (exists(rsIdx) && values[sparse[rsIdx]] == value) {
+                return sparse[rsIdx];
+            }
+        }
+
+        return -1;
+
+    }
+
+    void remove(i64 idx) {
+        assert(exists(idx));
+
+        // cidx is the index of the slot we are trying to empty
+        // ridx is the index of the slot we are looking at to try and fill it
+        auto cidx = idx;
+        auto scidx = static_cast<i64>(hash(values[sparse[cidx]]) & (capacity - 1));
+
+        // Remove element from dense array
+        auto denseIdx = sparse[idx];
+        auto last = --count;
+        values[denseIdx] = values[last];
+        dense[denseIdx] = dense[last];
+        sparse[dense[denseIdx]] = denseIdx;
+
+        for (i64 d = 1; d < capacity; ++d) {
+            auto ridx = (idx + d) & (capacity - 1);
+            if (!exists(ridx)) {
+                break;
+            }
+            // If the element in the slot we are looking at belongs at an earlier slot
+            auto const sridx = static_cast<i64>(hash(values[sparse[ridx]]) & (capacity - 1));
+            if ((ridx > cidx || sridx > ridx) && sridx <= scidx) {
+                sparse[cidx] = sparse[ridx];
+                dense[sparse[cidx]] = cidx;
+
+                cidx = ridx;
+                scidx = sridx;
+            }
+        }
+
+    }
+
+    bool is_valid() {
+        // Check for valid dense to sparse map
+        for (i32 i = 0; i < count; ++i) {
+            if (auto sidx = dense[i]; sidx < 0 || sidx >= capacity || i != sparse[sidx]
+                || !exists(sidx) || sidx != dense[sparse[sidx]] ) {
+                std::fprintf(stderr, "mapping invalid\n");
+                return false;
+            }
+        }
+        // Check for valid linearity
+        for (i32 i = 0; i < count; ++i) {
+            auto rsidx = dense[i];
+            auto sidx = static_cast<i64>(hash(values[i]) & (capacity - 1));
+            for (auto it = rsidx; it != sidx;) {
+                if (!exists(it)) {
+                    std::fprintf(stderr, "linearity invalid\n");
+                    return false;
+                }
+                --it;
+                if (it < 0)
+                    it += capacity;
+                it = it & (capacity - 1);
+            }
+        }
+        return true;
+    }
+
+    void dump() {
+        std::fprintf(stderr, "[ ");
+        for (i32 i = 0; i < capacity; ++i) {
+                std::fprintf(stderr, "%i <-> %i: %f, \n", dense[sparse[i]], sparse[i], values[sparse[i]]);
+        }
+        std::fprintf(stderr, " ]\n");
+    }
+
+};
+
+int main(int, char **) {
+    DenseHashSet set;
+    set.capacity = 32;
+    set.count = 0;
+    set.values = static_cast<f32*>(std::calloc(set.capacity, sizeof(f32)));
+    set.dense = static_cast<i32*>(std::calloc(set.capacity, sizeof(i32)));
+    set.sparse = static_cast<i32*>(std::calloc(set.capacity, sizeof(i32)));
+
+    set.insert(29);
+
+    assert(set.is_valid());
+    assert(set.count == 1);
+    assert(set.find(29) != -1);
+
+    set.insert(29);
+
+    assert(set.is_valid());
+    assert(set.count == 1);
+    assert(set.find(29) != -1);
+
+    set.insert(41);
+
+    assert(set.is_valid());
+    assert(set.count == 2);
+    assert(set.find(29) != -1);
+    assert(set.find(41) != -1);
+
+    for (i32 i = 0; i < set.count;) {
+        set.remove(set.dense[set.find(set.values[i])]);
+        assert(set.is_valid());
+    }
+
+    for (i32 i = 0; i < set.capacity; ++i) {
+        auto idx = set.insert(static_cast<f32>(std::rand()) / RAND_MAX);
+        if (idx == -1)
+            std::fprintf(stderr, "failed to insert value\n");
+    }
+
+    set.dump();
+
+    assert(set.is_valid());
+
+    while (set.count > 0) {
+        auto i = std::rand() % set.count;
+        std::fprintf(stderr, "value: %f, count: %li\n", set.values[i], set.count);
+        set.remove(set.dense[set.find(set.values[i])]);
+        assert(set.is_valid());
+    }
+
+
+}
+
+
+*/
+
 
 
 	template<typename Key, typename HFn = HashFn<Key>, typename CFn = CmpFn<Key, Key>, typename... Values>
@@ -295,7 +491,7 @@ namespace oak {
 
 	namespace detail {
 
-		template<typename tupleT, typename soaT, size_t... ints>
+		template<typename tupleT, typename soaT, usize... ints>
 		constexpr tupleT soa_sub_script_impl(soaT const& soa, i64 const index, std::index_sequence<ints...>) noexcept {
 			return { std::get<ints>(soa)[index]..., };
 		}

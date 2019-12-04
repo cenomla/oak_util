@@ -5,8 +5,9 @@
 #include <cassert>
 
 #include <type_traits>
-#include <atomic>
 #include <tuple>
+#include <utility>
+#include <atomic>
 
 using i8 = int8_t;
 using i16 = int16_t;
@@ -17,6 +18,8 @@ using u8 = uint8_t;
 using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
+
+using usize = size_t;
 
 using f32 = float;
 using f64 = double;
@@ -238,3 +241,108 @@ namespace oak {
 
 }
 
+/*
+namespace oak::detail {
+
+	template<usize I, typename T>
+	struct TupleLeaf {
+		T value{};
+
+		constexpr auto& get_value(std::integral_constant<usize, I>) { return value; }
+		constexpr auto const& get_value(std::integral_constant<usize, I>) const { return value; }
+	};
+
+	template<typename... T>
+	struct TupleImpl;
+
+	template<usize... Is, typename... Ts>
+	struct TupleImpl<std::index_sequence<Is...>, Ts...> : TupleLeaf<Is, Ts>... {
+
+		constexpr TupleImpl() : TupleLeaf<Is, Ts>{}... {}
+
+		constexpr TupleImpl(Ts... args)
+			: TupleLeaf<Is, Ts>{ std::forward<Ts>(args) }... {
+		}
+
+		constexpr TupleImpl(TupleImpl<std::index_sequence<Is...>, std::decay_t<Ts>...> const& other)
+			: TupleLeaf<Is, Ts>{ other.TupleLeaf<Is, std::decay_t<Ts>>::value } ... { }
+
+		constexpr TupleImpl& operator=(TupleImpl<std::index_sequence<Is...>, std::decay_t<Ts>...> const& other) {
+			((TupleLeaf<Is, Ts>::value = other.TupleLeaf<Is, std::decay_t<Ts>>::value), ...);
+			return *this;
+		}
+
+		constexpr TupleImpl(TupleImpl<std::index_sequence<Is...>, std::decay_t<Ts>...>&& other)
+			: TupleLeaf<Is, Ts>{ std::move(other.TupleLeaf<Is, std::decay_t<Ts>>::value) } ... { }
+
+		constexpr TupleImpl& operator=(TupleImpl<std::index_sequence<Is...>, std::decay_t<Ts>...>&& other) {
+			((TupleLeaf<Is, Ts>::value = std::move(other.TupleLeaf<Is, std::decay_t<Ts>>::value)), ...);
+			return *this;
+		}
+
+		constexpr TupleImpl(TupleImpl const& other)
+			: TupleLeaf<Is, Ts>{ other.TupleLeaf<Is, Ts>::value } ... { }
+
+		constexpr TupleImpl& operator=(TupleImpl const& other) {
+			((TupleLeaf<Is, Ts>::value = other.TupleLeaf<Is, Ts>::value), ...);
+			return *this;
+		}
+
+		constexpr TupleImpl(TupleImpl&& other)
+			: TupleLeaf<Is, Ts>{ std::move(other.TupleLeaf<Is, Ts>::value) } ... { }
+
+		constexpr TupleImpl& operator=(TupleImpl&& other) {
+			((TupleLeaf<Is, Ts>::value = std::move(other.TupleLeaf<Is, Ts>::value)), ...);
+			return *this;
+		}
+
+		using TupleLeaf<Is, Ts>::get_value...;
+
+		template<usize I>
+		constexpr auto& get() {
+			return get_value(std::integral_constant<usize, I>{});
+		}
+
+		template<usize I>
+		constexpr auto const& get() const {
+			return get_value(std::integral_constant<usize, I>{});
+		}
+
+	};
+}
+
+namespace oak {
+
+	template<typename... Ts>
+	using Tuple = detail::TupleImpl<std::make_index_sequence<sizeof...(Ts)>, Ts...>;
+
+	template<typename... Ts>
+	auto make_tuple(Ts&&... args) {
+		return Tuple<std::decay_t<Ts>...>{ std::forward<Ts>(args)... };
+	}
+
+}
+
+namespace std {
+    template<usize I, typename... Ts>
+    struct tuple_element<I, oak::Tuple<Ts...>> {
+        using type = decltype(oak::Tuple<Ts...>{}.template get<I>());
+    };
+
+    template<typename... Ts>
+    struct tuple_size<oak::Tuple<Ts...>>
+        : std::integral_constant<usize, sizeof...(Ts)> { };
+
+
+	template<usize I, typename... Ts>
+	constexpr auto& get(oak::Tuple<Ts...>& tuple) {
+		return tuple.template get<I>();
+	}
+
+	template<usize I, typename... Ts>
+	constexpr auto const& get(oak::Tuple<Ts...>const & tuple) {
+		return tuple.template get<I>();
+	}
+}
+
+*/
