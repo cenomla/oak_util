@@ -12,6 +12,10 @@ namespace oak {
 		return __builtin_ctzll(value);
 	}
 
+	constexpr int bit_count(uint64_t value) {
+		return __builtin_popcountll(value);
+	}
+
 	constexpr uint64_t rotate_left(uint64_t const value, int32_t const amount) noexcept {
 		return (value << amount) | (value >> (64 - amount));
 	}
