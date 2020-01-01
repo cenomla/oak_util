@@ -156,5 +156,11 @@ namespace {
 		buffer->count = size;
 	}
 
+	void SliceBuffer::write(void const *data, u64 size) {
+		assert(buffer->count + size <= capacity);
+		std::memcpy(buffer->data + buffer->count, data, size);
+		buffer->count += size;
+	}
+
 }
 

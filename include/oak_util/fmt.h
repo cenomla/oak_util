@@ -112,6 +112,13 @@ namespace oak {
 		u64 pos = 0;
 	};
 
+	struct SliceBuffer {
+		void write(void const *data, size_t size);
+
+		Slice<char> *buffer = nullptr;
+		u64 capacity = 0;
+	};
+
 	template<typename Buffer, typename... TArgs>
 	void buffer_fmt(Buffer&& buffer, String const fmtStr, TArgs&&... args) {
 		constexpr auto hasResize = HasResizeMethod<std::decay_t<Buffer>>::value;
