@@ -18,7 +18,6 @@ namespace oak {
 		static constexpr u64 DYNAMIC_BIT = u64{ 1 } << 63;
 
 		struct DynamicStorage {
-			Allocator *allocator;
 			void *function;
 			u64 functionSize;
 
@@ -35,8 +34,8 @@ namespace oak {
 		Delegate() noexcept = default;
 
 		template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Delegate>>>
-		Delegate(T&& obj, Allocator *allocator_ = nullptr) noexcept {
-			set(std::forward<T>(obj), allocator_);
+		Delegate(T&& obj, Allocator *allocator = nullptr) noexcept {
+			set(std::forward<T>(obj), allocator);
 		}
 
 		template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Delegate>>>
@@ -50,16 +49,15 @@ namespace oak {
 		}
 
 		template<typename T>
-		void set(T&& obj, Allocator *allocator_ = nullptr) noexcept {
+		void set(T&& obj, Allocator *allocator = nullptr) noexcept {
 			using FT = std::decay_t<T>;
 
 			// Copy the object into the apropriate storage
 			if constexpr (sizeof(obj) > sizeof(staticStorage)) {
-				if (!allocator_) {
+				if (!allocator) {
 					return;
 				}
-				dynamicStorage.allocator = allocator_;
-				dynamicStorage.function = allocate<FT>(dynamicStorage.allocator, 8);
+				dynamicStorage.function = allocate<FT>(allocator, 1);
 				dynamicStorage.functionSize = sizeof(obj);
 				std::memcpy(dynamicStorage.function, &obj, sizeof(obj));
 			} else {
@@ -87,10 +85,10 @@ namespace oak {
 			}
 		}
 
-		void destroy() noexcept {
+		void destroy(Allocator *allocator) noexcept {
 			// If the object was dynamically allocated
 			if (is_dynamic()) {
-				dynamicStorage.allocator->deallocate(dynamicStorage.function, dynamicStorage.functionSize);
+				deallocate(dynamicStorage.function, dynamicStorage.functionSize);
 			}
 			invokeFn = nullptr;
 		}
