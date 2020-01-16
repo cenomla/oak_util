@@ -88,7 +88,7 @@ namespace oak {
 		void destroy(Allocator *allocator) noexcept {
 			// If the object was dynamically allocated
 			if (is_dynamic()) {
-				deallocate(dynamicStorage.function, dynamicStorage.functionSize);
+				allocator->deallocate(dynamicStorage.function, dynamicStorage.functionSize);
 			}
 			invokeFn = nullptr;
 		}
