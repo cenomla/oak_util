@@ -449,6 +449,7 @@ int main(int, char **) {
 			assert(!is_empty(idx));
 			// cidx is the index of the slot we are trying to empty
 			// ridx is the index of the slot we are looking at to try and fill it
+			auto empty = std::get<0>(data);
 			auto const keys = std::get<1>(data);
 			auto cidx = idx;
 			for (i64 d = 1; d < capacity; ++d) {
@@ -457,14 +458,13 @@ int main(int, char **) {
 					break;
 				}
 				// If the element in the slot we are looking at belongs at an earlier slot
-				auto const scidx = slot(hash(keys[cidx]));
 				auto const sridx = slot(hash(keys[ridx]));
-				if ((ridx > cidx || sridx > ridx) && sridx <= scidx) {
+				if (cidx == sridx || ((sridx - cidx) & capacity >> 1) != 0) {
 					data[cidx] = data[ridx];
 					cidx = ridx;
 				}
 			}
-			std::get<0>(data)[cidx] = true;
+			empty[cidx] = true;
 			firstIndex = first_index();
 		}
 
