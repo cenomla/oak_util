@@ -57,6 +57,7 @@ namespace oak {
 		FILE_NOT_FOUND,
 	};
 
+
 	template<typename type>
 	struct _reflect(array) Slice {
 		_reflect() type *data = nullptr;
@@ -113,6 +114,42 @@ namespace oak {
 		return !operator==(lhs, rhs);
 	}
 
+	template<typename T, usize N>
+	struct _reflect(array) Array {
+		_reflect() T data[N];
+		_reflect() i64 count = 0;
+
+		constexpr Array() noexcept = default;
+
+		constexpr T* begin() noexcept {
+			return data;
+		}
+
+		constexpr T* end() noexcept {
+			return data + count;
+		}
+
+		constexpr T const* begin() const noexcept {
+			return data;
+		}
+
+		constexpr T const* end() const noexcept {
+			return data + count;
+		}
+
+		constexpr T& operator[](i64 const idx) noexcept {
+			return data[idx];
+		}
+
+		constexpr T const& operator[](i64 const idx) const noexcept {
+			return data[idx];
+		}
+
+		operator Slice<T>() const noexcept {
+			return { data, count };
+		}
+	};
+
 	constexpr i64 c_str_len(char const *const str) noexcept {
 		i64 count = 0;
 		while (str[count]) {
@@ -128,6 +165,12 @@ namespace oak {
 
 		constexpr String(Slice<char const> const other) noexcept : Slice{ other } {}
 		constexpr String(Slice<char> const other) noexcept : Slice{ other.data, other.count } {}
+
+		// TODO: Making these constexpr in c++20 should be allowed
+		String(Slice<unsigned char const> const other) noexcept
+			: Slice{ reinterpret_cast<char const*>(other.data), other.count } {}
+		String(Slice<unsigned char> const other) noexcept
+			: Slice{ reinterpret_cast<char*>(other.data), other.count } {}
 
 	};
 
@@ -219,7 +262,7 @@ namespace oak {
 	template<typename T>
 	struct ScopeExit {
 
-		T &&functor;
+		T functor;
 
 		constexpr ScopeExit(T &&functor_) noexcept : functor{ std::forward<T>(functor_) } {}
 
@@ -228,7 +271,7 @@ namespace oak {
 		}
 	};
 
-#define SCOPE_EXIT(x) ScopeExit MACRO_CAT(_oak_scope_exit_, __LINE__){ [](){ (x); }}
+#define SCOPE_EXIT(x) ScopeExit MACRO_CAT(_oak_scope_exit_, __LINE__){ [&](){ (x); }}
 
 	template<typename T>
 	constexpr auto enum_int(T val) noexcept {
