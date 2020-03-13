@@ -14,7 +14,7 @@ void print_pool(oak::MemoryArena *pool) {
 	// Print pool contents
 	auto nodePtr = &static_cast<oak::PoolHeader*>(pool->block)->freeList;
 	while ((*nodePtr)) {
-		oak::print_fmt("node[%g, %g, %g]\n", (uintptr_t)(*nodePtr), (uintptr_t)(*nodePtr)->next, (*nodePtr)->size);
+		oak::print_fmt("node[%g, %g, %g]\n", (usize)(*nodePtr), (usize)(*nodePtr)->next, (*nodePtr)->size);
 		nodePtr = &(*nodePtr)->next;
 	}
 }
