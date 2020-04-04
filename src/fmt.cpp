@@ -81,9 +81,11 @@ namespace {
 		return string;
 	}
 
+#ifdef USIZE_OVERRIDE_NEEDED
 	String to_str(Allocator *const allocator, usize v, FmtKind const fmtKind) {
 		return to_str(allocator, static_cast<u64>(v), fmtKind);
 	}
+#endif
 
 	String to_str(Allocator *const allocator, i32 const v, FmtKind const fmtKind) {
 		return to_str(allocator, static_cast<i64>(v), fmtKind);

@@ -28,6 +28,11 @@ using b32 = uint32_t;
 
 using byte = unsigned char;
 
+#ifdef __GNUG__
+#else
+#define USIZE_OVERRIDE_NEEDED
+#endif
+
 #define ssizeof(x) static_cast<i64>(sizeof(x))
 #define array_count(x) (sizeof(x)/sizeof(*x))
 #define sarray_count(x) static_cast<i64>(array_count(x))

@@ -35,9 +35,13 @@ namespace oak {
 		return (value + alignment - 1) & (~(alignment-1));
 	}
 
+#ifdef USIZE_OVERRIDE_NEEDED
+
 	constexpr usize align(usize const value, u64 const alignment) noexcept {
 		return (value + alignment - 1) & (~(alignment-1));
 	}
+
+#endif
 
 	constexpr i64 align(i64 const value, u64 const alignment) noexcept {
 		return (value + alignment - 1) & (~(alignment - 1));

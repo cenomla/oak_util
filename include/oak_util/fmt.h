@@ -81,7 +81,9 @@ namespace oak {
 	String to_str(Allocator *allocator, char v, FmtKind = FmtKind::DEFAULT);
 	String to_str(Allocator *allocator, u32 v, FmtKind = FmtKind::DEFAULT);
 	String to_str(Allocator *allocator, u64 v, FmtKind = FmtKind::DEFAULT);
+#ifdef USIZE_OVERRIDE_NEEDED
 	String to_str(Allocator *allocator, usize v, FmtKind = FmtKind::DEFAULT);
+#endif
 	String to_str(Allocator *allocator, i32 v, FmtKind = FmtKind::DEFAULT);
 	String to_str(Allocator *allocator, i64 v, FmtKind = FmtKind::DEFAULT);
 	String to_str(Allocator *allocator, f32 v, FmtKind = FmtKind::DEFAULT);
