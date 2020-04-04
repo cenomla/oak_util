@@ -64,7 +64,7 @@ namespace oak::detail {
 
 	}
 
-	template<typename... TArgs, std::size_t... Is>
+	template<typename... TArgs, usize... Is>
 	void fmt_get_strings(
 			Allocator *allocator,
 			String *const strings,
@@ -81,6 +81,7 @@ namespace oak {
 	String to_str(Allocator *allocator, char v, FmtKind = FmtKind::DEFAULT);
 	String to_str(Allocator *allocator, u32 v, FmtKind = FmtKind::DEFAULT);
 	String to_str(Allocator *allocator, u64 v, FmtKind = FmtKind::DEFAULT);
+	String to_str(Allocator *allocator, usize v, FmtKind = FmtKind::DEFAULT);
 	String to_str(Allocator *allocator, i32 v, FmtKind = FmtKind::DEFAULT);
 	String to_str(Allocator *allocator, i64 v, FmtKind = FmtKind::DEFAULT);
 	String to_str(Allocator *allocator, f32 v, FmtKind = FmtKind::DEFAULT);
@@ -98,14 +99,14 @@ namespace oak {
 	};
 
 	struct FileBuffer {
-		void write(void const *data, size_t size);
+		void write(void const *data, usize size);
 
 		FILE *file = nullptr;
 	};
 
 	struct StringBuffer {
-		void write(void const *data, size_t size);
-		void resize(size_t size);
+		void write(void const *data, usize size);
+		void resize(usize size);
 
 		Allocator *allocator = nullptr;
 		Slice<char> *buffer = nullptr;
@@ -113,7 +114,7 @@ namespace oak {
 	};
 
 	struct SliceBuffer {
-		void write(void const *data, size_t size);
+		void write(void const *data, usize size);
 
 		Slice<char> *buffer = nullptr;
 		u64 capacity = 0;

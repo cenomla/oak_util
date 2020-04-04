@@ -81,6 +81,10 @@ namespace {
 		return string;
 	}
 
+	String to_str(Allocator *const allocator, usize v, FmtKind const fmtKind) {
+		return to_str(allocator, static_cast<u64>(v), fmtKind);
+	}
+
 	String to_str(Allocator *const allocator, i32 const v, FmtKind const fmtKind) {
 		return to_str(allocator, static_cast<i64>(v), fmtKind);
 	}
@@ -111,14 +115,14 @@ namespace {
 	}
 
 	String to_str(Allocator *const allocator, f32 const v, FmtKind const fmtKind) {
-		constexpr size_t bufSize = 32;
+		constexpr usize bufSize = 32;
 		auto str = make<char>(allocator, bufSize);
 		std::snprintf(str, bufSize, choose_snprintf_float_fmt_string(fmtKind), v);
 		return str;
 	}
 
 	String to_str(Allocator *const allocator, f64 const v, FmtKind const fmtKind) {
-		constexpr size_t bufSize = 32;
+		constexpr usize bufSize = 32;
 		auto str = make<char>(allocator, bufSize);
 		std::snprintf(str, bufSize, choose_snprintf_double_fmt_string(fmtKind), v);
 		return str;
@@ -136,17 +140,17 @@ namespace {
 		return str;
 	}
 
-	void FileBuffer::write(void const *data, u64 size) {
+	void FileBuffer::write(void const *data, usize size) {
 		std::fwrite(data, 1, size, file);
 	}
 
-	void StringBuffer::write(void const *data, u64 size) {
+	void StringBuffer::write(void const *data, usize size) {
 		assert(size <= buffer->count - pos);
 		std::memcpy(buffer->data + pos, data, size);
 		pos += size;
 	}
 
-	void StringBuffer::resize(u64 size) {
+	void StringBuffer::resize(usize size) {
 		size += pos;
 		auto ndata = make<char>(allocator, size);
 		if (buffer->data) {
@@ -156,7 +160,7 @@ namespace {
 		buffer->count = size;
 	}
 
-	void SliceBuffer::write(void const *data, u64 size) {
+	void SliceBuffer::write(void const *data, usize size) {
 		assert(buffer->count + size <= capacity);
 		std::memcpy(buffer->data + buffer->count, data, size);
 		buffer->count += size;
