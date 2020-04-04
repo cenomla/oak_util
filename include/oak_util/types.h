@@ -116,6 +116,9 @@ namespace oak {
 
 	template<typename T, usize N>
 	struct _reflect(array) Array {
+
+		static constexpr i64 capacity = static_cast<i64>(N);
+
 		_reflect() T data[N];
 		_reflect() i64 count = 0;
 
@@ -145,8 +148,8 @@ namespace oak {
 			return data[idx];
 		}
 
-		operator Slice<T>() const noexcept {
-			return { data, count };
+		operator Slice<T>() noexcept {
+			return Slice<T>{ data, count };
 		}
 	};
 
