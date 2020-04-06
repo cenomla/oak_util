@@ -154,6 +154,9 @@ namespace oak {
 			return data[idx];
 		}
 
+		operator Slice<T const>() const noexcept {
+			return Slice<T const>{ data, count };
+		}
 		operator Slice<T>() noexcept {
 			return Slice<T>{ data, count };
 		}

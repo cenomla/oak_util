@@ -122,6 +122,20 @@ namespace oak {
 		u64 capacity = 0;
 	};
 
+	struct ArrayBuffer {
+
+		ArrayBuffer() = default;
+		template<typename Array>
+		ArrayBuffer(Array& array)
+			: buffer{ array.data }, count{ &array.count }, capacity{ Array::capacity } {}
+
+		void write(void const *data, usize size);
+
+		char *buffer = nullptr;
+		i64 *count = nullptr;
+		i64 capacity = 0;
+	};
+
 	template<typename Buffer, typename... TArgs>
 	void buffer_fmt(Buffer&& buffer, String const fmtStr, TArgs&&... args) {
 		constexpr auto hasResize = HasResizeMethod<std::decay_t<Buffer>>::value;

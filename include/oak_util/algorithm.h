@@ -246,6 +246,18 @@ namespace oak {
 		return nSlice;
 	}
 
+	template<typename T, typename U, usize N, usize M>
+	constexpr i64 copy_array(Array<T, N>& dst, Array<U, M> const& src) {
+		static_assert(std::is_same_v<std::decay_t<T>, std::decay_t<U>>);
+		auto count = src.count;
+		if (count > dst.capacity) {
+			count = dst.capacity;
+		}
+		std::memcpy(dst.data, src.data, count * sizeof(T));
+		dst.count = count;
+		return count;
+	}
+
 	template<typename T, typename U>
 	constexpr void concat_slice(Slice<T>& dst, Slice<U> const srcA, Slice<U> const srcB) noexcept {
 		assert(srcA.count + srcB.count <= dst.count);

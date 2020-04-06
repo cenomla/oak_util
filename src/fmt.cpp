@@ -168,5 +168,11 @@ namespace {
 		buffer->count += size;
 	}
 
+	void ArrayBuffer::write(void const *data, usize size) {
+		assert(*count + static_cast<i64>(size) <= capacity);
+		std::memcpy(buffer + *count, data, size);
+		*count += size;
+	}
+
 }
 
