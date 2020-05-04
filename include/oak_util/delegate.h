@@ -44,6 +44,19 @@ namespace oak {
 			return *this;
 		}
 
+		Delegate copy_dynamic_storage(Allocator *nAllocator) const noexcept {
+			if (!is_dynamic()) {
+				return *this;
+			}
+			// Copy current delegate
+			Delegate result = *this;
+			void *nFunction = nAllocator->allocate(result.dynamicStorage.functionSize, 1);
+			std::memcpy(nFunction, result.dynamicStorage.function, result.dynamicStorage.functionSize);
+			result.dynamicStorage.function = nFunction;
+
+			return result;
+		}
+
 		bool is_dynamic() const noexcept {
 			return reinterpret_cast<u64>(invokeFn) & DYNAMIC_BIT;
 		}
