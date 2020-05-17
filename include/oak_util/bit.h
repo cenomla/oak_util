@@ -74,7 +74,7 @@ namespace oak {
 
 	template<typename T>
 	constexpr void toggle_bit(T& value, int32_t n) noexcept {
-		value ^= ~(T{1} << n);
+		value ^= (T{1} << n);
 	}
 
 	template<typename T>
