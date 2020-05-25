@@ -163,6 +163,8 @@ namespace oak {
 	};
 
 	constexpr i64 c_str_len(char const *const str) noexcept {
+		if (!str)
+			return 0;
 		i64 count = 0;
 		while (str[count]) {
 			++count;
