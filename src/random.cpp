@@ -1,4 +1,6 @@
-#include "oak_util/random.h"
+#define OAK_UTIL_EXPORT_SYMBOLS
+
+#include <oak_util/random.h>
 
 #include <cassert>
 #include <oak_util/memory.h>

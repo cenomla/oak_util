@@ -272,9 +272,9 @@ namespace oak {
 		return 262147 + a * 131101 + b * 65599;
 	}
 
-	bool is_c_str(String const str) noexcept;
-	char const* as_c_str(String const str) noexcept;
-	String copy_str(Allocator *allocator, String const str) noexcept;
+	OAK_UTIL_API bool is_c_str(String const str) noexcept;
+	OAK_UTIL_API char const* as_c_str(String const str) noexcept;
+	OAK_UTIL_API String copy_str(Allocator *allocator, String const str) noexcept;
 
 }
 

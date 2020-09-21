@@ -70,30 +70,30 @@ namespace oak {
 		}
 	};
 
-	Result init_linear_arena(MemoryArena *arena, Allocator *allocator, u64 size);
-	Result init_atomic_linear_arena(MemoryArena *arena, Allocator *allocator, u64 size);
-	void* allocate_from_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
-	void* allocate_from_atomic_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
-	Result copy_linear_arena(MemoryArena *dst, MemoryArena *src);
-	Result copy_atomic_linear_arena(MemoryArena *dst, MemoryArena *src);
-	void clear_linear_arena(MemoryArena *arena);
-	void clear_atomic_linear_arena(MemoryArena *arena);
+	OAK_UTIL_API Result init_linear_arena(MemoryArena *arena, Allocator *allocator, u64 size);
+	OAK_UTIL_API Result init_atomic_linear_arena(MemoryArena *arena, Allocator *allocator, u64 size);
+	OAK_UTIL_API void* allocate_from_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
+	OAK_UTIL_API void* allocate_from_atomic_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
+	OAK_UTIL_API Result copy_linear_arena(MemoryArena *dst, MemoryArena *src);
+	OAK_UTIL_API Result copy_atomic_linear_arena(MemoryArena *dst, MemoryArena *src);
+	OAK_UTIL_API void clear_linear_arena(MemoryArena *arena);
+	OAK_UTIL_API void clear_atomic_linear_arena(MemoryArena *arena);
 
-	Result init_ring_arena(MemoryArena *arena, Allocator *allocator, u64 size);
-	void* allocate_from_ring_arena(MemoryArena *arena, u64 size, u64 alignment);
-	void deallocate_from_ring_arena(MemoryArena *arena, void *ptr, u64 size);
-	void clear_ring_arena(MemoryArena *arena);
+	OAK_UTIL_API Result init_ring_arena(MemoryArena *arena, Allocator *allocator, u64 size);
+	OAK_UTIL_API void* allocate_from_ring_arena(MemoryArena *arena, u64 size, u64 alignment);
+	OAK_UTIL_API void deallocate_from_ring_arena(MemoryArena *arena, void *ptr, u64 size);
+	OAK_UTIL_API void clear_ring_arena(MemoryArena *arena);
 
-	void destroy_arena(MemoryArena *arena, Allocator *allocator);
-	bool arena_contains(MemoryArena *arena, void *ptr);
+	OAK_UTIL_API void destroy_arena(MemoryArena *arena, Allocator *allocator);
+	OAK_UTIL_API bool arena_contains(MemoryArena *arena, void *ptr);
 
-	void* push_stack(MemoryArena *arena);
-	void pop_stack(MemoryArena *arena, void *stackPtr);
+	OAK_UTIL_API void* push_stack(MemoryArena *arena);
+	OAK_UTIL_API void pop_stack(MemoryArena *arena, void *stackPtr);
 
-	Result init_memory_pool(MemoryArena *arena, Allocator *allocator, u64 size, u64 alignment);
+	OAK_UTIL_API Result init_memory_pool(MemoryArena *arena, Allocator *allocator, u64 size, u64 alignment);
 
-	void* allocate_from_pool(MemoryArena *arena, u64 size, u64 alignment);
-	void free_from_pool(MemoryArena *arena, void *ptr, u64 size);
+	OAK_UTIL_API void* allocate_from_pool(MemoryArena *arena, u64 size, u64 alignment);
+	OAK_UTIL_API void free_from_pool(MemoryArena *arena, void *ptr, u64 size);
 
 	struct ArenaStack {
 		MemoryArena *arena = nullptr;
@@ -147,12 +147,12 @@ namespace oak {
 	}
 
 	namespace detail {
-		void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align);
-		void std_free_wrapper(MemoryArena*, void *ptr, u64);
+		OAK_UTIL_API void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align);
+		OAK_UTIL_API void std_free_wrapper(MemoryArena*, void *ptr, u64);
 	}
 
-	inline Allocator globalAllocator{ nullptr, detail::std_aligned_alloc_wrapper, detail::std_free_wrapper };
-	inline Allocator temporaryMemory;
+	OAK_UTIL_API extern Allocator globalAllocator;
+	OAK_UTIL_API extern Allocator temporaryMemory;
 
 }
 

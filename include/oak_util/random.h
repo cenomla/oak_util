@@ -10,7 +10,7 @@ namespace oak {
 
 
 
-	struct LCGenerator {
+	struct OAK_UTIL_API LCGenerator {
 		u64 state = 0;
 		u64 a = 0;
 		u64 c = 0;
@@ -28,7 +28,7 @@ namespace oak {
 		f32 random_float();
 	};
 
-	struct LFGenerator {
+	struct OAK_UTIL_API LFGenerator {
 		i32 pos = 0;
 		i32 l = 0;
 		i32 k = 0;
@@ -46,7 +46,7 @@ namespace oak {
 		f32 random_float();
 	};
 
-	struct PCGenerator {
+	struct OAK_UTIL_API PCGenerator {
 		u64 state = 0;
 		u64 seq = 0;
 

@@ -1,4 +1,6 @@
-#include "oak_util/memory.h"
+#define OAK_UTIL_EXPORT_SYMBOLS
+
+#include <oak_util/memory.h>
 
 #include <cstdlib>
 #include <cassert>
@@ -398,15 +400,26 @@ namespace {
 namespace detail {
 
 
-	void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align) {
-		return aligned_alloc(align, size);
+	void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 alignment) {
+#ifdef _WIN32
+		return _aligned_malloc(size, alignment);
+#else
+		return aligned_alloc(alignment, size);
+#endif
 	}
 
 	void std_free_wrapper(MemoryArena*, void *ptr, u64) {
+#ifdef _WIN32
+		_aligned_free(ptr);
+#else
 		free(ptr);
+#endif
 	}
 
 }
+
+	Allocator globalAllocator{ nullptr, detail::std_aligned_alloc_wrapper, detail::std_free_wrapper };
+	Allocator temporaryMemory;
 
 }
 

@@ -78,19 +78,19 @@ namespace oak::detail {
 
 namespace oak {
 
-	String to_str(Allocator *allocator, char v, FmtKind = FmtKind::DEFAULT);
-	String to_str(Allocator *allocator, u32 v, FmtKind = FmtKind::DEFAULT);
-	String to_str(Allocator *allocator, u64 v, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(Allocator *allocator, char v, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(Allocator *allocator, u32 v, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(Allocator *allocator, u64 v, FmtKind = FmtKind::DEFAULT);
 #ifdef USIZE_OVERRIDE_NEEDED
-	String to_str(Allocator *allocator, usize v, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(Allocator *allocator, usize v, FmtKind = FmtKind::DEFAULT);
 #endif
-	String to_str(Allocator *allocator, i32 v, FmtKind = FmtKind::DEFAULT);
-	String to_str(Allocator *allocator, i64 v, FmtKind = FmtKind::DEFAULT);
-	String to_str(Allocator *allocator, f32 v, FmtKind = FmtKind::DEFAULT);
-	String to_str(Allocator *allocator, f64 v, FmtKind = FmtKind::DEFAULT);
-	String to_str(Allocator *allocator, char const *v, FmtKind = FmtKind::DEFAULT);
-	String to_str(Allocator *allocator, unsigned char const *v, FmtKind = FmtKind::DEFAULT);
-	String to_str(Allocator *allocator, String str, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(Allocator *allocator, i32 v, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(Allocator *allocator, i64 v, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(Allocator *allocator, f32 v, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(Allocator *allocator, f64 v, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(Allocator *allocator, char const *v, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(Allocator *allocator, unsigned char const *v, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(Allocator *allocator, String str, FmtKind = FmtKind::DEFAULT);
 
 	template<typename T>
 	struct HasResizeMethod {
@@ -100,13 +100,13 @@ namespace oak {
 		static constexpr bool value = sizeof(test<T>(0)) == sizeof(char);
 	};
 
-	struct FileBuffer {
+	struct OAK_UTIL_API FileBuffer {
 		void write(void const *data, usize size);
 
 		FILE *file = nullptr;
 	};
 
-	struct StringBuffer {
+	struct OAK_UTIL_API StringBuffer {
 		void write(void const *data, usize size);
 		void resize(usize size);
 
@@ -115,14 +115,14 @@ namespace oak {
 		u64 pos = 0;
 	};
 
-	struct SliceBuffer {
+	struct OAK_UTIL_API SliceBuffer {
 		void write(void const *data, usize size);
 
 		Slice<char> *buffer = nullptr;
 		u64 capacity = 0;
 	};
 
-	struct ArrayBuffer {
+	struct OAK_UTIL_API ArrayBuffer {
 
 		ArrayBuffer() = default;
 		template<typename Array>

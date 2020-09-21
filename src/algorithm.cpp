@@ -1,3 +1,5 @@
+#define OAK_UTIL_EXPORT_SYMBOLS
+
 #include <oak_util/algorithm.h>
 
 #include <cstring>
