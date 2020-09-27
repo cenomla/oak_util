@@ -29,7 +29,7 @@ void print_set(Set const& set) {
 template<typename Vector>
 void print_vector(Vector const& vector) {
 	for (auto &elem : vector) {
-		fprintf(stdout, "[%lu]\n", elem);
+		print_fmt("[%g]\n", elem);
 	}
 }
 
@@ -51,6 +51,40 @@ int test_soa() {
 
 	return 0;
 
+}
+
+int test_vector() {
+	Vector<i32> vector{ &globalAllocator, { 5, 6, 90, 1lu<<40 } };
+
+	assert(vector.count == 4);
+
+	for (i32 i = 0; i != 512; ++i) {
+		vector.push(&globalAllocator, i * 40 - 20);
+	}
+
+	assert(vector.count == 516);
+	assert(vector.capacity == 1024);
+
+	vector.clear();
+
+	assert(vector.count == 0);
+
+	for (i32 i = 0; i != 256; ++i) {
+		vector.push(&globalAllocator, i * 40 - 20);
+	}
+
+	for (i32 i = 0; i != 256; ++i) {
+		vector.insert(&globalAllocator, i * 8 - 49, 0);
+	}
+
+	assert(vector.count = 512);
+	assert(vector.capacity == 1024);
+
+	vector.destroy(&globalAllocator);
+
+	assert(vector.data == nullptr);
+
+	return 0;
 }
 
 int main(int, char**) {
@@ -85,8 +119,7 @@ int main(int, char**) {
 	set0.remove(set0.find(23));
 	print_set(set0);
 
-	Vector<u64> vector{ &temporaryMemory, { 5, 6, 90, 1lu<<40 } };
-	print_vector(vector);
+	test_vector();
 
 	String string = " Hello barn! ";
 	assert(find(string, 'o') != -1);
