@@ -54,7 +54,7 @@ int test_soa() {
 }
 
 int test_vector() {
-	Vector<i32> vector{ &globalAllocator, { 5, 6, 90, 1lu<<40 } };
+	Vector<i32> vector{ &globalAllocator, { 5, 6, 90, 1<<18 } };
 
 	assert(vector.count == 4);
 
