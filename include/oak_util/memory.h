@@ -19,13 +19,6 @@ namespace oak {
 		void *next;
 	};
 
-	struct AtomicLinearArenaHeader {
-		std::atomic<u64> allocationCount;
-		std::atomic<u64> requestedMemory;
-		std::atomic<u64> usedMemory;
-		void *next;
-	};
-
 	struct RingArenaHeader {
 		u32 offset;
 		u64 allocationCount;

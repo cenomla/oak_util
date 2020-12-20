@@ -7,7 +7,6 @@
 #include <type_traits>
 #include <tuple>
 #include <utility>
-#include <atomic>
 
 using i8 = int8_t;
 using i16 = int16_t;
@@ -40,7 +39,7 @@ using byte = unsigned char;
 
 #if !(defined(__GNUG__) || defined(_MSC_VER))
 // Some stdlib implementations treat uint64_t and size_t as different types so we override in that case,
-// if we we're to always enable the override then we'd get multiple function definition errors (lol, treat two same types and different types but only on some platforms, thanks c++!)
+// if we we're to always enable the override then we'd get multiple function definition errors (lol, treat two of the same types as different types but only on some platforms, thanks c++!)
 #define USIZE_OVERRIDE_NEEDED
 #endif
 
@@ -265,24 +264,6 @@ namespace oak {
 			return 0;
 		}
 	};
-
-	struct SpinLock {
-		std::atomic_flag flag = ATOMIC_FLAG_INIT;
-
-		bool try_lock() noexcept {
-			return !flag.test_and_set(std::memory_order_acquire);
-		}
-
-		void lock() noexcept {
-			while (flag.test_and_set(std::memory_order_acquire));
-		}
-
-		void unlock() noexcept {
-			flag.clear(std::memory_order_release);
-		}
-
-	};
-
 
 	template<typename T>
 	struct ScopeExit {

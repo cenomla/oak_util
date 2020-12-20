@@ -4,6 +4,7 @@
 #include <cstdio>
 
 #include "types.h"
+#include "atomic.h"
 #include "memory.h"
 #include "algorithm.h"
 
@@ -171,10 +172,10 @@ namespace oak {
 
 	template<typename... TArgs>
 	void print_fmt(String const fmtStr, TArgs&&... args) {
-		static SpinLock printLock;
-		printLock.lock();
+		static i32 printLock;
+		atomic_lock(&printLock);
 		buffer_fmt(FileBuffer{ stdout }, fmtStr, std::forward<TArgs>(args)...);
-		printLock.unlock();
+		atomic_unlock(&printLock);
 	}
 
 	template<typename... TArgs>

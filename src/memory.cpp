@@ -1,6 +1,7 @@
 #define OAK_UTIL_EXPORT_SYMBOLS
 
 #include <oak_util/memory.h>
+#include <oak_util/atomic.h>
 
 #include <cstdlib>
 #include <cassert>
@@ -34,7 +35,7 @@ namespace oak {
 	}
 
 	Result init_atomic_linear_arena(MemoryArena *const arena, Allocator *const allocator, u64 const size) {
-		if (size < sizeof(AtomicLinearArenaHeader)) {
+		if (size < sizeof(LinearArenaHeader)) {
 			return Result::INVALID_ARGS;
 		}
 
@@ -43,10 +44,10 @@ namespace oak {
 			return Result::OUT_OF_MEMORY;
 		}
 
-		auto header = static_cast<AtomicLinearArenaHeader*>(block);
-		header->allocationCount.store(0, std::memory_order_relaxed);
-		header->requestedMemory.store(0, std::memory_order_relaxed);
-		header->usedMemory.store(sizeof(AtomicLinearArenaHeader), std::memory_order_relaxed);
+		auto header = static_cast<LinearArenaHeader*>(block);
+		atomic_store(&header->allocationCount, 0lu, MemoryOrder::RELAXED);
+		atomic_store(&header->requestedMemory, 0lu, MemoryOrder::RELAXED);
+		atomic_store(&header->usedMemory, sizeof(LinearArenaHeader), MemoryOrder::RELAXED);
 		header->next = nullptr;
 
 		*arena = { block, size };
@@ -81,23 +82,23 @@ namespace oak {
 			return nullptr;
 		}
 
-		auto header = static_cast<AtomicLinearArenaHeader*>(arena->block);
+		auto header = static_cast<LinearArenaHeader*>(arena->block);
 
-		auto usedMemory = header->usedMemory.load(std::memory_order_relaxed);
+		auto usedMemory = atomic_load(&header->usedMemory, MemoryOrder::RELAXED);
 		u64 offset, nUsedMemory;
 
 		do {
 			offset = align(usedMemory + size, alignment);
 			nUsedMemory = offset + size;
 		} while (nUsedMemory <= arena->size
-				&& !header->usedMemory.compare_exchange_weak(
-					usedMemory, nUsedMemory,
-					std::memory_order_release, std::memory_order_relaxed));
+				&& !atomic_compare_exchange_weak(&header->usedMemory,
+					&usedMemory, nUsedMemory,
+					MemoryOrder::RELEASE, MemoryOrder::RELAXED));
 
 		if (nUsedMemory <= arena->size) {
 			// If there was enough room for this allocation
-			header->allocationCount.fetch_add(1, std::memory_order_relaxed);
-			header->requestedMemory.fetch_add(size, std::memory_order_relaxed);
+			atomic_fetch_add(&header->allocationCount, 1lu, MemoryOrder::RELAXED);
+			atomic_fetch_add(&header->requestedMemory, size, MemoryOrder::RELAXED);
 
 			return add_ptr(arena->block, offset);
 		}
@@ -121,7 +122,7 @@ namespace oak {
 			return Result::INVALID_ARGS;
 		}
 
-		auto srcHeader = static_cast<AtomicLinearArenaHeader*>(src->block);
+		auto srcHeader = static_cast<LinearArenaHeader*>(src->block);
 		std::memcpy(dst->block, src->block, srcHeader->usedMemory);
 
 		return Result::SUCCESS;
@@ -136,11 +137,11 @@ namespace oak {
 	}
 
 	void clear_atomic_linear_arena(MemoryArena *const arena) {
-		auto header = static_cast<AtomicLinearArenaHeader*>(arena->block);
+		auto header = static_cast<LinearArenaHeader*>(arena->block);
 
-		header->allocationCount.store(0, std::memory_order_relaxed);
-		header->requestedMemory.store(0, std::memory_order_relaxed);
-		header->usedMemory.store(sizeof(AtomicLinearArenaHeader), std::memory_order_relaxed);
+		atomic_store(&header->allocationCount, 0lu, MemoryOrder::RELAXED);
+		atomic_store(&header->requestedMemory, 0lu, MemoryOrder::RELAXED);
+		atomic_store(&header->usedMemory, sizeof(LinearArenaHeader), MemoryOrder::RELAXED);
 	}
 
 	Result init_ring_arena(MemoryArena *const arena, Allocator *const allocator, u64 const size) {
