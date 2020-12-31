@@ -135,10 +135,11 @@ namespace oak {
 
 		static constexpr i64 capacity = static_cast<i64>(N);
 
-		_reflect() T data[N];
+		_reflect() T data[N]{};
 		_reflect() i64 count = 0;
 
 		constexpr Array() noexcept = default;
+		constexpr Array(std::initializer_list<T> list) : data{ list }, count{ list.size() } {}
 
 		constexpr T* begin() noexcept {
 			return data;

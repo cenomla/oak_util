@@ -36,8 +36,8 @@ namespace oak {
 #endif // _MSC_VER
 	}
 
-	template<typename T>
-	void atomic_store(T *mem, T value, MemoryOrder order) noexcept {
+	template<typename T, typename U>
+	void atomic_store(T *mem, U value, MemoryOrder order) noexcept {
 #ifdef _MSC_VER
 		static_assert("Not implemented on msvc");
 #else
@@ -140,11 +140,20 @@ namespace oak {
 #endif // _MSC_VER
 	}
 
+	inline void atomic_fence(MemoryOrder order) noexcept {
+#ifdef _MSC_VER
+		static_assert("Not implemented on msvc");
+#else
+		__atomic_thread_fence(detail::gcc_memory_order_constants[enum_int(order)]);
+#endif // _MSC_VER
+	}
+
 	// NOTE: If needed later I'll add the op_fetch variants of the atomic_fetch_op functions
 
 	inline void atomic_lock(i32 *lock) noexcept {
 		i32 locked = 0;
 
+		// TODO: Maybe use _mm_pause here to decrease cpu usage
 		while (!atomic_compare_exchange_weak(lock, &locked, 1, MemoryOrder::ACQUIRE, MemoryOrder::RELAXED))
 			locked = 0;
 	}
