@@ -109,6 +109,10 @@ namespace oak {
 		constexpr type const& operator[](i64 const idx) const noexcept {
 			return data[idx];
 		}
+
+		constexpr operator Slice<type const>() const noexcept {
+			return Slice<type const>{ data, count };
+		}
 	};
 
 	template<typename type>
