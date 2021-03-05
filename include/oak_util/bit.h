@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cinttypes>
+#include <cstring>
 
 namespace oak {
 
@@ -81,6 +82,14 @@ namespace oak {
 	constexpr void change_bit(T& value, int32_t n, bool set) noexcept {
 		auto x = -static_cast<T>(set);
 		value ^= (-x ^ value) & (T{1} << n);
+	}
+
+	template<typename T, typename U>
+	constexpr T bit_cast(U const& u) noexcept {
+		static_assert(sizeof(U) <= sizeof(T));
+		T result{};
+		std::memcpy(&result, &u, sizeof(U));
+		return result;
 	}
 
 }

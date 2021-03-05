@@ -3,6 +3,7 @@
 #include <cinttypes>
 #include <cstddef>
 #include <cassert>
+#include <cstring>
 
 #include <type_traits>
 #include <tuple>
@@ -84,7 +85,7 @@ namespace oak {
 			: data{ data_ }, count{ count_ } {}
 		template<int C>
 		constexpr Slice(type (&array)[C]) noexcept
-			: data{ &array[0] }, count{ C } {}
+			: data{ array }, count{ C } {}
 
 		constexpr type* begin() noexcept {
 			return data;
@@ -143,7 +144,14 @@ namespace oak {
 		_reflect() i64 count = 0;
 
 		constexpr Array() noexcept = default;
-		constexpr Array(std::initializer_list<T> list) : data{ list }, count{ list.size() } {}
+		template<int C>
+		constexpr Array(T (&array)[C]) noexcept : count{ C } {
+			static_assert(C <= N);
+			std::memcpy(data, array, count * sizeof(T));
+		}
+		template<typename ... Args>
+		constexpr Array(Args && ... args) noexcept
+			: data{ std::forward<Args>(args) ... }, count{ sizeof...(args) } {}
 
 		constexpr T* begin() noexcept {
 			return data;
