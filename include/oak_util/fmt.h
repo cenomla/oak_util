@@ -120,7 +120,7 @@ namespace oak {
 		void write(void const *data, usize size);
 
 		Slice<char> *buffer = nullptr;
-		u64 capacity = 0;
+		i64 capacity = 0;
 	};
 
 	struct OAK_UTIL_API ArrayBuffer {

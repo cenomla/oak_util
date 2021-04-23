@@ -104,6 +104,12 @@ namespace oak {
 	}
 
 	template<typename T>
+	constexpr void insert(Slice<T>& slice, i64 const index, T const& value) noexcept {
+		std::memmove(slice.data + index + 1, slice.data + index, (slice.count++ - index) * sizeof(T));
+		slice[index] = value;
+	}
+
+	template<typename T>
 	constexpr void remove(Slice<T>& slice, i64 const index) noexcept {
 		std::memmove(slice.data + index, slice.data + index + 1, (--slice.count - index) * sizeof(T));
 	}
