@@ -38,7 +38,7 @@ int test_soa() {
 	SOA<bool, i64, f32> soa;
 	i64 soaCount = 64;
 
-	soa.init(&temporaryMemory, soaCount);
+	soa.init(temporaryAllocator, soaCount);
 
 	for (i64 i = 0; i < soaCount; ++i) {
 		auto [v0, v1, v2] = soa[i];
@@ -54,12 +54,12 @@ int test_soa() {
 }
 
 int test_vector() {
-	Vector<i32> vector{ &globalAllocator, { 5, 6, 90, 1<<18 } };
+	Vector<i32> vector{ globalAllocator, { 5, 6, 90, 1<<18 } };
 
 	assert(vector.count == 4);
 
 	for (i32 i = 0; i != 512; ++i) {
-		vector.push(&globalAllocator, i * 40 - 20);
+		vector.push(globalAllocator, i * 40 - 20);
 	}
 
 	assert(vector.count == 516);
@@ -70,17 +70,17 @@ int test_vector() {
 	assert(vector.count == 0);
 
 	for (i32 i = 0; i != 256; ++i) {
-		vector.push(&globalAllocator, i * 40 - 20);
+		vector.push(globalAllocator, i * 40 - 20);
 	}
 
 	for (i32 i = 0; i != 256; ++i) {
-		vector.insert(&globalAllocator, i * 8 - 49, 0);
+		vector.insert(globalAllocator, i * 8 - 49, 0);
 	}
 
 	assert(vector.count = 512);
 	assert(vector.capacity == 1024);
 
-	vector.destroy(&globalAllocator);
+	vector.destroy(globalAllocator);
 
 	assert(vector.data == nullptr);
 
@@ -90,17 +90,17 @@ int test_vector() {
 int main(int, char**) {
 
 	MemoryArena tempMemory;
-	init_linear_arena(&tempMemory, &globalAllocator, 64 * 1024 * 1024);
+	init_linear_arena(&tempMemory, globalAllocator, 64 * 1024 * 1024);
 
-	temporaryMemory = { &tempMemory, allocate_from_linear_arena, nullptr };
+	temporaryAllocator = { &tempMemory, allocate_from_linear_arena, nullptr };
 
 	test_soa();
 
 	HashSet<int, HashFn<int>, CmpFn<int, int>, int, double> set0;
 	HashSet<int, HashFn<int>, CmpFn<int, int>, int, double> set1;
 
-	set0.init(&temporaryMemory, 20);
-	set1.init(&temporaryMemory, 20);
+	set0.init(temporaryAllocator, 20);
+	set1.init(temporaryAllocator, 20);
 
 
 	for (int i = 0; i < set1.capacity; ++i) {

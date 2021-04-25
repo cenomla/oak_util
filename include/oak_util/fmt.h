@@ -146,7 +146,7 @@ namespace oak {
 			String argStrings[sizeof...(args)];
 			detail::fmt_get_spec(fmtStr, fmtSpecs, sizeof...(args));
 			detail::fmt_get_strings(
-					&temporaryMemory,
+					temporaryAllocator,
 					argStrings,
 					fmtSpecs,
 					std::make_index_sequence<sizeof...(args)>{},

@@ -139,13 +139,11 @@ namespace oak {
 		deallocate<T>(allocator, ptr, count);
 	}
 
-	namespace detail {
-		OAK_UTIL_API void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align);
-		OAK_UTIL_API void std_free_wrapper(MemoryArena*, void *ptr, u64);
-	}
+	OAK_UTIL_API void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align);
+	OAK_UTIL_API void std_free_wrapper(MemoryArena*, void *ptr, u64);
 
-	OAK_UTIL_API extern Allocator globalAllocator;
-	OAK_UTIL_API extern Allocator temporaryMemory;
+	OAK_UTIL_API extern Allocator* globalAllocator;
+	OAK_UTIL_API extern Allocator* temporaryAllocator;
 
 }
 

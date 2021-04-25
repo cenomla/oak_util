@@ -16,10 +16,10 @@ int dFn(int *ptr) {
 int main(int, char**) {
 
 	MemoryArena tempMemory;
-	init_linear_arena(&tempMemory, &globalAllocator, 64 * 1024 * 1024);
+	init_linear_arena(&tempMemory, globalAllocator, 64 * 1024 * 1024);
 
-	temporaryMemory.arena = &tempMemory;
-	temporaryMemory.allocFn = allocate_from_linear_arena;
+	temporaryAllocator.arena = &tempMemory;
+	temporaryAllocator.allocFn = allocate_from_linear_arena;
 
 	Delegate<int(int *)> delegate;
 	delegate.set(&dFn);

@@ -5,8 +5,8 @@
 int main(int, char**) {
 
 	oak::MemoryArena tempArena;
-	oak::init_linear_arena(&tempArena, &oak::globalAllocator, 1024 * 1024);
-	oak::temporaryMemory = { &tempArena, oak::allocate_from_linear_arena, nullptr };
+	oak::init_linear_arena(&tempArena, oak::globalAllocator, 1024 * 1024);
+	oak::temporaryAllocator = { &tempArena, oak::allocate_from_linear_arena, nullptr };
 
 	oak::PCGenerator rng{ oak::default_rng_params };
 

@@ -206,7 +206,7 @@ namespace oak {
 		i64 tokenCapacity = 64;
 
 		Slice<Slice<T>> tokens;
-		tokens.data = allocate<Slice<T>>(&temporaryMemory, tokenCapacity);
+		tokens.data = allocate<Slice<T>>(temporaryAllocator, tokenCapacity);
 
 		i64 first = 0, last = 0;
 
@@ -216,7 +216,7 @@ namespace oak {
 			last = find_first_of(slice, delimeters, first);
 			if (tokens.count == tokenCapacity) {
 				tokenCapacity *= 2;
-				auto ndata = allocate<Slice<T>>(&temporaryMemory, tokenCapacity);
+				auto ndata = allocate<Slice<T>>(temporaryAllocator, tokenCapacity);
 				std::memcpy(ndata, tokens.data, tokens.count);
 				tokens.data = ndata;
 			}

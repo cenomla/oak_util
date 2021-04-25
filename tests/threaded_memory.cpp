@@ -26,17 +26,17 @@ void print_stuff(int i) {
 
 int main(int , char **) {
 	oak::MemoryArena tmp;
-	if (oak::init_atomic_linear_arena(&tmp, &oak::globalAllocator, 2 * 1024 * 1024) != oak::Result::SUCCESS) {
+	if (oak::init_atomic_linear_arena(&tmp, oak::globalAllocator, 2 * 1024 * 1024) != oak::Result::SUCCESS) {
 		return -1;
 	}
 
-	oak::temporaryMemory = { &tmp, oak::allocate_from_atomic_linear_arena, nullptr };
+	oak::temporaryAllocator = { &tmp, oak::allocate_from_atomic_linear_arena, nullptr };
 
 	print_atomic_arena(&tmp);
 
 	oak::Slice<std::thread> threads;
 	threads.count = 16;
-	threads.data = oak::allocate<std::thread>(&oak::temporaryMemory, threads.count);
+	threads.data = oak::allocate<std::thread>(oak::temporaryAllocator, threads.count);
 	for (int i = 0;i < threads.count; ++i) {
 		new (threads.data + i) std::thread{ print_stuff, i };
 	}

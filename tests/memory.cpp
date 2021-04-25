@@ -21,17 +21,17 @@ void print_pool(oak::MemoryArena *pool) {
 
 int main(int , char **) {
 	oak::MemoryArena tmp, poolArena, ringArena;
-	if (oak::init_linear_arena(&tmp, &oak::globalAllocator, 2 * 1024 * 1024) != oak::Result::SUCCESS) {
+	if (oak::init_linear_arena(&tmp, oak::globalAllocator, 2 * 1024 * 1024) != oak::Result::SUCCESS) {
 		return -1;
 	}
 
-	oak::temporaryMemory = { &tmp, oak::allocate_from_linear_arena, nullptr };
+	oak::temporaryAllocator = { &tmp, oak::allocate_from_linear_arena, nullptr };
 
-	if (oak::init_memory_pool(&poolArena, &oak::globalAllocator, 1024 * 1024, 8) != oak::Result::SUCCESS) {
+	if (oak::init_memory_pool(&poolArena, oak::globalAllocator, 1024 * 1024, 8) != oak::Result::SUCCESS) {
 		return -1;
 	}
 
-	if (oak::init_ring_arena(&ringArena, &oak::globalAllocator, 1024 * 1024) != oak::Result::SUCCESS) {
+	if (oak::init_ring_arena(&ringArena, oak::globalAllocator, 1024 * 1024) != oak::Result::SUCCESS) {
 		return -1;
 	}
 

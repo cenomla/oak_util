@@ -15,7 +15,7 @@ namespace oak {
 	char const* as_c_str(String const str) noexcept {
 		if (!str.count) { return ""; }
 		if (is_c_str(str)) { return str.data; }
-		auto cstr = allocate<char>(&temporaryMemory, str.count + 1);
+		auto cstr = allocate<char>(temporaryAllocator, str.count + 1);
 		std::memmove(cstr, str.data, str.count);
 		cstr[str.count] = 0;
 		return cstr;

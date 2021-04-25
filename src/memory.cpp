@@ -398,9 +398,6 @@ namespace {
 		coalesce_memory_pool(add_ptr(arena->block, sizeof(PoolHeader)), poolNodePtr);
 	}
 
-namespace detail {
-
-
 	void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 alignment) {
 #ifdef _WIN32
 		return _aligned_malloc(size, alignment);
@@ -417,10 +414,8 @@ namespace detail {
 #endif
 	}
 
-}
-
-	Allocator globalAllocator{ nullptr, detail::std_aligned_alloc_wrapper, detail::std_free_wrapper };
-	Allocator temporaryMemory;
+	Allocator* globalAllocator;
+	Allocator* temporaryAllocator;
 
 }
 
