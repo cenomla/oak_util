@@ -146,6 +146,7 @@ namespace {
 
 	void FileBuffer::write(void const *data, usize size) {
 		std::fwrite(data, 1, size, file);
+		std::fflush(file);
 	}
 
 	void StringBuffer::write(void const *data, usize size) {

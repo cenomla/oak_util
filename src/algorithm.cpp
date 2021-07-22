@@ -9,7 +9,7 @@
 namespace oak {
 
 	bool is_c_str(String const str) noexcept {
-		return str.data + str.count == 0;
+		return str.data[str.count] == 0;
 	}
 
 	char const* as_c_str(String const str) noexcept {
