@@ -136,6 +136,55 @@ namespace oak {
 	}
 
 	template<typename T, usize N>
+	struct _reflect(array) FixedArray {
+
+		static constexpr i64 capacity = static_cast<i64>(N);
+
+		_reflect() T data[N]{};
+
+		constexpr FixedArray() noexcept = default;
+		template<int C>
+		constexpr FixedArray(T (&array)[C]) noexcept {
+			static_assert(C <= N);
+			std::memcpy(data, array, capacity * sizeof(T));
+		}
+		template<typename ... Args>
+		constexpr FixedArray(Args && ... args) noexcept
+			: data{ std::forward<Args>(args) ... } {}
+
+		constexpr T* begin() noexcept {
+			return data;
+		}
+
+		constexpr T* end() noexcept {
+			return data + capacity;
+		}
+
+		constexpr T const* begin() const noexcept {
+			return data;
+		}
+
+		constexpr T const* end() const noexcept {
+			return data + capacity;
+		}
+
+		constexpr T& operator[](i64 const idx) noexcept {
+			return data[idx];
+		}
+
+		constexpr T const& operator[](i64 const idx) const noexcept {
+			return data[idx];
+		}
+
+		constexpr operator Slice<T const>() const noexcept {
+			return Slice<T const>{ data, capacity };
+		}
+		constexpr operator Slice<T>() noexcept {
+			return Slice<T>{ data, capacity };
+		}
+	};
+
+	template<typename T, usize N>
 	struct _reflect(array) Array {
 
 		static constexpr i64 capacity = static_cast<i64>(N);
