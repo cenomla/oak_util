@@ -45,9 +45,9 @@ namespace oak {
 		}
 
 		auto header = static_cast<LinearArenaHeader*>(block);
-		atomic_store(&header->allocationCount, 0lu, MemoryOrder::RELAXED);
-		atomic_store(&header->requestedMemory, 0lu, MemoryOrder::RELAXED);
-		atomic_store(&header->usedMemory, sizeof(LinearArenaHeader), MemoryOrder::RELAXED);
+		atomic_store(&header->allocationCount, 0);
+		atomic_store(&header->requestedMemory, 0);
+		atomic_store(&header->usedMemory, sizeof(LinearArenaHeader));
 		header->next = nullptr;
 
 		*arena = { block, size };
@@ -84,21 +84,19 @@ namespace oak {
 
 		auto header = static_cast<LinearArenaHeader*>(arena->block);
 
-		auto usedMemory = atomic_load(&header->usedMemory, MemoryOrder::RELAXED);
-		u64 offset, nUsedMemory;
+		auto usedMemory = atomic_load(&header->usedMemory);
+		i64 offset, nUsedMemory;
 
 		do {
 			offset = align(usedMemory + size, alignment);
 			nUsedMemory = offset + size;
 		} while (nUsedMemory <= arena->size
-				&& !atomic_compare_exchange_weak(&header->usedMemory,
-					&usedMemory, nUsedMemory,
-					MemoryOrder::RELEASE, MemoryOrder::RELAXED));
+				&& !atomic_compare_exchange(&header->usedMemory, &usedMemory, nUsedMemory));
 
 		if (nUsedMemory <= arena->size) {
 			// If there was enough room for this allocation
-			atomic_fetch_add(&header->allocationCount, 1lu, MemoryOrder::RELAXED);
-			atomic_fetch_add(&header->requestedMemory, size, MemoryOrder::RELAXED);
+			atomic_fetch_add(&header->allocationCount, 1ll);
+			atomic_fetch_add(&header->requestedMemory, size);
 
 			return add_ptr(arena->block, offset);
 		}
@@ -139,9 +137,9 @@ namespace oak {
 	void clear_atomic_linear_arena(MemoryArena *const arena) {
 		auto header = static_cast<LinearArenaHeader*>(arena->block);
 
-		atomic_store(&header->allocationCount, 0lu, MemoryOrder::RELAXED);
-		atomic_store(&header->requestedMemory, 0lu, MemoryOrder::RELAXED);
-		atomic_store(&header->usedMemory, sizeof(LinearArenaHeader), MemoryOrder::RELAXED);
+		atomic_store(&header->allocationCount, 0);
+		atomic_store(&header->requestedMemory, 0);
+		atomic_store(&header->usedMemory, sizeof(LinearArenaHeader));
 	}
 
 	Result init_ring_arena(MemoryArena *const arena, Allocator *const allocator, u64 const size) {

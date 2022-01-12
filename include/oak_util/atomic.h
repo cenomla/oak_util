@@ -1,170 +1,213 @@
 #pragma once
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#pragma intrinsic(_InterlockedExchange)
+#pragma intrinsic(_InterlockedCompareExchange)
+#pragma intrinsic(_InterlockedExchangeAdd)
+#pragma intrinsic(_InterlockedExchange64)
+#pragma intrinsic(_InterlockedCompareExchange64)
+#pragma intrinsic(_InterlockedExchangeAdd64)
+#pragma intrinsic(_InterlockedExchangePtr)
+#pragma intrinsic(_InterlockedCompareExchangePtr)
+#pragma intrinsic(_InterlockedExchangeAddPtr)
+#endif
+
 #include "types.h"
 
 namespace oak {
 
-	enum class MemoryOrder {
-		RELAXED, // No memory fence is used
-		CONSUME, // Probably not used, idk what the hell this means, I think on x86 it's the same as acquire
-		ACQUIRE, // Read memory fence with atomic op
-		RELEASE, // Write memory fence with atomic op
-		ACQUIRE_RELEASE, // Read and write memory fence with atomic op
-		SEQUENTIAL_CONSISTENT, // Single total order for reads and writes on all threads, this is often more expensive than locks
-	};
-
-	namespace detail {
+	inline i32 atomic_load(i32 *mem) noexcept {
 #ifdef _MSC_VER
+		_ReadWriteBarrier();
+		return *reinterpret_cast<volatile long*>(mem);
 #else
-		constexpr int gcc_memory_order_constants[] = {
-			__ATOMIC_RELAXED,
-			__ATOMIC_CONSUME,
-			__ATOMIC_ACQUIRE,
-			__ATOMIC_RELEASE,
-			__ATOMIC_ACQ_REL,
-			__ATOMIC_SEQ_CST,
-		};
+		return __atomic_load_n(mem, __ATOMIC_SEQ_CST);
 #endif // _MSC_VER
 	}
 
-	template<typename T>
-	T atomic_load(T *mem, MemoryOrder order) noexcept {
+	inline i64 atomic_load(i64 *mem) noexcept {
 #ifdef _MSC_VER
-		static_assert("Not implemented on msvc");
+		_ReadWriteBarrier();
+		return *reinterpret_cast<volatile __int64*>(mem);
 #else
-		return __atomic_load_n(mem, detail::gcc_memory_order_constants[enum_int(order)]);
+		return __atomic_load_n(mem, __ATOMIC_SEQ_CST);
 #endif // _MSC_VER
 	}
 
-	template<typename T, typename U>
-	void atomic_store(T *mem, U value, MemoryOrder order) noexcept {
+	inline u64 atomic_load(u64 *mem) noexcept {
 #ifdef _MSC_VER
-		static_assert("Not implemented on msvc");
+		_ReadWriteBarrier();
+		return *reinterpret_cast<volatile unsigned __int64*>(mem);
 #else
-		__atomic_store_n(mem, value, detail::gcc_memory_order_constants[enum_int(order)]);
+		return __atomic_load_n(mem, __ATOMIC_SEQ_CST);
 #endif // _MSC_VER
 	}
 
-	template<typename T>
-	T atomic_exchange(T *mem, T value, MemoryOrder order) noexcept {
+	inline void* atomic_load(void **mem) noexcept {
 #ifdef _MSC_VER
-		static_assert("Not implemented on msvc");
+		_ReadWriteBarrier();
+		return *reinterpret_cast<void * volatile *>(mem);
 #else
-		return __atomic_exchange_n(mem, value, detail::gcc_memory_order_constants[enum_int(order)]);
+		return __atomic_load_n(mem, __ATOMIC_SEQ_CST);
 #endif // _MSC_VER
 	}
 
-	template<typename T>
-	bool atomic_compare_exchange_strong(T *mem, T *expected, T value, MemoryOrder successOrder, MemoryOrder failOrder) noexcept {
+	inline i32 atomic_store(i32 *mem, i32 value) noexcept {
 #ifdef _MSC_VER
-		static_assert("Not implemented on msvc");
+		return _InterlockedExchange(reinterpret_cast<volatile long*>(mem), value);
+#else
+		return __atomic_exchange_n(mem, value, __ATOMIC_SEQ_CST);
+#endif // _MSC_VER
+	}
+
+	inline i64 atomic_store(i64 *mem, i64 value) noexcept {
+#ifdef _MSC_VER
+		return _InterlockedExchange64(reinterpret_cast<volatile __int64*>(mem), value);
+#else
+		return __atomic_exchange_n(mem, value, __ATOMIC_SEQ_CST);
+#endif // _MSC_VER
+	}
+
+	inline u64 atomic_store(u64 *mem, u64 value) noexcept {
+#ifdef _MSC_VER
+		return _InterlockedExchange64(reinterpret_cast<volatile __int64*>(mem), value);
+#else
+		return __atomic_exchange_n(mem, value, __ATOMIC_SEQ_CST);
+#endif // _MSC_VER
+	}
+
+	inline void* atomic_store(void **mem, void* value) noexcept {
+#ifdef _MSC_VER
+		return _InterlockedExchangePointer(reinterpret_cast<void * volatile *>(mem), value);
+#else
+		return __atomic_exchange_n(mem, value, __ATOMIC_SEQ_CST);
+#endif // _MSC_VER
+	}
+
+	inline bool atomic_compare_exchange(i32 *mem, i32 *expected, i32 value) noexcept {
+#ifdef _MSC_VER
+		auto prev = _InterlockedCompareExchange(reinterpret_cast<volatile long*>(mem), value, *expected);
+		if (prev == *expected)
+			return true;
+
+		*expected = prev;
+		return false;
 #else
 		return __atomic_compare_exchange_n(
 				mem,
 				expected,
 				value,
 				false,
-				detail::gcc_memory_order_constants[enum_int(successOrder)],
-				detail::gcc_memory_order_constants[enum_int(failOrder)]
-				);
+				__ATOMIC_ACQUIRE,
+				__ATOMIC_RELAXED);
 #endif // _MSC_VER
 	}
 
-	template<typename T>
-	bool atomic_compare_exchange_weak(T *mem, T *expected, T value, MemoryOrder successOrder, MemoryOrder failOrder) noexcept {
+	inline bool atomic_compare_exchange(i64 *mem, i64 *expected, i64 value) noexcept {
 #ifdef _MSC_VER
-		static_assert("Not implemented on msvc");
+		auto prev = _InterlockedCompareExchange64(reinterpret_cast<volatile __int64*>(mem), value, *expected);
+		if (prev == *expected)
+			return true;
+
+		*expected = prev;
+		return false;
 #else
 		return __atomic_compare_exchange_n(
 				mem,
 				expected,
 				value,
-				true,
-				detail::gcc_memory_order_constants[enum_int(successOrder)],
-				detail::gcc_memory_order_constants[enum_int(failOrder)]
-				);
+				false,
+				__ATOMIC_ACQUIRE,
+				__ATOMIC_RELAXED);
 #endif // _MSC_VER
 	}
 
-	template<typename T>
-	T atomic_fetch_add(T *mem, T value, MemoryOrder order) noexcept {
+	inline bool atomic_compare_exchange(u64 *mem, u64 *expected, u64 value) noexcept {
 #ifdef _MSC_VER
-		static_assert("Not implemented on msvc");
+		auto prev = _InterlockedCompareExchange64(reinterpret_cast<volatile __int64*>(mem), value, *expected);
+		if (prev == *expected)
+			return true;
+
+		*expected = prev;
+		return false;
 #else
-		return __atomic_fetch_add(mem, value, detail::gcc_memory_order_constants[enum_int(order)]);
+		return __atomic_compare_exchange_n(
+				mem,
+				expected,
+				value,
+				false,
+				__ATOMIC_ACQUIRE,
+				__ATOMIC_RELAXED);
 #endif // _MSC_VER
 	}
 
-	template<typename T>
-	T atomic_fetch_sub(T *mem, T value, MemoryOrder order) noexcept {
+	inline bool atomic_compare_exchange(void **mem, void **expected, void *value) noexcept {
 #ifdef _MSC_VER
-		static_assert("Not implemented on msvc");
+		auto prev = _InterlockedCompareExchangePointer(reinterpret_cast<void * volatile *>(mem), value, *expected);
+		if (prev == *expected)
+			return true;
+
+		*expected = prev;
+		return false;
 #else
-		return __atomic_fetch_sub(mem, value, detail::gcc_memory_order_constants[enum_int(order)]);
+		return __atomic_compare_exchange_n(
+				mem,
+				expected,
+				value,
+				false,
+				__ATOMIC_ACQUIRE,
+				__ATOMIC_RELAXED);
 #endif // _MSC_VER
 	}
 
-	template<typename T>
-	T atomic_fetch_and(T *mem, T value, MemoryOrder order) noexcept {
+	inline i32 atomic_fetch_add(i32 *mem, i32 value) noexcept {
 #ifdef _MSC_VER
-		static_assert("Not implemented on msvc");
+		return _InterlockedExchangeAdd(reinterpret_cast<volatile long*>(mem), value);
 #else
-		return __atomic_fetch_and(mem, value, detail::gcc_memory_order_constants[enum_int(order)]);
+		return __atomic_fetch_add(mem, value, __ATOMIC_SEQ_CST);
 #endif // _MSC_VER
 	}
 
-	template<typename T>
-	T atomic_fetch_xor(T *mem, T value, MemoryOrder order) noexcept {
+	inline i64 atomic_fetch_add(i64 *mem, i64 value) noexcept {
 #ifdef _MSC_VER
-		static_assert("Not implemented on msvc");
+		return _InterlockedExchangeAdd64(reinterpret_cast<volatile __int64*>(mem), value);
 #else
-		return __atomic_fetch_xor(mem, value, detail::gcc_memory_order_constants[enum_int(order)]);
+		return __atomic_fetch_add(mem, value, __ATOMIC_SEQ_CST);
 #endif // _MSC_VER
 	}
 
-	template<typename T>
-	T atomic_fetch_or(T *mem, T value, MemoryOrder order) noexcept {
+	inline u64 atomic_fetch_add(u64 *mem, u64 value) noexcept {
 #ifdef _MSC_VER
-		static_assert("Not implemented on msvc");
+		return _InterlockedExchangeAdd64(reinterpret_cast<volatile __int64*>(mem), value);
 #else
-		return __atomic_fetch_or(mem, value, detail::gcc_memory_order_constants[enum_int(order)]);
+		return __atomic_fetch_add(mem, value, __ATOMIC_SEQ_CST);
 #endif // _MSC_VER
 	}
 
-	template<typename T>
-	T atomic_fetch_nand(T *mem, T value, MemoryOrder order) noexcept {
+	inline void* atomic_fetch_add(void **mem, void *value) noexcept {
 #ifdef _MSC_VER
-		static_assert("Not implemented on msvc");
+		return _InterlockedExchangePointer(reinterpret_cast<void * volatile *>(mem), value);
 #else
-		return __atomic_fetch_nand(mem, value, detail::gcc_memory_order_constants[enum_int(order)]);
+		return __atomic_fetch_add(mem, value, __ATOMIC_SEQ_CST);
 #endif // _MSC_VER
 	}
-
-	inline void atomic_fence(MemoryOrder order) noexcept {
-#ifdef _MSC_VER
-		static_assert("Not implemented on msvc");
-#else
-		__atomic_thread_fence(detail::gcc_memory_order_constants[enum_int(order)]);
-#endif // _MSC_VER
-	}
-
-	// NOTE: If needed later I'll add the op_fetch variants of the atomic_fetch_op functions
 
 	inline void atomic_lock(i32 *lock) noexcept {
 		i32 locked = 0;
 
 		// TODO: Maybe use _mm_pause here to decrease cpu usage
-		while (!atomic_compare_exchange_weak(lock, &locked, 1, MemoryOrder::ACQUIRE, MemoryOrder::RELAXED))
+		while (!atomic_compare_exchange(lock, &locked, 1))
 			locked = 0;
 	}
 
 	inline bool atomic_try_lock(i32 *lock) noexcept {
 		i32 locked = 0;
-		return atomic_compare_exchange_weak(lock, &locked, 1, MemoryOrder::ACQUIRE, MemoryOrder::RELAXED);
+		return atomic_compare_exchange(lock, &locked, 1);
 	}
 
 	inline void atomic_unlock(i32 *lock) noexcept {
-		atomic_store(lock, 0, MemoryOrder::RELEASE);
+		atomic_store(lock, 0);
 	}
 
 }
