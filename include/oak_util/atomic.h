@@ -8,9 +8,9 @@
 #pragma intrinsic(_InterlockedExchange64)
 #pragma intrinsic(_InterlockedCompareExchange64)
 #pragma intrinsic(_InterlockedExchangeAdd64)
-#pragma intrinsic(_InterlockedExchangePtr)
-#pragma intrinsic(_InterlockedCompareExchangePtr)
-#pragma intrinsic(_InterlockedExchangeAddPtr)
+#pragma intrinsic(_InterlockedExchangePointer)
+#pragma intrinsic(_InterlockedCompareExchangePointer)
+#pragma intrinsic(_InterlockedExchangeAddPointer)
 #endif
 
 #include "types.h"
