@@ -189,7 +189,7 @@ namespace oak {
 #ifdef _MSC_VER
 		return _InterlockedExchangePointer(reinterpret_cast<void * volatile *>(mem), value);
 #else
-		return __atomic_fetch_add(mem, value, __ATOMIC_SEQ_CST);
+		return __atomic_fetch_add(mem, reinterpret_cast<long>(value), __ATOMIC_SEQ_CST);
 #endif // _MSC_VER
 	}
 
