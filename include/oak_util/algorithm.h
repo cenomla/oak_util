@@ -99,6 +99,13 @@ namespace oak {
 	}
 
 	template<typename T>
+	constexpr void swap(T *a, T *b) noexcept {
+		auto tmp = *a;
+		*a = *b;
+		*b = tmp;
+	}
+
+	template<typename T>
 	constexpr void swap_and_pop(Slice<T>& slice, i64 const index) noexcept {
 		slice[index] = slice[--slice.count];
 	}
