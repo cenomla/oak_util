@@ -64,6 +64,7 @@ namespace oak {
 	};
 
 	OAK_UTIL_API Result init_linear_arena(MemoryArena *arena, Allocator *allocator, u64 size);
+	OAK_UTIL_API Result init_linear_arena(MemoryArena *arena, void *ptr, u64 size);
 	OAK_UTIL_API Result init_atomic_linear_arena(MemoryArena *arena, Allocator *allocator, u64 size);
 	OAK_UTIL_API void* allocate_from_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
 	OAK_UTIL_API void* allocate_from_atomic_linear_arena(MemoryArena *arena, u64 size, u64 alignment);

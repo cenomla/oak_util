@@ -34,6 +34,22 @@ namespace oak {
 		return Result::SUCCESS;
 	}
 
+	Result init_linear_arena(MemoryArena *arena, void *ptr, u64 size) {
+		if (size < sizeof(LinearArenaHeader)) {
+			return Result::INVALID_ARGS;
+		}
+
+		auto header = static_cast<LinearArenaHeader*>(ptr);
+		header->allocationCount = 0;
+		header->requestedMemory = 0;
+		header->usedMemory = sizeof(LinearArenaHeader);
+		header->next = nullptr;
+
+		*arena = { ptr, size };
+
+		return Result::SUCCESS;
+	}
+
 	Result init_atomic_linear_arena(MemoryArena *const arena, Allocator *const allocator, u64 const size) {
 		if (size < sizeof(LinearArenaHeader)) {
 			return Result::INVALID_ARGS;
