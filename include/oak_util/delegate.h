@@ -67,9 +67,7 @@ namespace oak {
 
 			// Copy the object into the apropriate storage
 			if constexpr (sizeof(obj) > sizeof(staticStorage)) {
-				if (!allocator) {
-					return;
-				}
+				assert(allocator);
 				dynamicStorage.function = allocate<FT>(allocator, 1);
 				dynamicStorage.functionSize = sizeof(obj);
 				std::memcpy(dynamicStorage.function, &obj, sizeof(obj));
