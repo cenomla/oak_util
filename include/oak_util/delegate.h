@@ -50,7 +50,7 @@ namespace oak {
 			}
 			// Copy current delegate
 			Delegate result = *this;
-			void *nFunction = nAllocator->allocate(result.dynamicStorage.functionSize, 1);
+			void *nFunction = nAllocator->allocate(result.dynamicStorage.functionSize, 8);
 			std::memcpy(nFunction, result.dynamicStorage.function, result.dynamicStorage.functionSize);
 			result.dynamicStorage.function = nFunction;
 
