@@ -15,19 +15,10 @@ namespace {
 		switch (fmtKind) {
 			case FmtKind::BIN: base = 2; break;
 			case FmtKind::OCT: base = 8; break;
-			case FmtKind::HEX: base = 16; break;
+			case FmtKind::HEX: case FmtKind::HEX_CAP: base = 16; break;
 			default: base = 10; break;
 		}
 		return base;
-	}
-
-	void put_base_prefix(FmtKind const fmtKind, char *const str, int *const idx) {
-		switch (fmtKind) {
-			case FmtKind::BIN: str[(*idx)++] = 'b'; str[(*idx)++] = '0'; break;
-			case FmtKind::OCT: str[(*idx)++] = '0'; break;
-			case FmtKind::HEX: str[(*idx)++] = 'x'; str[(*idx)++] = '0'; break;
-			default: break;
-		}
 	}
 
 	char const* choose_snprintf_float_fmt_string(FmtKind const fmtKind) noexcept {
@@ -35,6 +26,7 @@ namespace {
 		switch (fmtKind) {
 			case FmtKind::DEFAULT: case FmtKind::DEC: str = "%f"; break;
 			case FmtKind::HEX: str = "%a"; break;
+			case FmtKind::HEX_CAP: str = "%A"; break;
 			case FmtKind::EXP: str = "%e"; break;
 			default: str = ""; break;
 		}
@@ -47,6 +39,7 @@ namespace {
 		switch (fmtKind) {
 			case FmtKind::DEFAULT: case FmtKind::DEC: str = "%lf"; break;
 			case FmtKind::HEX: str = "%la"; break;
+			case FmtKind::HEX_CAP: str = "%lA"; break;
 			case FmtKind::EXP: str = "%le"; break;
 			default: str = ""; break;
 		}
@@ -68,15 +61,14 @@ namespace {
 
 	String to_str(Allocator *const allocator, u64 v, FmtKind const fmtKind) {
 		auto base = choose_base(fmtKind);
+		auto letter = fmtKind == FmtKind::HEX_CAP ? 'A' : 'a';
 		auto str = allocate<char>(allocator, 66);
 		int idx = 0;
 		do {
 			auto c = static_cast<char>(v % base);
-			str[idx++] = c > 9 ? 'a' + c - 10 : '0' + c;
+			str[idx++] = c > 9 ? letter + c - 10 : '0' + c;
 			v /= base;
 		} while (v > 0);
-
-		put_base_prefix(fmtKind, str, &idx);
 
 		Slice<char> string{ str, idx };
 		reverse(string);
@@ -95,6 +87,7 @@ namespace {
 
 	String to_str(Allocator *const allocator, i64 v, FmtKind const fmtKind) {
 		auto base = choose_base(fmtKind);
+		auto letter = fmtKind == FmtKind::HEX_CAP ? 'A' : 'a';
 		auto str = allocate<char>(allocator, 66);
 		bool neg = false;
 		if (v < 0) {
@@ -104,11 +97,10 @@ namespace {
 		int idx = 0;
 		do {
 			auto c = static_cast<char>(v % base);
-			str[idx++] = c > 9 ? 'a' + c - 10 : '0' + c;
+			str[idx++] = c > 9 ? letter + c - 10 : '0' + c;
 			v /= base;
 		} while (v > 0);
 
-		put_base_prefix(fmtKind, str, &idx);
 		if (neg) {
 			str[idx++] = '-';
 		}

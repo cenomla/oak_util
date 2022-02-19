@@ -15,6 +15,7 @@ namespace oak {
 		OCT,
 		DEC,
 		HEX,
+		HEX_CAP,
 		EXP,
 	};
 
@@ -27,7 +28,7 @@ namespace oak {
 namespace oak::detail {
 
 	template<typename Buffer>
-	void fmt_impl(Buffer&& buffer, String const fmtStr, String const *const strings, FmtSpec const *const specs, i64 const count) {
+	void fmt_impl(Buffer&& buffer, String fmtStr, String const *strings, FmtSpec const *specs, i64 count) {
 		i64 pos = 0;
 		for (i32 i = 0; i < count; ++i) {
 			if (auto const slice = sub_slice(fmtStr, pos, specs[i].start); slice.count > 0) {
@@ -41,7 +42,7 @@ namespace oak::detail {
 		}
 	}
 
-	inline void fmt_get_spec(String const fmtStr, FmtSpec *const specs, i64 const specCount) {
+	inline void fmt_get_spec(String fmtStr, FmtSpec *specs, i64 specCount) {
 		i64 idx = 0, start = 0;
 		// Fill the specs array with fmt specifiers based off of the %<FMT> syntax
 		while (idx < specCount && start < fmtStr.count) {
@@ -53,6 +54,7 @@ namespace oak::detail {
 					case 'o': specs[idx++] = { FmtKind::OCT, pos, pos + 2 }; break;
 					case 'd': specs[idx++] = { FmtKind::DEC, pos, pos + 2 }; break;
 					case 'x': specs[idx++] = { FmtKind::HEX, pos, pos + 2 }; break;
+					case 'X': specs[idx++] = { FmtKind::HEX_CAP, pos, pos + 2 }; break;
 					case 'e': specs[idx++] = { FmtKind::EXP, pos, pos + 2 }; break;
 					default:
 						break;
@@ -68,8 +70,8 @@ namespace oak::detail {
 	template<typename... TArgs, usize... Is>
 	void fmt_get_strings(
 			Allocator *allocator,
-			String *const strings,
-			FmtSpec *const fmtSpecs,
+			String *strings,
+			FmtSpec *fmtSpecs,
 			std::index_sequence<Is...>,
 			TArgs&&... args) {
 		((strings[Is] = to_str(allocator, std::forward<TArgs>(args), fmtSpecs[Is].kind)), ...);
@@ -138,7 +140,7 @@ namespace oak {
 	};
 
 	template<typename Buffer, typename... TArgs>
-	void buffer_fmt(Buffer&& buffer, String const fmtStr, TArgs&&... args) {
+	void buffer_fmt(Buffer&& buffer, String fmtStr, TArgs&&... args) {
 		constexpr auto hasResize = HasResizeMethod<std::decay_t<Buffer>>::value;
 		if constexpr (sizeof...(args) > 0) {
 			// Since arrays of size zero arent supported just add one to the size of args and keep an empty string at the end
@@ -171,7 +173,7 @@ namespace oak {
 	}
 
 	template<typename... TArgs>
-	void print_fmt(String const fmtStr, TArgs&&... args) {
+	void print_fmt(String fmtStr, TArgs&&... args) {
 		static i32 printLock;
 		atomic_lock(&printLock);
 		buffer_fmt(FileBuffer{ stdout }, fmtStr, std::forward<TArgs>(args)...);
@@ -179,7 +181,7 @@ namespace oak {
 	}
 
 	template<typename... TArgs>
-	String fmt(Allocator *const allocator, String fmtStr, TArgs&&... args) {
+	String fmt(Allocator *allocator, String fmtStr, TArgs&&... args) {
 		Slice<char> string;
 		buffer_fmt(StringBuffer{ allocator, &string }, fmtStr, std::forward<TArgs>(args)...);
 		return string;
