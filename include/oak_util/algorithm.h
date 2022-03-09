@@ -98,6 +98,85 @@ namespace oak {
 		detail::qs_impl(array, 0, arrayCount - 1, less<T>);
 	}
 
+	struct SortIndex {
+		u32 rdx;
+		i32 idx;
+	};
+
+	template<typename T, typename U, U T::* pMem = nullptr>
+	constexpr void radix_sort(Allocator *allocator, T *array, i64 arrayCount, u32 r = 8) {
+		auto t0 = array;
+		auto t1 = allocate<T>(allocator, arrayCount);
+
+		u32 b = sizeof(U) * 8;
+
+		// Num values per radix
+		u32 rv = 1 << r;
+		auto count = allocate<u32>(allocator, rv);
+		auto prefix = allocate<u32>(allocator, rv);
+
+		auto groups = b / r;
+		u32 mask = rv - 1;
+
+		for (u32 c = 0, shift = 0; c < groups; ++c, shift += r) {
+			std::memset(count, 0, sizeof(u32) * rv);
+
+			for (i64 i = 0; i < arrayCount; ++i) {
+				++count[(t0[i].*pMem >> shift) & mask];
+			}
+
+			prefix[0] = 0;
+			for (u32 i = 1; i < rv; ++i) {
+				prefix[i] = prefix[i - 1] + count[i - 1];
+			}
+
+			for (i64 i = 0; i < arrayCount; ++i) {
+				t1[prefix[(t0[i].*pMem >> shift) & mask]++] = t0[i];
+			}
+
+			swap(&t0, &t1);
+		}
+
+		assert(array == t0);
+	}
+
+	template<typename T>
+	constexpr void radix_sort(Allocator *allocator, T *array, i64 arrayCount, u32 r = 8) {
+		auto t0 = array;
+		auto t1 = allocate<T>(allocator, arrayCount);
+
+		u32 b = sizeof(T) * 8;
+
+		// Num values per radix
+		u32 rv = 1 << r;
+		auto count = allocate<u32>(allocator, rv);
+		auto prefix = allocate<u32>(allocator, rv);
+
+		auto groups = b / r;
+		u32 mask = rv - 1;
+
+		for (u32 c = 0, shift = 0; c < groups; ++c, shift += r) {
+			std::memset(count, 0, sizeof(u32) * rv);
+
+			for (i64 i = 0; i < arrayCount; ++i) {
+				++count[(t0[i] >> shift) & mask];
+			}
+
+			prefix[0] = 0;
+			for (u32 i = 1; i < rv; ++i) {
+				prefix[i] = prefix[i - 1] + count[i - 1];
+			}
+
+			for (i64 i = 0; i < arrayCount; ++i) {
+				t1[prefix[(t0[i] >> shift) & mask]++] = t0[i];
+			}
+
+			swap(&t0, &t1);
+		}
+
+		assert(array == t0);
+	}
+
 	template<typename T>
 	constexpr void swap(T *a, T *b) noexcept {
 		auto tmp = *a;
