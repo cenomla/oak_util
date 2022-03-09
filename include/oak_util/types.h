@@ -298,7 +298,7 @@ namespace oak {
 					((std::is_integral_v<T> && std::is_integral_v<U>)
 					 || (std::is_pointer_v<T> && std::is_pointer_v<U>)));
 			if constexpr (std::is_integral_v<T> && std::is_integral_v<U>) {
-				return rhs - lhs;
+				return lhs - rhs;
 			} else if constexpr (std::is_pointer_v<T> && std::is_pointer_v<U>) {
 				return reinterpret_cast<i64>(lhs) - reinterpret_cast<i64>(rhs);
 			} else {
