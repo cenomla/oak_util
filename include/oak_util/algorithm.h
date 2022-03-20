@@ -288,6 +288,15 @@ namespace oak {
 	}
 
 	template<typename T>
+	constexpr i64 slice_count(Slice<T> const slice, T const value, i64 start = 0) noexcept {
+		i64 count = 0;
+		for (auto i = start; i < slice.count; ++i) {
+			count += slice[i] == value;
+		}
+		return count;
+	}
+
+	template<typename T>
 	constexpr Slice<Slice<T>> split_slice(Slice<T> const slice, Slice<T> const delimeters) noexcept {
 		i64 tokenCapacity = 64;
 
