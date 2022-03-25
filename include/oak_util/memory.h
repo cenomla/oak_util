@@ -1,7 +1,5 @@
 #pragma once
 
-#include <new>
-
 #include "types.h"
 #include "ptr.h"
 
@@ -121,12 +119,12 @@ namespace oak {
 		allocator->deallocate(ptr, soa_offset<sizeof...(types), types...>(count));
 	}
 
-	template<typename T, typename... TArgs>
-	T* make(Allocator *allocator, i64 count, TArgs&&... parameters) {
+	template<typename T>
+	T* make(Allocator *allocator, i64 count, T const& value = {}) {
 		auto result = allocate<T>(allocator, count);
 		if (result) {
 			for (i64 i = 0; i < count; ++i) {
-				new (result + i) T{ static_cast<TArgs&&>(parameters)... };
+				result[i] = value;
 			}
 		}
 		return result;

@@ -36,43 +36,134 @@ namespace oak {
 	constexpr typename std::tuple_element<index, SOA<types...>>::type get(SOA<types...> const& soa) noexcept;
 
 	template<typename T>
-	struct Vector : Slice<T> {
+	struct _reflect(array) FixedVector {
 
+		using ElemType = T;
 
-		using Slice<T>::data;
-		using Slice<T>::count;
+		_reflect() T *data = nullptr;
+		_reflect() i64 capacity = 0;
 
-		i64 capacity = 0;
+		constexpr FixedVector() noexcept = default;
 
-		constexpr Vector() noexcept = default;
-
-		Vector(Allocator *const allocator, T *const data_, i64 const count_) noexcept : Slice<T>{}, capacity{ 0 } {
-			resize(allocator, count_);
+		FixedVector(Allocator *allocator, T const *data_, i64 count_) noexcept
+				: data{ nullptr }, capacity{ 0 } {
+			reserve(allocator, count_);
 			std::memcpy(data, data_, count_ * sizeof(T));
 		}
 
-		template<int C>
-		Vector(Allocator *const allocator, T const (&array)[C]) noexcept : Slice<T>{}, capacity{ 0 } {
-			resize(allocator, C);
-			std::memcpy(data, array, C * sizeof(T));
+		template<i64 Count>
+		FixedVector(Allocator *allocator, T const (&array)[Count]) noexcept
+				: data{ nullptr }, capacity{ 0 } {
+			reserve(allocator, Count);
+			std::memcpy(data, array, Count * sizeof(T));
 		}
 
-		Vector(Allocator *allocator, std::initializer_list<T> list) noexcept : Slice<T>{}, capacity{ 0 } {
-			resize(allocator, list.size());
-			auto iter = std::begin(list);
-			for (i64 i = 0; i < count; ++i) {
-				data[i] = *iter;
-				++iter;
-			}
+		FixedVector(Allocator *allocator, std::initializer_list<T> list) noexcept
+				: data{ nullptr }, capacity{ 0 } {
+			reserve(allocator, list.size());
+			std::memcpy(data, list.data(), list.size() * sizeof(T));
 		}
 
-
-		void reserve(Allocator *const allocator, i64 nCapacity) noexcept {
+		void reserve(Allocator *allocator, i64 nCapacity) noexcept {
 			if (nCapacity <= capacity) {
 				// If the array is already big enough no need to resize
 				return;
 			}
-			nCapacity = ensure_pow2(nCapacity);
+			auto nData = allocate<T>(allocator, nCapacity);
+			if (data) {
+				std::memcpy(nData, data, capacity * sizeof(T));
+				deallocate(allocator, data, capacity);
+			}
+			data = nData;
+			capacity = nCapacity;
+		}
+
+		FixedVector clone(Allocator *allocator, i64 minCapacity = 0) const noexcept {
+			FixedVector nVec;
+			nVec.reserve(allocator, capacity < minCapacity ? minCapacity : capacity);
+			std::memcpy(nVec.data, data, capacity * sizeof(T));
+			return nVec;
+		}
+
+		void destroy(Allocator *allocator) noexcept {
+			if (data) {
+				deallocate(allocator, data, capacity * sizeof(T));
+				data = nullptr;
+			}
+			capacity = 0;
+		}
+
+		constexpr T* begin() noexcept {
+			return data;
+		}
+
+		constexpr T* end() noexcept {
+			return data + capacity;
+		}
+
+		constexpr T const* begin() const noexcept {
+			return data;
+		}
+
+		constexpr T const* end() const noexcept {
+			return data + capacity;
+		}
+
+		constexpr T& operator[](i64 const idx) noexcept {
+			assert(0 <= idx && idx < capacity);
+			return data[idx];
+		}
+
+		constexpr T const& operator[](i64 const idx) const noexcept {
+			assert(0 <= idx && idx < capacity);
+			return data[idx];
+		}
+
+		constexpr operator Slice<T>() noexcept {
+			return Slice<T>{ data, capacity };
+		}
+
+		constexpr operator Slice<T const>() const noexcept {
+			return Slice<T const>{ data, capacity };
+		}
+
+	};
+
+	template<typename T>
+	struct _reflect(array) Vector {
+
+		using ElemType = T;
+
+		_reflect() T *data = nullptr;
+		_reflect() i64 count = 0;
+		_reflect() i64 capacity = 0;
+
+		constexpr Vector() noexcept = default;
+
+		Vector(Allocator *allocator, T const *data_, i64 count_) noexcept
+				: data{ nullptr }, count{ 0 }, capacity{ 0 } {
+			resize(allocator, count_);
+			std::memcpy(data, data_, count_ * sizeof(T));
+		}
+
+		template<i64 Count>
+		Vector(Allocator *allocator, T const (&array)[Count]) noexcept
+				: data{ nullptr }, count{ 0 }, capacity{ 0 } {
+			resize(allocator, Count);
+			std::memcpy(data, array, Count * sizeof(T));
+		}
+
+		Vector(Allocator *allocator, std::initializer_list<T> list) noexcept
+				: data{ nullptr }, count{ 0 }, capacity{ 0 } {
+			resize(allocator, list.size());
+			std::memcpy(data, list.data(), list.size() * sizeof(T));
+		}
+
+		void reserve(Allocator *allocator, i64 nCapacity) noexcept {
+			if (nCapacity <= capacity) {
+				// If the array is already big enough no need to resize
+				return;
+			}
 			auto nData = allocate<T>(allocator, nCapacity);
 			if (data) {
 				std::memcpy(nData, data, count * sizeof(T));
@@ -82,20 +173,20 @@ namespace oak {
 			capacity = nCapacity;
 		}
 
-		void resize(Allocator *const allocator, i64 const nCount) noexcept {
+		void resize(Allocator *allocator, i64 nCount) noexcept {
 			reserve(allocator, nCount);
 			count = nCount;
 		}
 
-		Vector clone(Allocator *const allocator) const noexcept {
+		Vector clone(Allocator *allocator, i64 minCapacity = 0) const noexcept {
 			Vector nVec;
-			nVec.reserve(allocator, capacity);
+			nVec.reserve(allocator, capacity < minCapacity ? minCapacity : capacity);
 			nVec.count = count;
 			std::memcpy(nVec.data, data, count * sizeof(T));
 			return nVec;
 		}
 
-		void destroy(Allocator *const allocator) noexcept {
+		void destroy(Allocator *allocator) noexcept {
 			if (data) {
 				deallocate(allocator, data, capacity * sizeof(T));
 				data = nullptr;
@@ -104,27 +195,44 @@ namespace oak {
 			capacity = 0;
 		}
 
-		T* push(Allocator *const allocator, T const& value) noexcept {
-			if (count == capacity) {
-				reserve(allocator, capacity == 0 ? 4 : capacity * 2);
-			}
-			data[count++] = value;
-			return data + count - 1;
-		}
-
-		T* insert(Allocator *const allocator, T const& value, i64 const idx) noexcept {
-			if (idx == -1 || idx == count) {
-				return push(allocator, value);
-			}
-			resize(allocator, count + 1);
-			std::memmove(data + idx + 1, data + idx, (count - 1 - idx) * sizeof(T));
-			data[idx] = value;
-			return data + idx;
-		}
-
 		constexpr void clear() noexcept {
 			count = 0;
 		}
+
+		constexpr T* begin() noexcept {
+			return data;
+		}
+
+		constexpr T* end() noexcept {
+			return data + count;
+		}
+
+		constexpr T const* begin() const noexcept {
+			return data;
+		}
+
+		constexpr T const* end() const noexcept {
+			return data + count;
+		}
+
+		constexpr T& operator[](i64 const idx) noexcept {
+			assert(0 <= idx && idx < capacity);
+			return data[idx];
+		}
+
+		constexpr T const& operator[](i64 const idx) const noexcept {
+			assert(0 <= idx && idx < capacity);
+			return data[idx];
+		}
+
+		constexpr operator Slice<T>() noexcept {
+			return Slice<T>{ data, count };
+		}
+
+		constexpr operator Slice<T const>() const noexcept {
+			return Slice<T const>{ data, count };
+		}
+
 	};
 
 

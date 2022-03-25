@@ -84,44 +84,47 @@ namespace oak {
 	};
 
 
-	template<typename type>
-	struct _reflect(array) Slice {
-		_reflect() type *data = nullptr;
-		_reflect() i64 count = 0;
+	template<typename T>
+	struct Slice {
+
+		T *data = nullptr;
+		i64 count = 0;
 
 		constexpr Slice() noexcept = default;
-		constexpr Slice(type *data_, i64 count_) noexcept
+		constexpr Slice(T *data_, i64 count_) noexcept
 			: data{ data_ }, count{ count_ } {}
 		template<int C>
-		constexpr Slice(type (&array)[C]) noexcept
+		constexpr Slice(T (&array)[C]) noexcept
 			: data{ array }, count{ C } {}
 
-		constexpr type* begin() noexcept {
+		constexpr T* begin() noexcept {
 			return data;
 		}
 
-		constexpr type* end() noexcept {
+		constexpr T* end() noexcept {
 			return data + count;
 		}
 
-		constexpr type const* begin() const noexcept {
+		constexpr T const* begin() const noexcept {
 			return data;
 		}
 
-		constexpr type const* end() const noexcept {
+		constexpr T const* end() const noexcept {
 			return data + count;
 		}
 
-		constexpr type& operator[](i64 const idx) noexcept {
+		constexpr T& operator[](i64 const idx) noexcept {
+			assert(0 <= idx && idx < count);
 			return data[idx];
 		}
 
-		constexpr type const& operator[](i64 const idx) const noexcept {
+		constexpr T const& operator[](i64 const idx) const noexcept {
+			assert(0 <= idx && idx < count);
 			return data[idx];
 		}
 
-		constexpr operator Slice<type const>() const noexcept {
-			return Slice<type const>{ data, count };
+		constexpr operator Slice<T const>() const noexcept {
+			return Slice<T const>{ data, count };
 		}
 	};
 
@@ -147,7 +150,9 @@ namespace oak {
 	template<typename T, usize N>
 	struct _reflect(array) FixedArray {
 
-		static constexpr i64 capacity = static_cast<i64>(N);
+		using ElemType = T;
+
+		_reflect() static constexpr i64 capacity = static_cast<i64>(N);
 
 		_reflect() T data[N]{};
 
@@ -178,16 +183,19 @@ namespace oak {
 		}
 
 		constexpr T& operator[](i64 const idx) noexcept {
+			assert(0 <= idx && idx < capacity);
 			return data[idx];
 		}
 
 		constexpr T const& operator[](i64 const idx) const noexcept {
+			assert(0 <= idx && idx < capacity);
 			return data[idx];
 		}
 
 		constexpr operator Slice<T const>() const noexcept {
 			return Slice<T const>{ data, capacity };
 		}
+
 		constexpr operator Slice<T>() noexcept {
 			return Slice<T>{ data, capacity };
 		}
@@ -196,7 +204,9 @@ namespace oak {
 	template<typename T, usize N>
 	struct _reflect(array) Array {
 
-		static constexpr i64 capacity = static_cast<i64>(N);
+		using ElemType = T;
+
+		_reflect() static constexpr i64 capacity = static_cast<i64>(N);
 
 		_reflect() T data[N]{};
 		_reflect() i64 count = 0;
@@ -228,16 +238,19 @@ namespace oak {
 		}
 
 		constexpr T& operator[](i64 const idx) noexcept {
+			assert(0 <= idx && idx < capacity);
 			return data[idx];
 		}
 
 		constexpr T const& operator[](i64 const idx) const noexcept {
+			assert(0 <= idx && idx < capacity);
 			return data[idx];
 		}
 
 		constexpr operator Slice<T const>() const noexcept {
 			return Slice<T const>{ data, count };
 		}
+
 		constexpr operator Slice<T>() noexcept {
 			return Slice<T>{ data, count };
 		}
@@ -357,6 +370,11 @@ namespace oak {
 		} else {
 			static_assert("\"enum_int\" must be used with an enum type");
 		}
+	}
+
+	template<typename ArrayType, typename E = typename ArrayType::ElemType>
+	constexpr Slice<E> as_slice(ArrayType& array) noexcept {
+		return static_cast<Slice<E>>(array);
 	}
 
 }

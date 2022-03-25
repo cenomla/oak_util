@@ -3,6 +3,7 @@
 #include <utility>
 #include <cstring>
 
+#include "containers.h"
 #include "memory.h"
 
 namespace oak {
@@ -184,24 +185,88 @@ namespace oak {
 		*b = tmp;
 	}
 
-	template<typename T>
-	constexpr void swap_and_pop(Slice<T>& slice, i64 const index) noexcept {
-		slice[index] = slice[--slice.count];
+	template<typename ArrayType, typename E = typename ArrayType::ElemType>
+	constexpr E* push(ArrayType *array, E const& value) {
+		assert(array->count < array->capacity);
+		array->data[array->count++] = value;
+		return array->data + array->count - 1;
+	}
+
+	template<typename ArrayType, typename E = typename ArrayType::ElemType>
+	constexpr E* push_grow(ArrayType *array, Allocator *allocator, E const& value) {
+		if (array->count == array->capacity) {
+			array->reserve(allocator, array->capacity == 0 ? 4 : array->capacity * 2);
+		}
+		array->data[array->count++] = value;
+		return array->data + array->count - 1;
+	}
+
+	template<typename ArrayType, typename E = typename ArrayType::ElemType>
+	constexpr E* insert(ArrayType *array, i64 const index, E const& value) noexcept {
+		if (index == -1 || index == array->count) {
+			return push(array, value);
+		}
+		assert(array->count < array->capacity);
+		std::memmove(array->data + index + 1, array->data + index, (array->count++ - index) * sizeof(E));
+		array->data[index] = value;
+
+		return array->data + index;
+	}
+
+	template<typename ArrayType, typename E = typename ArrayType::ElemType>
+	constexpr E* insert_grow(ArrayType *array, Allocator *allocator, i64 const index, E const& value) noexcept {
+		if (index == -1 || index == array->count) {
+			return push_grow(allocator, array, value);
+		}
+		if (array->count == array->capacity) {
+			array->reserve(allocator, array->capacity == 0 ? 4 : array->capacity * 2);
+		}
+		std::memmove(array->data + index + 1, array->data + index, (array->count++ - index) * sizeof(E));
+		array->data[index] = value;
+
+		return array->data + index;
+	}
+
+	template<typename ArrayType, typename E = typename ArrayType::ElemType>
+	constexpr void remove(ArrayType *array, i64 const index) noexcept {
+		assert(array->count > 0);
+		std::memmove(array->data + index, array->data + index + 1, (--array->count - index) * sizeof(E));
+	}
+
+	template<typename ArrayType>
+	constexpr void swap_and_pop(ArrayType *array, i64 const index) noexcept {
+		array->data[index] = array->data[--array->count];
 	}
 
 	template<typename T>
-	constexpr void insert(Slice<T>& slice, i64 const index, T const& value) noexcept {
-		std::memmove(slice.data + index + 1, slice.data + index, (slice.count++ - index) * sizeof(T));
-		slice[index] = value;
+	constexpr void fill(Slice<T> slice, T const& value) noexcept {
+		for (i64 i = 0; i < slice.count; ++i) {
+			slice[i] = value;
+		}
 	}
 
 	template<typename T>
-	constexpr void remove(Slice<T>& slice, i64 const index) noexcept {
-		std::memmove(slice.data + index, slice.data + index + 1, (--slice.count - index) * sizeof(T));
+	constexpr void reverse(Slice<T> slice) noexcept {
+		if (slice.count < 2) {
+			return;
+		}
+		for (i64 i = 0; i < slice.count >> 1; ++i) {
+			swap(slice.data + i, slice.data + slice.count - 1 - i);
+		}
 	}
 
 	template<typename T, typename V>
-	constexpr i64 bfind(Slice<T> const& slice, V const& value, i64 const first, i64 const last) noexcept {
+	constexpr i64 find(Slice<T> const slice, V const& value, i64 const start = 0) noexcept {
+		for (i64 i = start; i < slice.count; ++i) {
+			if (slice[i] == value) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	template<typename T>
+	constexpr i64 bfind(Slice<T> slice, T const& value, i64 const first, i64 const last) noexcept {
 		assert(first >= 0 && first < slice.count);
 		assert(last >= 0 && last < slice.count);
 		assert(first <= last);
@@ -215,16 +280,6 @@ namespace oak {
 		} else {
 			return -1;
 		}
-	}
-
-	template<typename T, typename V>
-	constexpr i64 find(Slice<T> const slice, V const& value, i64 const start = 0) noexcept {
-		for (i64 i = start; i < slice.count; ++i) {
-			if (slice[i] == value) {
-				return i;
-			}
-		}
-		return -1;
 	}
 
 	template<typename T>
@@ -297,25 +352,20 @@ namespace oak {
 	}
 
 	template<typename T>
-	constexpr Slice<Slice<T>> split_slice(Slice<T> const slice, Slice<T> const delimeters) noexcept {
-		i64 tokenCapacity = 64;
-
-		Slice<Slice<T>> tokens;
-		tokens.data = allocate<Slice<T>>(temporaryAllocator, tokenCapacity);
+	constexpr Vector<Slice<T>> split_slice(Slice<T> const slice, Slice<T> const delimeters) noexcept {
+		Vector<Slice<T>> tokens;
+		tokens.reserve(temporaryAllocator, 32);
 
 		i64 first = 0, last = 0;
 
 		while (last != -1) {
 			first = find_first_not_of(slice, delimeters, first);
-			if (first == -1) { break; } // Rest of string is entirely delimeters
-			last = find_first_of(slice, delimeters, first);
-			if (tokens.count == tokenCapacity) {
-				tokenCapacity *= 2;
-				auto ndata = allocate<Slice<T>>(temporaryAllocator, tokenCapacity);
-				std::memcpy(ndata, tokens.data, tokens.count);
-				tokens.data = ndata;
+			// Rest of string is entirely delimeters
+			if (first == -1) {
+				break;
 			}
-			tokens[tokens.count++] = sub_slice(slice, first, last);
+			last = find_first_of(slice, delimeters, first);
+			push_grow(&tokens, temporaryAllocator, sub_slice(slice, first, last));
 
 			first = last + 1;
 		}
@@ -323,21 +373,11 @@ namespace oak {
 		return tokens;
 	}
 
-	template<typename T>
-	constexpr void reverse(Slice<T>& slice) noexcept {
-		if (slice.count < 2) { return; }
-		for (i64 i = 0; i < slice.count >> 1; ++i) {
-			auto tmp = slice[i];
-			slice[i] = slice[slice.count - 1 - i];
-			slice[slice.count - 1 - i] = tmp;
-		}
-	}
-
 	template<typename T, typename U>
 	constexpr Slice<T> copy_slice(Allocator *allocator, Slice<U> const slice, i64 minCapacity = 0) noexcept {
 		Slice<T> nSlice;
 		nSlice.count = slice.count;
-		nSlice.data = allocate<T>(allocator, minCapacity > nSlice.count ? minCapacity : nSlice.count);
+		nSlice.data = allocate<T>(allocator, nSlice.count < minCapacity ? minCapacity : nSlice.count);
 		if (!nSlice.data) {
 			return {};
 		}
@@ -366,6 +406,14 @@ namespace oak {
 			auto const& src = i < srcA.count ? srcA[i] : srcB[i - srcA.count];
 			dst[i] = src;
 		}
+	}
+
+	constexpr u64 hash_int(u64 v) {
+		// Taken from the stack overflow article: https://stackoverflow.com/a/12996028
+		v = (v ^ (v >> 30)) * 0xbf58476d1ce4e5b9;
+		v = (v ^ (v >> 27)) * 0x94d049bb133111eb;
+		v = v ^ (v >> 31);
+		return v;
 	}
 
 	constexpr u64 hash_combine(u64 const a, u64 const b) noexcept {

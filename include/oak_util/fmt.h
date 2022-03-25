@@ -130,7 +130,7 @@ namespace oak {
 		ArrayBuffer() = default;
 		template<typename Array>
 		ArrayBuffer(Array& array)
-			: buffer{ array.data }, count{ &array.count }, capacity{ Array::capacity } {}
+			: buffer{ array.data }, count{ &array.count }, capacity{ array.capacity } {}
 
 		void write(void const *data, usize size);
 
