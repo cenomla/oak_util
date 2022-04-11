@@ -1,10 +1,9 @@
 #pragma once
 
+#include <new>
+
 #include "types.h"
 #include "ptr.h"
-
-inline void* operator new(size_t, void* p) noexcept { return p; }
-inline void operator delete(void*, void*) noexcept { }
 
 namespace oak {
 
