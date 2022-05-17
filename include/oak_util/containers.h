@@ -461,10 +461,13 @@ int main(int, char **) {
 		};
 
 		SOA<bool, Key, Values...> data;
-		i64 capacity = 0, firstIndex = 0;
+		i64 count = 0;
+		i64 capacity = 0;
+		i64 firstIndex = 0;
 
 		void init(Allocator *const allocator, i64 const capacity_) noexcept {
 			// Allocate storage
+			count = 0;
 			capacity = ensure_pow2(capacity_);
 			data.init(allocator, capacity);
 
@@ -479,11 +482,13 @@ int main(int, char **) {
 		void destroy(Allocator *const allocator) noexcept {
 			data.destroy(allocator, capacity);
 			data = {};
+			count = 0;
 			capacity = 0;
 			firstIndex = 0;
 		}
 
 		constexpr bool is_empty(i64 const idx) const noexcept {
+			assert(0 <= idx && idx < capacity);
 			return std::get<0>(data)[idx];
 		}
 
@@ -502,20 +507,11 @@ int main(int, char **) {
 		constexpr i64 first_index() const noexcept {
 			i64 idx = 0;
 			for (auto empty : Slice{ std::get<0>(data), capacity }) {
-				if (!empty) { break; }
+				if (!empty)
+					break;
 				++idx;
 			}
 			return idx;
-		}
-
-		constexpr i64 count() const noexcept {
-			i64 count = 0;
-			for (auto empty : Slice{ std::get<0>(data), capacity }) {
-				if (!empty)
-					++count;
-			}
-
-			return count;
 		}
 
 		constexpr i64 find(Key const& key) const noexcept {
@@ -541,11 +537,12 @@ int main(int, char **) {
 			for (i64 d = 0; d < capacity; ++d) {
 				auto ridx = (idx + d) & (capacity - 1);
 
-				if (is_empty(ridx) || cmp(keys[ridx], key) == 0) {
+				if (auto isEmpty = is_empty(ridx); isEmpty || cmp(keys[ridx], key) == 0) {
 					data[ridx] = std::make_tuple(false, key, values...);
 					if (ridx < firstIndex) {
 						firstIndex = ridx;
 					}
+					count += isEmpty;
 					return ridx;
 				}
 
@@ -574,6 +571,7 @@ int main(int, char **) {
 			}
 			empty[cidx] = true;
 			firstIndex = first_index();
+			--count;
 		}
 
 		constexpr void clear() noexcept {
@@ -581,6 +579,7 @@ int main(int, char **) {
 			for (auto& elem : Slice{ std::get<0>(data), capacity }) {
 				elem = true;
 			}
+			count = 0;
 			firstIndex = capacity;
 		}
 
@@ -590,6 +589,20 @@ int main(int, char **) {
 
 		constexpr Iterator end() const noexcept {
 			return Iterator{ this, std::get<0>(data), capacity };
+		}
+
+		template<typename T>
+		constexpr T const& get(Key const& key) const noexcept {
+			auto idx = find(key);
+			assert(idx != -1);
+			return std::get<T*>(data)[idx];
+		}
+
+		template<typename T>
+		constexpr T& get(Key const& key) noexcept {
+			auto idx = find(key);
+			assert(idx != -1);
+			return std::get<T*>(data)[idx];
 		}
 
 	};

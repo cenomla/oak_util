@@ -202,6 +202,13 @@ namespace oak {
 	}
 
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
+	constexpr E* pop(ArrayType *array) {
+		assert(array->count > 0);
+		--array->count;
+		return array->data + array->count;
+	}
+
+	template<typename ArrayType, typename E = typename ArrayType::ElemType>
 	constexpr E* insert(ArrayType *array, i64 const index, E const& value) noexcept {
 		if (index == -1 || index == array->count) {
 			return push(array, value);
