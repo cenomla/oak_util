@@ -98,8 +98,7 @@ namespace oak {
 
 	template<typename T>
 	constexpr void change_bit(T& value, int32_t n, bool set) noexcept {
-		auto x = -static_cast<T>(set);
-		value ^= (-x ^ value) & (T{1} << n);
+		value ^= (-static_cast<T>(set) ^ value) & (T{1} << n);
 	}
 
 	template<typename T, typename U>
