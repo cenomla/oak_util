@@ -3,6 +3,7 @@
 #include <oak_util/fmt.h>
 
 #include <cassert>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
@@ -124,16 +125,37 @@ namespace {
 		return str;
 	}
 
-	String to_str(Allocator *, char const *const v, FmtKind) {
-		return String{ v };
+	String to_str(Allocator *allocator, char const *const v, FmtKind fmtKind) {
+		return to_str(allocator, String{ v }, fmtKind);
 	}
 
-	String to_str(Allocator *, unsigned char const *const v, FmtKind) {
-		return String{ reinterpret_cast<char const *>(v) };
+	String to_str(Allocator *allocator, unsigned char const *const v, FmtKind fmtKind) {
+		return to_str(allocator, String{ reinterpret_cast<char const *>(v) }, fmtKind);
 	}
 
-	String to_str(Allocator *, String const str, FmtKind) {
-		return str;
+	String to_str(Allocator *allocator, String const str, FmtKind fmtKind) {
+		switch (fmtKind) {
+		case FmtKind::LOWER:
+			{
+				auto nstr = allocate<char>(allocator, str.count);
+				for (i64 i = 0; i < str.count; ++i)
+					nstr[i] = tolower(str[i]);
+				return String{ nstr, str.count };
+			}
+			break;
+		case FmtKind::UPPER:
+			{
+				auto nstr = allocate<char>(allocator, str.count);
+				for (i64 i = 0; i < str.count; ++i)
+					nstr[i] = toupper(str[i]);
+				return String{ nstr, str.count };
+			}
+			break;
+		case FmtKind::DEFAULT:
+		default:
+			return str;
+			break;
+		}
 	}
 
 	void FileBuffer::write(void const *data, usize size) {

@@ -17,6 +17,8 @@ namespace oak {
 		HEX,
 		HEX_CAP,
 		EXP,
+		LOWER,
+		UPPER,
 	};
 
 	struct FmtSpec {
@@ -56,6 +58,8 @@ namespace oak::detail {
 					case 'x': specs[idx++] = { FmtKind::HEX, pos, pos + 2 }; break;
 					case 'X': specs[idx++] = { FmtKind::HEX_CAP, pos, pos + 2 }; break;
 					case 'e': specs[idx++] = { FmtKind::EXP, pos, pos + 2 }; break;
+					case 'c': specs[idx++] = { FmtKind::LOWER, pos, pos + 2 }; break;
+					case 'C': specs[idx++] = { FmtKind::UPPER, pos, pos + 2 }; break;
 					default:
 						break;
 				}
