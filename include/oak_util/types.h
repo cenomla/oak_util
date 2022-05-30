@@ -220,6 +220,10 @@ namespace oak {
 		template<typename ... Args>
 		constexpr Array(Args && ... args) noexcept
 			: data{ std::forward<Args>(args) ... }, count{ sizeof...(args) } {}
+		template<typename U>
+		constexpr Array(Slice<U> slice) noexcept : count{ slice.count < capacity ? slice.count : capacity } {
+			std::memcpy(data, slice.data, count * sizeof(T));
+		}
 
 		constexpr T* begin() noexcept {
 			return data;
