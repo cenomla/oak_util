@@ -270,7 +270,7 @@ namespace oak {
 		return count;
 	}
 
-	struct _reflect(primitive) String : Slice<char const> {
+	struct _reflect() String : Slice<char const> {
 		using Slice<char const>::Slice;
 
 		constexpr String(char const* str) noexcept : Slice{ str, c_str_len(str) } {}
