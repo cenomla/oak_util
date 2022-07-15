@@ -33,13 +33,13 @@ namespace oak::detail {
 	void fmt_impl(Buffer&& buffer, String fmtStr, String const *strings, FmtSpec const *specs, i64 count) {
 		i64 pos = 0;
 		for (i32 i = 0; i < count; ++i) {
-			if (auto const slice = sub_slice(fmtStr, pos, specs[i].start); slice.count > 0) {
+			if (auto const slice = sub_slice(slc(fmtStr), pos, specs[i].start); slice.count > 0) {
 				buffer.write(slice.data, slice.count);
 			}
 			buffer.write(strings[i].data, strings[i].count);
 			pos = specs[i].end;
 		}
-		if (auto const slice = sub_slice(fmtStr, pos); slice.count > 0) {
+		if (auto const slice = sub_slice(slc(fmtStr), pos); slice.count > 0) {
 			buffer.write(slice.data, slice.count);
 		}
 	}
@@ -48,7 +48,7 @@ namespace oak::detail {
 		i64 idx = 0, start = 0;
 		// Fill the specs array with fmt specifiers based off of the %<FMT> syntax
 		while (idx < specCount && start < fmtStr.count) {
-			auto pos = find(fmtStr, '%', start);
+			auto pos = find(slc(fmtStr), '%', start);
 			if (pos != -1 && pos + 1 < fmtStr.count) {
 				switch (fmtStr[pos + 1]) {
 					case 'g': specs[idx++] = { FmtKind::DEFAULT, pos, pos + 2 }; break;
@@ -192,4 +192,3 @@ namespace oak {
 	}
 
 }
-

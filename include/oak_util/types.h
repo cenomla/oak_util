@@ -91,11 +91,9 @@ namespace oak {
 		i64 count = 0;
 
 		constexpr Slice() noexcept = default;
-		constexpr Slice(T *data_, i64 count_) noexcept
-			: data{ data_ }, count{ count_ } {}
+		constexpr Slice(T *data_, i64 count_) noexcept : data{ data_ }, count{ count_ } {}
 		template<int C>
-		constexpr Slice(T (&array)[C]) noexcept
-			: data{ array }, count{ C } {}
+		constexpr Slice(T (&array)[C]) noexcept : data{ array }, count{ C } {}
 
 		constexpr T* begin() noexcept {
 			return data;
@@ -129,21 +127,22 @@ namespace oak {
 	};
 
 	template<typename type>
-	constexpr bool operator==(Slice<type> const& lhs, Slice<type> const rhs) noexcept {
-		if (lhs.count != rhs.count) { return false; }
-		if (lhs.data == rhs.data) { return true; }
+	constexpr bool operator==(Slice<type> const lhs, Slice<type> const rhs) noexcept {
+		if (lhs.count != rhs.count)
+			return false;
+		if (lhs.data == rhs.data)
+			return true;
 
 		for (i64 i = 0; i < lhs.count; ++i) {
-			if (lhs[i] != rhs[i]) {
+			if (lhs[i] != rhs[i])
 				return false;
-			}
 		}
 
 		return true;
 	}
 
 	template<typename T>
-	constexpr bool operator!=(Slice<T> const& lhs, Slice<T> const& rhs) noexcept {
+	constexpr bool operator!=(Slice<T> const lhs, Slice<T> const rhs) noexcept {
 		return !operator==(lhs, rhs);
 	}
 
@@ -251,7 +250,7 @@ namespace oak {
 			return data[idx];
 		}
 
-		constexpr operator Slice<T const>() const noexcept {
+		constexpr operator Slice<ElemType const>() const noexcept {
 			return Slice<T const>{ data, count };
 		}
 
@@ -270,27 +269,68 @@ namespace oak {
 		return count;
 	}
 
-	struct _reflect() String : Slice<char const> {
-		using Slice<char const>::Slice;
+	struct _reflect(array) String {
 
-		constexpr String(char const* str) noexcept : Slice{ str, c_str_len(str) } {}
+		using ElemType = char const;
 
-		constexpr String(Slice<char const> const other) noexcept : Slice{ other } {}
-		constexpr String(Slice<char> const other) noexcept : Slice{ other.data, other.count } {}
+		_reflect() char const *data = nullptr;
+		_reflect() i64 count = 0;
+
+		constexpr String() noexcept = default;
+		constexpr String(char const *data_, i64 count_) noexcept : data{ data_ }, count{ count_ } {}
+		constexpr String(char const* str) noexcept : data{ str }, count{ c_str_len(str) } {}
+
+		constexpr String(Slice<char> other) noexcept : data{ other.data }, count{ other.count } {}
+		constexpr String(Slice<char const> other) noexcept : data{ other.data }, count{ other.count } {}
 
 		// TODO: Making these constexpr in c++20 should be allowed
-		String(Slice<unsigned char const> const other) noexcept
-			: Slice{ reinterpret_cast<char const*>(other.data), other.count } {}
-		String(Slice<unsigned char> const other) noexcept
-			: Slice{ reinterpret_cast<char*>(other.data), other.count } {}
+		String(Slice<unsigned char> other) noexcept
+			: data{ reinterpret_cast<char*>(other.data) }, count{ other.count } {}
+		String(Slice<unsigned char const> other) noexcept
+			: data{ reinterpret_cast<char const*>(other.data) }, count{ other.count } {}
+
+		constexpr char const* begin() const noexcept {
+			return data;
+		}
+
+		constexpr char const* end() const noexcept {
+			return data + count;
+		}
+
+		constexpr char const& operator[](i64 const idx) const noexcept {
+			assert(0 <= idx && idx < count);
+			return data[idx];
+		}
+
+		constexpr operator Slice<char const>() const noexcept {
+			return Slice<char const>{ data, count };
+		}
 
 	};
 
-	constexpr bool operator==(String const& lhs, char const *rhs) noexcept {
+	constexpr bool operator==(String const lhs, String const rhs) noexcept {
+		if (lhs.count != rhs.count)
+			return false;
+		if (lhs.data == rhs.data)
+			return true;
+
+		for (i64 i = 0; i < lhs.count; ++i) {
+			if (lhs[i] != rhs[i])
+				return false;
+		}
+
+		return true;
+	}
+
+	constexpr bool operator!=(String const lhs, String const rhs) noexcept {
+		return !operator==(lhs, rhs);
+	}
+
+	constexpr bool operator==(String const lhs, char const *rhs) noexcept {
 		return lhs == String{ rhs };
 	}
 
-	constexpr bool operator!=(String const& lhs, char const *rhs) noexcept {
+	constexpr bool operator!=(String const lhs, char const *rhs) noexcept {
 		return !(lhs == String{ rhs });
 	}
 
@@ -368,7 +408,7 @@ namespace oak {
 #define SCOPE_EXIT(x) oak::ScopeExit MACRO_CAT(_oak_scope_exit_, __LINE__){ [&](){ (x); }}
 
 	template<typename T>
-	constexpr auto enum_int(T val) noexcept {
+	constexpr auto eni(T val) noexcept {
 		if constexpr (std::is_enum_v<T>) {
 			return static_cast<std::underlying_type_t<T>>(val);
 		} else {
@@ -376,8 +416,14 @@ namespace oak {
 		}
 	}
 
+
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
-	constexpr Slice<E> as_slice(ArrayType& array) noexcept {
+	constexpr Slice<E> slc(ArrayType& array) noexcept {
+		return static_cast<Slice<E>>(array);
+	}
+
+	template<typename ArrayType, typename E = typename ArrayType::ElemType>
+	constexpr Slice<E> slc(ArrayType&& array) noexcept {
 		return static_cast<Slice<E>>(array);
 	}
 
