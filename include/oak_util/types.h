@@ -28,24 +28,27 @@ using b32 = uint32_t;
 
 using byte = unsigned char;
 
+#ifdef _MSC_VER
+
 #ifdef OAK_UTIL_DYNAMIC_LIB
 
-#define OAK_ENGINE_API
-#ifdef _MSC_VER
 #ifdef OAK_UTIL_EXPORT_SYMBOLS
 #define OAK_UTIL_API __declspec(dllexport)
 #else
 #define OAK_UTIL_API __declspec(dllimport)
 #endif // OAK_UTIL_EXPORT_SYMBOLS
-#else
-#define OAK_UTIL_API
-#endif // _MSC_VER
 
 #else
 
 #define OAK_UTIL_API
 
 #endif // OAK_UTIL_DYNAMIC_LIB
+
+#else
+
+#define OAK_UTIL_API __attribute__((visibility("default")))
+
+#endif // _MSC_VER
 
 #if !(defined(__GNUG__) || defined(_MSC_VER))
 // Some stdlib implementations treat uint64_t and size_t as different types so we override in that case,
