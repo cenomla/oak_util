@@ -185,7 +185,7 @@ namespace oak {
 	}
 
 	template<typename... TArgs>
-	String fmt(Allocator *allocator, String fmtStr, TArgs&&... args) {
+	[[nodiscard]] String fmt(Allocator *allocator, String fmtStr, TArgs&&... args) {
 		Slice<char> string;
 		buffer_fmt(StringBuffer{ allocator, &string }, fmtStr, std::forward<TArgs>(args)...);
 		return string;
