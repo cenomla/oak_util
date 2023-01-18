@@ -193,6 +193,14 @@ namespace oak {
 	}
 
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
+	constexpr E* try_push(ArrayType *array, E const& value) {
+		if (array->count >= array->capacity)
+			return nullptr;
+		array->data[array->count++] = value;
+		return array->data + array->count - 1;
+	}
+
+	template<typename ArrayType, typename E = typename ArrayType::ElemType>
 	constexpr E* push_grow(ArrayType *array, Allocator *allocator, E const& value) {
 		if (array->count == array->capacity) {
 			array->reserve(allocator, array->capacity == 0 ? 4 : array->capacity * 2);
