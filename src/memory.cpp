@@ -101,7 +101,7 @@ namespace oak {
 		auto header = static_cast<LinearArenaHeader*>(arena->block);
 
 		auto usedMemory = atomic_load(&header->usedMemory);
-		i64 offset, nUsedMemory;
+		u64 offset, nUsedMemory;
 
 		do {
 			offset = align(usedMemory + size, alignment);
@@ -118,6 +118,12 @@ namespace oak {
 		}
 
 		return nullptr;
+	}
+
+	void free_from_linear_arena(MemoryArena *arena, void *ptr, u64 size) {
+	}
+
+	void free_from_atomic_linear_arena(MemoryArena *arena, void *ptr, u64 size) {
 	}
 
 	Result copy_linear_arena(MemoryArena *const dst, MemoryArena *const src) {

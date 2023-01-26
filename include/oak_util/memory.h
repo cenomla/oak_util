@@ -49,17 +49,11 @@ namespace oak {
 		void (*freeFn)(MemoryArena *self, void *ptr, u64 size) = nullptr;
 
 		void* allocate(u64 size, u64 alignment) {
-			if (allocFn) {
-				return (*allocFn)(arena, size, alignment);
-			} else {
-				return nullptr;
-			}
+			return (*allocFn)(arena, size, alignment);
 		}
 
 		void deallocate(void *ptr, u64 size) {
-			if (freeFn) {
-				(*freeFn)(arena, ptr, size);
-			}
+			(*freeFn)(arena, ptr, size);
 		}
 	};
 
@@ -68,6 +62,8 @@ namespace oak {
 	OAK_UTIL_API Result init_atomic_linear_arena(MemoryArena *arena, Allocator *allocator, u64 size);
 	OAK_UTIL_API void* allocate_from_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
 	OAK_UTIL_API void* allocate_from_atomic_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
+	OAK_UTIL_API void free_from_linear_arena(MemoryArena *arena, void *ptr, u64 size);
+	OAK_UTIL_API void free_from_atomic_linear_arena(MemoryArena *arena, void *ptr, u64 size);
 	OAK_UTIL_API Result copy_linear_arena(MemoryArena *dst, MemoryArena *src);
 	OAK_UTIL_API Result copy_atomic_linear_arena(MemoryArena *dst, MemoryArena *src);
 	OAK_UTIL_API void clear_linear_arena(MemoryArena *arena);
