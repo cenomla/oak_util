@@ -111,7 +111,7 @@ namespace oak {
 
 		if (nUsedMemory <= arena->size) {
 			// If there was enough room for this allocation
-			atomic_fetch_add(&header->allocationCount, 1ll);
+			atomic_fetch_add(&header->allocationCount, u64{1});
 			atomic_fetch_add(&header->requestedMemory, size);
 
 			return add_ptr(arena->block, offset);
