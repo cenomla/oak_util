@@ -273,9 +273,17 @@ namespace oak {
 	template<typename T, typename V>
 	constexpr i64 find(Slice<T> const slice, V const& value, i64 const start = 0) noexcept {
 		for (i64 i = start; i < slice.count; ++i) {
-			if (slice[i] == value) {
+			if (slice[i] == value)
 				return i;
-			}
+		}
+		return -1;
+	}
+
+	template<typename T, typename Functor>
+	constexpr i64 find_pred(Slice<T> const slice, Functor&& predFn, i64 const start = 0) noexcept {
+		for (i64 i = start; i < slice.count; ++i) {
+			if (predFn(slice[i]))
+				return i;
 		}
 		return -1;
 	}
