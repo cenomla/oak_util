@@ -64,7 +64,7 @@ namespace {
 		auto base = choose_base(fmtKind);
 		auto letter = fmtKind == FmtKind::HEX_CAP ? 'A' : 'a';
 		auto str = allocate<char>(allocator, 66 + precision);
-		int idx = 0;
+		i64 idx = 0;
 		do {
 			auto c = static_cast<char>(v % base);
 			str[idx++] = c > 9 ? letter + c - 10 : '0' + c;
@@ -72,7 +72,7 @@ namespace {
 		} while (v > 0);
 
 		for (; idx < precision; ++idx)
-			str[idx++] = '0';
+			str[idx] = '0';
 
 		Slice<char> string{ str, idx };
 		reverse(string);
@@ -98,7 +98,7 @@ namespace {
 			neg = true;
 			v = -v;
 		}
-		int idx = 0;
+		i64 idx = 0;
 		do {
 			auto c = static_cast<char>(v % base);
 			str[idx++] = c > 9 ? letter + c - 10 : '0' + c;
@@ -106,7 +106,7 @@ namespace {
 		} while (v > 0);
 
 		for (; idx < precision; ++idx)
-			str[idx++] = '0';
+			str[idx] = '0';
 
 		if (neg) {
 			str[idx++] = '-';
