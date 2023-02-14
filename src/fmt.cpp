@@ -120,12 +120,6 @@ namespace {
 	String to_str(Allocator *allocator, f32 v, FmtKind fmtKind, i32 precision) {
 		constexpr usize bufSize = 32;
 		auto str = make<char>(allocator, bufSize);
-		if (precision == -1) {
-			switch (fmtKind) {
-			case FmtKind::DEFAULT: precision = 31; break;
-			default: precision = 6;
-			}
-		}
 		std::snprintf(
 				str, bufSize, choose_snprintf_float_fmt_string(fmtKind), precision, v);
 		return str;
@@ -134,12 +128,6 @@ namespace {
 	String to_str(Allocator *allocator, f64 v, FmtKind fmtKind, i32 precision) {
 		constexpr usize bufSize = 32;
 		auto str = make<char>(allocator, bufSize);
-		if (precision == -1) {
-			switch (fmtKind) {
-			case FmtKind::DEFAULT: precision = 31; break;
-			default: precision = 6;
-			}
-		}
 		std::snprintf(
 				str, bufSize, choose_snprintf_double_fmt_string(fmtKind), precision, v);
 		return str;
