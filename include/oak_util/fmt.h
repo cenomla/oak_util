@@ -19,11 +19,13 @@ namespace oak {
 		EXP,
 		LOWER,
 		UPPER,
+		INVALID,
 	};
 
 	struct FmtSpec {
 		FmtKind kind;
 		i64 start, end;
+		i32 precision;
 	};
 }
 
@@ -44,26 +46,65 @@ namespace oak::detail {
 		}
 	}
 
-	inline void fmt_get_spec(String fmtStr, FmtSpec *specs, i64 specCount) {
+	constexpr i32 parse_fmt_precision(String fmtStr, i64 *pos) {
+		i32 precision = 0;
+		++*pos;
+		for (; *pos < fmtStr.count; ++*pos) {
+			switch (fmtStr[*pos]) {
+			case '0': precision *= 10; precision += 0; break;
+			case '1': precision *= 10; precision += 1; break;
+			case '2': precision *= 10; precision += 2; break;
+			case '3': precision *= 10; precision += 3; break;
+			case '4': precision *= 10; precision += 4; break;
+			case '5': precision *= 10; precision += 5; break;
+			case '6': precision *= 10; precision += 6; break;
+			case '7': precision *= 10; precision += 7; break;
+			case '8': precision *= 10; precision += 8; break;
+			case '9': precision *= 10; precision += 9; break;
+			default: --*pos; return precision;
+			}
+		}
+		return precision;
+	}
+
+	constexpr bool parse_fmt_spec(FmtSpec *fmtSpec, String fmtStr, i64 *pos) {
+		i64 start = *pos;
+		FmtKind fmtKind = FmtKind::INVALID;
+		i32 precision = -1;
+
+		++*pos;
+		for (; *pos < fmtStr.count && fmtKind == FmtKind::INVALID; ++*pos) {
+			switch (fmtStr[*pos]) {
+			case 'g': fmtKind = FmtKind::DEFAULT; break;
+			case 'b': fmtKind = FmtKind::BIN; break;
+			case 'o': fmtKind = FmtKind::OCT; break;
+			case 'd': fmtKind = FmtKind::DEC; break;
+			case 'x': fmtKind = FmtKind::HEX; break;
+			case 'X': fmtKind = FmtKind::HEX_CAP; break;
+			case 'e': fmtKind = FmtKind::EXP; break;
+			case 'c': fmtKind = FmtKind::LOWER; break;
+			case 'C': fmtKind = FmtKind::UPPER; break;
+			case '.': precision = parse_fmt_precision(fmtStr, pos); break;
+			default: return false;
+			}
+		}
+
+		if (fmtKind == FmtKind::INVALID)
+			return false;
+
+		*fmtSpec = { fmtKind, start, *pos, precision };
+		return true;
+	}
+
+	constexpr void fmt_get_spec(String fmtStr, FmtSpec *specs, i64 specCount) {
 		i64 idx = 0, start = 0;
 		// Fill the specs array with fmt specifiers based off of the %<FMT> syntax
 		while (idx < specCount && start < fmtStr.count) {
 			auto pos = find(slc(fmtStr), '%', start);
-			if (pos != -1 && pos + 1 < fmtStr.count) {
-				switch (fmtStr[pos + 1]) {
-					case 'g': specs[idx++] = { FmtKind::DEFAULT, pos, pos + 2 }; break;
-					case 'b': specs[idx++] = { FmtKind::BIN, pos, pos + 2 }; break;
-					case 'o': specs[idx++] = { FmtKind::OCT, pos, pos + 2 }; break;
-					case 'd': specs[idx++] = { FmtKind::DEC, pos, pos + 2 }; break;
-					case 'x': specs[idx++] = { FmtKind::HEX, pos, pos + 2 }; break;
-					case 'X': specs[idx++] = { FmtKind::HEX_CAP, pos, pos + 2 }; break;
-					case 'e': specs[idx++] = { FmtKind::EXP, pos, pos + 2 }; break;
-					case 'c': specs[idx++] = { FmtKind::LOWER, pos, pos + 2 }; break;
-					case 'C': specs[idx++] = { FmtKind::UPPER, pos, pos + 2 }; break;
-					default:
-						break;
-				}
-				start = pos + 2;
+			if (pos != -1) {
+				if (FmtSpec spec{}; parse_fmt_spec(&spec, fmtStr, &pos))
+					specs[idx++] = spec;
+				start = pos;
 			} else {
 				start = fmtStr.count;
 			}
@@ -72,32 +113,47 @@ namespace oak::detail {
 	}
 
 	template<typename... TArgs, usize... Is>
-	void fmt_get_strings(
+	constexpr void fmt_get_strings(
 			Allocator *allocator,
 			String *strings,
 			FmtSpec *fmtSpecs,
 			std::index_sequence<Is...>,
 			TArgs&&... args) {
-		((strings[Is] = to_str(allocator, std::forward<TArgs>(args), fmtSpecs[Is].kind)), ...);
+		((strings[Is] = to_str(
+							   allocator,
+							   std::forward<TArgs>(args),
+							   fmtSpecs[Is].kind,
+							   fmtSpecs[Is].precision)), ...);
 	}
 
 }
 
 namespace oak {
 
-	OAK_UTIL_API String to_str(Allocator *allocator, char v, FmtKind = FmtKind::DEFAULT);
-	OAK_UTIL_API String to_str(Allocator *allocator, u32 v, FmtKind = FmtKind::DEFAULT);
-	OAK_UTIL_API String to_str(Allocator *allocator, u64 v, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(
+			Allocator *allocator, char v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
+	OAK_UTIL_API String to_str(
+			Allocator *allocator, u32 v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
+	OAK_UTIL_API String to_str(
+			Allocator *allocator, u64 v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
 #ifdef USIZE_OVERRIDE_NEEDED
-	OAK_UTIL_API String to_str(Allocator *allocator, usize v, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(
+			Allocator *allocator, usize v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
 #endif
-	OAK_UTIL_API String to_str(Allocator *allocator, i32 v, FmtKind = FmtKind::DEFAULT);
-	OAK_UTIL_API String to_str(Allocator *allocator, i64 v, FmtKind = FmtKind::DEFAULT);
-	OAK_UTIL_API String to_str(Allocator *allocator, f32 v, FmtKind = FmtKind::DEFAULT);
-	OAK_UTIL_API String to_str(Allocator *allocator, f64 v, FmtKind = FmtKind::DEFAULT);
-	OAK_UTIL_API String to_str(Allocator *allocator, char const *v, FmtKind = FmtKind::DEFAULT);
-	OAK_UTIL_API String to_str(Allocator *allocator, unsigned char const *v, FmtKind = FmtKind::DEFAULT);
-	OAK_UTIL_API String to_str(Allocator *allocator, String str, FmtKind = FmtKind::DEFAULT);
+	OAK_UTIL_API String to_str(
+			Allocator *allocator, i32 v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
+	OAK_UTIL_API String to_str(
+			Allocator *allocator, i64 v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
+	OAK_UTIL_API String to_str(
+			Allocator *allocator, f32 v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
+	OAK_UTIL_API String to_str(
+			Allocator *allocator, f64 v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
+	OAK_UTIL_API String to_str(
+			Allocator *allocator, char const *v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
+	OAK_UTIL_API String to_str(
+			Allocator *allocator, unsigned char const *v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
+	OAK_UTIL_API String to_str(
+			Allocator *allocator, String str, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
 
 	template<typename T>
 	struct HasResizeMethod {
@@ -147,9 +203,8 @@ namespace oak {
 	void buffer_fmt(Buffer&& buffer, String fmtStr, TArgs&&... args) {
 		constexpr auto hasResize = HasResizeMethod<std::decay_t<Buffer>>::value;
 		if constexpr (sizeof...(args) > 0) {
-			// Since arrays of size zero arent supported just add one to the size of args and keep an empty string at the end
-			FmtSpec fmtSpecs[sizeof...(args)];
-			String argStrings[sizeof...(args)];
+			FmtSpec fmtSpecs[sizeof...(args)]{};
+			String argStrings[sizeof...(args)]{};
 			detail::fmt_get_spec(fmtStr, fmtSpecs, sizeof...(args));
 			detail::fmt_get_strings(
 					temporaryAllocator,
@@ -161,10 +216,12 @@ namespace oak {
 			// If we have control over the buffer size make sure it is of valid size
 			if constexpr(hasResize) {
 				u64 totalSize = fmtStr.count;
+				for (auto fmtSpec : fmtSpecs) {
+					totalSize -= (fmtSpec.end - fmtSpec.start);
+				}
 				for (auto str : argStrings) {
 					totalSize += str.count;
 				}
-				totalSize -= sizeof...(args) * 2;
 				buffer.resize(totalSize);
 			}
 			detail::fmt_impl(std::forward<Buffer>(buffer), fmtStr, argStrings, fmtSpecs, sizeof...(args));

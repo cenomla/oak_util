@@ -11,7 +11,7 @@
 namespace oak {
 
 namespace {
-	i64 choose_base(FmtKind const fmtKind) noexcept {
+	i64 choose_base(FmtKind fmtKind) noexcept {
 		i64 base;
 		switch (fmtKind) {
 			case FmtKind::BIN: base = 2; break;
@@ -22,26 +22,26 @@ namespace {
 		return base;
 	}
 
-	char const* choose_snprintf_float_fmt_string(FmtKind const fmtKind) noexcept {
+	char const* choose_snprintf_float_fmt_string(FmtKind fmtKind) noexcept {
 		char const* str;
 		switch (fmtKind) {
-			case FmtKind::DEFAULT: case FmtKind::DEC: str = "%g"; break;
-			case FmtKind::HEX: str = "%a"; break;
-			case FmtKind::HEX_CAP: str = "%A"; break;
-			case FmtKind::EXP: str = "%e"; break;
+			case FmtKind::DEFAULT: case FmtKind::DEC: str = "%.*g"; break;
+			case FmtKind::HEX: str = "%.*a"; break;
+			case FmtKind::HEX_CAP: str = "%.*A"; break;
+			case FmtKind::EXP: str = "%.*e"; break;
 			default: str = ""; break;
 		}
 
 		return str;
 	}
 
-	char const* choose_snprintf_double_fmt_string(FmtKind const fmtKind) noexcept {
+	char const* choose_snprintf_double_fmt_string(FmtKind fmtKind) noexcept {
 		char const* str;
 		switch (fmtKind) {
-			case FmtKind::DEFAULT: case FmtKind::DEC: str = "%lg"; break;
-			case FmtKind::HEX: str = "%la"; break;
-			case FmtKind::HEX_CAP: str = "%lA"; break;
-			case FmtKind::EXP: str = "%le"; break;
+			case FmtKind::DEFAULT: case FmtKind::DEC: str = "%.*lg"; break;
+			case FmtKind::HEX: str = "%.*la"; break;
+			case FmtKind::HEX_CAP: str = "%.*lA"; break;
+			case FmtKind::EXP: str = "%.*le"; break;
 			default: str = ""; break;
 		}
 
@@ -50,20 +50,20 @@ namespace {
 
 }
 
-	String to_str(Allocator *const allocator, char const v, FmtKind) {
+	String to_str(Allocator *allocator, char v, FmtKind, i32) {
 		auto str = allocate<char>(allocator, 1);
 		str[0] = v;
 		return String{ str, 1 };
 	}
 
-	String to_str(Allocator *const allocator, u32 const v, FmtKind const fmtKind) {
-		return to_str(allocator, static_cast<u64>(v), fmtKind);
+	String to_str(Allocator *allocator, u32 v, FmtKind fmtKind, i32 precision) {
+		return to_str(allocator, static_cast<u64>(v), fmtKind, precision);
 	}
 
-	String to_str(Allocator *const allocator, u64 v, FmtKind const fmtKind) {
+	String to_str(Allocator *allocator, u64 v, FmtKind fmtKind, i32 precision) {
 		auto base = choose_base(fmtKind);
 		auto letter = fmtKind == FmtKind::HEX_CAP ? 'A' : 'a';
-		auto str = allocate<char>(allocator, 66);
+		auto str = allocate<char>(allocator, 66 + precision);
 		int idx = 0;
 		do {
 			auto c = static_cast<char>(v % base);
@@ -71,22 +71,25 @@ namespace {
 			v /= base;
 		} while (v > 0);
 
+		for (; idx < precision; ++idx)
+			str[idx++] = '0';
+
 		Slice<char> string{ str, idx };
 		reverse(string);
 		return string;
 	}
 
 #ifdef USIZE_OVERRIDE_NEEDED
-	String to_str(Allocator *const allocator, usize v, FmtKind const fmtKind) {
-		return to_str(allocator, static_cast<u64>(v), fmtKind);
+	String to_str(Allocator *allocator, usize v, FmtKind fmtKind, i32 precision) {
+		return to_str(allocator, static_cast<u64>(v), fmtKind, precision);
 	}
 #endif
 
-	String to_str(Allocator *const allocator, i32 const v, FmtKind const fmtKind) {
-		return to_str(allocator, static_cast<i64>(v), fmtKind);
+	String to_str(Allocator *allocator, i32 v, FmtKind fmtKind, i32 precision) {
+		return to_str(allocator, static_cast<i64>(v), fmtKind, precision);
 	}
 
-	String to_str(Allocator *const allocator, i64 v, FmtKind const fmtKind) {
+	String to_str(Allocator *allocator, i64 v, FmtKind fmtKind, i32 precision) {
 		auto base = choose_base(fmtKind);
 		auto letter = fmtKind == FmtKind::HEX_CAP ? 'A' : 'a';
 		auto str = allocate<char>(allocator, 66);
@@ -102,6 +105,9 @@ namespace {
 			v /= base;
 		} while (v > 0);
 
+		for (; idx < precision; ++idx)
+			str[idx++] = '0';
+
 		if (neg) {
 			str[idx++] = '-';
 		}
@@ -111,29 +117,43 @@ namespace {
 		return string;
 	}
 
-	String to_str(Allocator *const allocator, f32 const v, FmtKind const fmtKind) {
+	String to_str(Allocator *allocator, f32 v, FmtKind fmtKind, i32 precision) {
 		constexpr usize bufSize = 32;
 		auto str = make<char>(allocator, bufSize);
-		std::snprintf(str, bufSize, choose_snprintf_float_fmt_string(fmtKind), v);
+		if (precision == -1) {
+			switch (fmtKind) {
+			case FmtKind::DEFAULT: precision = 31; break;
+			default: precision = 6;
+			}
+		}
+		std::snprintf(
+				str, bufSize, choose_snprintf_float_fmt_string(fmtKind), precision, v);
 		return str;
 	}
 
-	String to_str(Allocator *const allocator, f64 const v, FmtKind const fmtKind) {
+	String to_str(Allocator *allocator, f64 v, FmtKind fmtKind, i32 precision) {
 		constexpr usize bufSize = 32;
 		auto str = make<char>(allocator, bufSize);
-		std::snprintf(str, bufSize, choose_snprintf_double_fmt_string(fmtKind), v);
+		if (precision == -1) {
+			switch (fmtKind) {
+			case FmtKind::DEFAULT: precision = 31; break;
+			default: precision = 6;
+			}
+		}
+		std::snprintf(
+				str, bufSize, choose_snprintf_double_fmt_string(fmtKind), precision, v);
 		return str;
 	}
 
-	String to_str(Allocator *allocator, char const *const v, FmtKind fmtKind) {
+	String to_str(Allocator *allocator, char const *v, FmtKind fmtKind, i32) {
 		return to_str(allocator, String{ v }, fmtKind);
 	}
 
-	String to_str(Allocator *allocator, unsigned char const *const v, FmtKind fmtKind) {
+	String to_str(Allocator *allocator, unsigned char const *v, FmtKind fmtKind, i32) {
 		return to_str(allocator, String{ reinterpret_cast<char const *>(v) }, fmtKind);
 	}
 
-	String to_str(Allocator *allocator, String const str, FmtKind fmtKind) {
+	String to_str(Allocator *allocator, String str, FmtKind fmtKind, i32) {
 		switch (fmtKind) {
 		case FmtKind::LOWER:
 			{
