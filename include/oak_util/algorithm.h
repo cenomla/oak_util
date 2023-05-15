@@ -75,7 +75,9 @@ namespace oak {
 
 	template<typename T, typename F>
 	constexpr void merge_sort(Allocator *allocator, T *array, i64 arrayCount, F&& functor) noexcept {
-		if (arrayCount < 2) { return; }
+		if (arrayCount < 2)
+			return;
+
 		auto temp = allocate<T>(allocator, arrayCount);
 		std::memcpy(temp, array, arrayCount * sizeof(T));
 		detail::ms_impl_split(array, temp, 0, arrayCount, std::forward<F>(functor));
@@ -83,7 +85,9 @@ namespace oak {
 
 	template<typename T>
 	constexpr void merge_sort(Allocator *allocator, T *array, i64 arrayCount) noexcept {
-		if (arrayCount < 2) { return; }
+		if (arrayCount < 2)
+			return;
+
 		auto temp = allocate<T>(allocator, arrayCount);
 		std::memcpy(temp, array, arrayCount * sizeof(T));
 		detail::ms_impl_split(array, temp, 0, arrayCount, less<T>);
@@ -217,7 +221,7 @@ namespace oak {
 	}
 
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
-	constexpr E* insert(ArrayType *array, i64 const index, E const& value) noexcept {
+	constexpr E* insert(ArrayType *array, i64 index, E const& value) noexcept {
 		if (index == -1 || index == array->count) {
 			return push(array, value);
 		}
@@ -229,7 +233,7 @@ namespace oak {
 	}
 
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
-	constexpr E* insert_grow(ArrayType *array, Allocator *allocator, i64 const index, E const& value) noexcept {
+	constexpr E* insert_grow(ArrayType *array, Allocator *allocator, i64 index, E const& value) noexcept {
 		if (index == -1 || index == array->count) {
 			return push_grow(allocator, array, value);
 		}
@@ -243,13 +247,13 @@ namespace oak {
 	}
 
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
-	constexpr void remove(ArrayType *array, i64 const index) noexcept {
+	constexpr void remove(ArrayType *array, i64 index) noexcept {
 		assert(array->count > 0);
 		std::memmove(array->data + index, array->data + index + 1, (--array->count - index) * sizeof(E));
 	}
 
 	template<typename ArrayType>
-	constexpr void swap_and_pop(ArrayType *array, i64 const index) noexcept {
+	constexpr void swap_and_pop(ArrayType *array, i64 index) noexcept {
 		array->data[index] = array->data[--array->count];
 	}
 
@@ -271,7 +275,7 @@ namespace oak {
 	}
 
 	template<typename T, typename V>
-	constexpr i64 find(Slice<T> const slice, V const& value, i64 const start = 0) noexcept {
+	constexpr i64 find(Slice<T> slice, V const& value, i64 start = 0) noexcept {
 		for (i64 i = start; i < slice.count; ++i) {
 			if (slice[i] == value)
 				return i;
@@ -280,7 +284,7 @@ namespace oak {
 	}
 
 	template<typename T, typename Functor>
-	constexpr i64 find_pred(Slice<T> const slice, Functor&& predFn, i64 const start = 0) noexcept {
+	constexpr i64 find_pred(Slice<T> slice, Functor&& predFn, i64 start = 0) noexcept {
 		for (i64 i = start; i < slice.count; ++i) {
 			if (predFn(slice[i]))
 				return i;
@@ -289,7 +293,7 @@ namespace oak {
 	}
 
 	template<typename T>
-	constexpr i64 bfind(Slice<T> slice, T const& value, i64 const first, i64 const last) noexcept {
+	constexpr i64 bfind(Slice<T> slice, T const& value, i64 first, i64 last) noexcept {
 		assert(first >= 0 && first < slice.count);
 		assert(last >= 0 && last < slice.count);
 		assert(first <= last);
@@ -306,15 +310,17 @@ namespace oak {
 	}
 
 	template<typename T>
-	constexpr Slice<T> sub_slice(Slice<T> const slice, i64 start, i64 end = -1) noexcept {
+	constexpr Slice<T> sub_slice(Slice<T> slice, i64 start, i64 end = -1) noexcept {
 		// Bounds checking
-		if (end == -1) { end = slice.count; }
+		if (end == -1 || end > slice.count)
+			end = slice.count;
+
 		return { slice.data + start, end - start };
 	}
 
 	template<typename T>
-	constexpr i64 find_first_of(Slice<T> const slice, Slice<T> const delimeters, i64 start = 0) noexcept {
-		for (auto i = start; i < slice.count; i++) {
+	constexpr i64 find_first_of(Slice<T> slice, Slice<T> delimeters, i64 start = 0) noexcept {
+		for (i64 i = start; i < slice.count; i++) {
 			for (i64 j = 0; j < delimeters.count; j++) {
 				if (slice.data[i] == delimeters.data[j]) {
 					return i;
@@ -325,9 +331,9 @@ namespace oak {
 	}
 
 	template<typename T>
-	constexpr i64 find_first_not_of(Slice<T> const slice, Slice<T> const delimeters, i64 start = 0) noexcept {
+	constexpr i64 find_first_not_of(Slice<T> slice, Slice<T> delimeters, i64 start = 0) noexcept {
 		bool found{};
-		for (auto i = start; i < slice.count; i++) {
+		for (i64 i = start; i < slice.count; i++) {
 			found = false;
 			for (i64 j = 0; j < delimeters.count; j++) {
 				if (slice.data[i] == delimeters.data[j]) {
@@ -343,8 +349,8 @@ namespace oak {
 	}
 
 	template<typename T>
-	constexpr i64 find_last_of(Slice<T> const slice, Slice<T> const delimeters, i64 start = 0) noexcept {
-		for (auto i = slice.count; i > start; --i) {
+	constexpr i64 find_last_of(Slice<T> slice, Slice<T> delimeters, i64 start = 0) noexcept {
+		for (i64 i = slice.count; i > start; --i) {
 			for (i64 j = 0; j < delimeters.count; ++j) {
 				if (slice.data[i - 1] == delimeters.data[j]) {
 					return i - 1;
@@ -355,9 +361,11 @@ namespace oak {
 	}
 
 	template<typename T>
-	constexpr i64 find_slice(Slice<T> const slice, Slice<T> const value, i64 start = 0) noexcept {
-		if (slice.count < value.count) { return -1; }
-		for (auto i = start; i <= slice.count - value.count; i++) {
+	constexpr i64 find_slice(Slice<T> slice, Slice<T> value, i64 start = 0) noexcept {
+		if (slice.count < value.count)
+			return -1;
+
+		for (i64 i = start; i <= slice.count - value.count; i++) {
 			if (value == Slice<T>{ slice.data + i, value.count }) {
 				return i;
 			}
@@ -366,7 +374,7 @@ namespace oak {
 	}
 
 	template<typename T>
-	constexpr i64 slice_count(Slice<T> const slice, T const value, i64 start = 0) noexcept {
+	constexpr i64 slice_count(Slice<T> slice, T value, i64 start = 0) noexcept {
 		i64 count = 0;
 		for (auto i = start; i < slice.count; ++i) {
 			count += slice[i] == value;
@@ -375,9 +383,10 @@ namespace oak {
 	}
 
 	template<typename T>
-	constexpr Vector<Slice<T>> split_slice(Slice<T> const slice, Slice<T> const delimeters) noexcept {
+	constexpr Vector<Slice<T>> split_slice(
+			Allocator *allocator, Slice<T> slice, Slice<T> delimeters) noexcept {
 		Vector<Slice<T>> tokens;
-		tokens.reserve(temporaryAllocator, 32);
+		tokens.reserve(allocator, 32);
 
 		i64 first = 0, last = 0;
 
@@ -388,7 +397,7 @@ namespace oak {
 				break;
 			}
 			last = find_first_of(slice, delimeters, first);
-			push_grow(&tokens, temporaryAllocator, sub_slice(slice, first, last));
+			push_grow(&tokens, allocator, sub_slice(slice, first, last));
 
 			first = last + 1;
 		}
@@ -397,13 +406,13 @@ namespace oak {
 	}
 
 	template<typename T, typename U>
-	constexpr Slice<T> copy_slice(Allocator *allocator, Slice<U> const slice, i64 minCapacity = 0) noexcept {
+	constexpr Slice<T> copy_slice(Allocator *allocator, Slice<U> slice, i64 minCapacity = 0) noexcept {
 		Slice<T> nSlice;
 		nSlice.count = slice.count;
 		nSlice.data = allocate<T>(allocator, nSlice.count < minCapacity ? minCapacity : nSlice.count);
-		if (!nSlice.data) {
+		if (!nSlice.data)
 			return {};
-		}
+
 		for (i64 i = 0; i < nSlice.count; ++i) {
 			nSlice[i] = slice[i];
 		}
@@ -423,7 +432,7 @@ namespace oak {
 	}
 
 	template<typename T, typename U>
-	constexpr void concat_slice(Slice<T>& dst, Slice<U> const srcA, Slice<U> const srcB) noexcept {
+	constexpr void concat_slice(Slice<T>& dst, Slice<U> srcA, Slice<U> srcB) noexcept {
 		assert(srcA.count + srcB.count <= dst.count);
 		for (i64 i = 0; i < dst.count; ++i) {
 			auto const& src = i < srcA.count ? srcA[i] : srcB[i - srcA.count];
@@ -439,14 +448,14 @@ namespace oak {
 		return v;
 	}
 
-	constexpr u64 hash_combine(u64 const a, u64 const b) noexcept {
+	constexpr u64 hash_combine(u64 a, u64 b) noexcept {
 		// Combine the two hash values using a bunch of random large primes
 		return 262147 + a * 131101 + b * 65599;
 	}
 
-	OAK_UTIL_API bool is_c_str(String const str) noexcept;
-	OAK_UTIL_API char const* as_c_str(String const str) noexcept;
-	OAK_UTIL_API String copy_str(Allocator *allocator, String const str) noexcept;
+	OAK_UTIL_API bool is_c_str(String str) noexcept;
+	OAK_UTIL_API char const* as_c_str(Allocator *allocator, String str) noexcept;
+	OAK_UTIL_API String copy_str(Allocator *allocator, String str, bool isCStr = false) noexcept;
 
 }
 
