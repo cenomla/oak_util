@@ -409,6 +409,7 @@ namespace oak {
 	};
 
 #define SCOPE_EXIT(x) oak::ScopeExit MACRO_CAT(_oak_scope_exit_, __LINE__){ [&](){ (x); }}
+#define SCOPE_EXIT_BLOCK(x) oak::ScopeExit MACRO_CAT(_oak_scope_exit_, __LINE__){ [&](){ x }}
 
 	template<typename T>
 	constexpr auto eni(T val) noexcept {
