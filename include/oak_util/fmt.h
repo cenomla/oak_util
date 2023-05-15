@@ -155,6 +155,19 @@ namespace oak {
 	OAK_UTIL_API String to_str(
 			Allocator *allocator, String str, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
 
+	OAK_UTIL_API i32 from_str(char *v, String str);
+	OAK_UTIL_API i32 from_str(u8 *v, String str);
+	OAK_UTIL_API i32 from_str(u16 *v, String str);
+	OAK_UTIL_API i32 from_str(u32 *v, String str);
+	OAK_UTIL_API i32 from_str(u64 *v, String str);
+	OAK_UTIL_API i32 from_str(i8 *v, String str);
+	OAK_UTIL_API i32 from_str(i16 *v, String str);
+	OAK_UTIL_API i32 from_str(i32 *v, String str);
+	OAK_UTIL_API i32 from_str(i64 *v, String str);
+	OAK_UTIL_API i32 from_str(f32 *v, String str);
+	OAK_UTIL_API i32 from_str(f64 *v, String str);
+	OAK_UTIL_API i32 from_str(String *v, String str);
+
 	template<typename T>
 	struct HasResizeMethod {
 		template<typename U, void (U::*)(u64)> struct SFINAE {};

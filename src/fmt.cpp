@@ -166,6 +166,118 @@ namespace {
 		}
 	}
 
+	i32 from_str(char *v, String str) {
+		if (!str.count)
+			return -1;
+		*v = str[0];
+		return 1;
+	}
+
+	i32 from_str(u8 *v, String str) {
+		TMP_ALLOC(66);
+
+		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
+		char *end;
+		*v = static_cast<u8>(std::strtoul(cstr, &end, 0));
+
+		return end - cstr;
+	}
+
+	i32 from_str(u16 *v, String str) {
+		TMP_ALLOC(66);
+
+		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
+		char *end;
+		*v = static_cast<u16>(std::strtoul(cstr, &end, 0));
+
+		return end - cstr;
+	}
+
+	i32 from_str(u32 *v, String str) {
+		TMP_ALLOC(66);
+
+		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
+		char *end;
+		*v = std::strtoul(cstr, &end, 0);
+
+		return end - cstr;
+	}
+
+	i32 from_str(u64 *v, String str) {
+		TMP_ALLOC(66);
+
+		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
+		char *end;
+		*v = std::strtoull(cstr, &end, 0);
+
+		return end - cstr;
+	}
+
+	i32 from_str(i8 *v, String str) {
+		TMP_ALLOC(66);
+
+		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
+		char *end;
+		*v = static_cast<i8>(std::strtol(cstr, &end, 0));
+
+		return end - cstr;
+	}
+
+	i32 from_str(i16 *v, String str) {
+		TMP_ALLOC(66);
+
+		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
+		char *end;
+		*v = static_cast<i16>(std::strtol(cstr, &end, 0));
+
+		return end - cstr;
+	}
+
+	i32 from_str(i32 *v, String str) {
+		TMP_ALLOC(66);
+
+		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
+		char *end;
+		*v = std::strtol(cstr, &end, 0);
+
+		return end - cstr;
+	}
+
+	i32 from_str(i64 *v, String str) {
+		TMP_ALLOC(66);
+
+		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
+		char *end;
+		*v = std::strtoll(cstr, &end, 0);
+
+		return end - cstr;
+	}
+
+	i32 from_str(f32 *v, String str) {
+		TMP_ALLOC(32);
+
+		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 32));
+		char *end;
+		*v = std::strtof(cstr, &end);
+
+		return end - cstr;
+	}
+
+	i32 from_str(f64 *v, String str) {
+		TMP_ALLOC(32);
+
+		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 32));
+		char *end;
+		*v = std::strtod(cstr, &end);
+
+		return end - cstr;
+	}
+
+	i32 from_str(String *v, String str) {
+		*v = str;
+		return str.count;
+	}
+
 	void FileBuffer::write(void const *data, usize size) {
 		std::fwrite(data, 1, size, file);
 		std::fflush(file);
