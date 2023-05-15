@@ -19,6 +19,27 @@ namespace oak {
 		void *next;
 	};
 
+	struct MTHeapBlockHeader {
+		MTHeapBlockHeader *next = nullptr;
+		u64 allocationCount = 0;
+		u64 requestedMemory = 0;
+		u64 usedMemory = 0;
+	};
+
+	struct MTHeapArenaHeader {
+		Allocator *allocator = nullptr;
+		u64 blockSize = 0;
+
+		u64 totalAllocationCount = 0;
+		u64 totalRequestedMemory = 0;
+		u64 totalUsedMemory = 0;
+		u64 usedBlocks = 0;
+		u64 totalBlocks = 0;
+
+		alignas(64) i32 _lock = 0;
+		MTHeapBlockHeader *freeHeapList = nullptr;
+	};
+
 	struct RingArenaHeader {
 		u32 offset;
 		u64 allocationCount;
@@ -68,6 +89,11 @@ namespace oak {
 	OAK_UTIL_API Result copy_atomic_linear_arena(MemoryArena *dst, MemoryArena *src);
 	OAK_UTIL_API void clear_linear_arena(MemoryArena *arena);
 	OAK_UTIL_API void clear_atomic_linear_arena(MemoryArena *arena);
+
+	OAK_UTIL_API i32 init_heap_linear_arena(MemoryArena *arena, Allocator *allocator, u64 blockSize);
+	OAK_UTIL_API void* allocate_from_heap_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
+	OAK_UTIL_API void free_from_heap_linear_arena(MemoryArena *arena, void *ptr, u64 size);
+	OAK_UTIL_API void clear_heap_linear_arena(MemoryArena *arena);
 
 	OAK_UTIL_API Result init_ring_arena(MemoryArena *arena, Allocator *allocator, u64 size);
 	OAK_UTIL_API void* allocate_from_ring_arena(MemoryArena *arena, u64 size, u64 alignment);
@@ -141,6 +167,12 @@ namespace oak {
 
 	OAK_UTIL_API extern Allocator* globalAllocator;
 	OAK_UTIL_API extern Allocator* temporaryAllocator;
+
+	#define TMP_ALLOC(size)\
+		u8 tmpMemory[sizeof(LinearArenaHeader) + size];\
+		MemoryArena tmpArena;\
+		Allocator tmpAlloc{ &tmpArena, allocate_from_linear_arena, free_from_linear_arena };\
+		init_linear_arena(&tmpArena, tmpMemory, sizeof(tmpMemory))
 
 }
 

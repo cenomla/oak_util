@@ -164,6 +164,170 @@ namespace oak {
 		atomic_store(&header->usedMemory, sizeof(LinearArenaHeader));
 	}
 
+namespace {
+
+	thread_local MTHeapBlockHeader *threadHeapList = nullptr;
+
+	void reset_mt_heap_block(MTHeapBlockHeader *block) {
+		block->next = nullptr;
+		block->allocationCount = 0;
+		block->requestedMemory = 0;
+		block->usedMemory = sizeof(MTHeapBlockHeader);
+	}
+
+	MTHeapBlockHeader* allocate_mt_heap_block(MTHeapArenaHeader *header) {
+		auto block = header->allocator->allocate(header->blockSize, 2048);
+		if (!block)
+			return nullptr;
+
+		auto blockHeader = static_cast<MTHeapBlockHeader*>(block);
+		reset_mt_heap_block(blockHeader);
+
+		atomic_fetch_add(&header->totalBlocks, 1);
+		atomic_fetch_add(&header->totalUsedMemory, blockHeader->usedMemory);
+
+		return blockHeader;
+	}
+
+	void return_free_mt_heap_block(MTHeapArenaHeader *header, MTHeapBlockHeader *block) {
+		atomic_fetch_add(&header->usedBlocks, -1);
+
+		atomic_lock(&header->_lock);
+		SCOPE_EXIT(atomic_unlock(&header->_lock));
+
+		block->next = header->freeHeapList;
+		header->freeHeapList = block;
+	}
+
+	MTHeapBlockHeader* grab_free_mt_heap_block(MTHeapArenaHeader *header) {
+		atomic_fetch_add(&header->usedBlocks, 1);
+
+		MTHeapBlockHeader *block = nullptr;
+		{
+			atomic_lock(&header->_lock);
+			SCOPE_EXIT(atomic_unlock(&header->_lock));
+
+			block = header->freeHeapList;
+			if (block)
+				header->freeHeapList = block->next;
+		}
+
+		if (!block)
+			block = allocate_mt_heap_block(header);
+
+		return block;
+	}
+
+	void* allocate_from_mt_heap_block(
+			MTHeapArenaHeader *header, MTHeapBlockHeader *block, u64 size, u64 alignment) {
+		if (!block || !size || !alignment)
+			return nullptr;
+
+		auto offset = align(block->usedMemory, alignment);
+		auto nUsedMemory = offset + size;
+
+		if (nUsedMemory < header->blockSize) {
+			atomic_fetch_add(&header->totalAllocationCount, 1);
+			atomic_fetch_add(&header->totalRequestedMemory, size);
+			atomic_fetch_add(&header->totalUsedMemory, nUsedMemory - block->usedMemory);
+
+			block->allocationCount += 1;
+			block->requestedMemory += size;
+			block->usedMemory = nUsedMemory;
+
+			return add_ptr(block, offset);
+		}
+
+		return nullptr;
+	}
+
+	bool free_from_mt_heap_block(MTHeapArenaHeader *header, MTHeapBlockHeader *block, void *ptr, u64 size) {
+		if (!block || !ptr || !size)
+			return false;
+
+		assert(ptr > block && ptr <= add_ptr(block, header->blockSize));
+
+		auto offset = ptr_diff(ptr, block);
+		auto nUsedMemory = block->usedMemory;
+
+		if (offset + size == block->usedMemory)
+			// ptr is at the top of the linear arena
+			nUsedMemory = offset;
+
+		atomic_fetch_add(&header->totalAllocationCount, -1);
+		atomic_fetch_add(&header->totalRequestedMemory, -size);
+		atomic_fetch_add(&header->totalUsedMemory, nUsedMemory - block->usedMemory);
+
+		block->allocationCount -= 1;
+		block->requestedMemory -= size;
+		block->usedMemory = nUsedMemory;
+
+		return block->requestedMemory == 0;
+	}
+
+}
+
+	i32 init_heap_linear_arena(MemoryArena *arena, Allocator *allocator, u64 blockSize) {
+		auto header = allocate<MTHeapArenaHeader>(allocator, 1);
+		if (!header)
+			return 2;
+
+		header->allocator = allocator;
+		header->blockSize = blockSize;
+		header->totalAllocationCount = 0;
+		header->totalRequestedMemory = 0;
+		header->totalUsedMemory = sizeof(MTHeapArenaHeader);
+		header->usedBlocks = 0;
+		header->totalBlocks = 0;
+
+		*arena = { header, sizeof(MTHeapArenaHeader) };
+
+		return 0;
+	}
+
+	void* allocate_from_heap_linear_arena(MemoryArena *arena, u64 size, u64 alignment) {
+		auto header = static_cast<MTHeapArenaHeader*>(arena->block);
+
+		auto result = allocate_from_mt_heap_block(header, threadHeapList, size, alignment);
+		if (result)
+			return result;
+
+		// Failed to allocate memory from block, grab a new block
+		auto nBlock = grab_free_mt_heap_block(header);
+		nBlock->next = threadHeapList;
+		threadHeapList = nBlock;
+
+		return allocate_from_mt_heap_block(header, threadHeapList, size, alignment);
+	}
+
+	void free_from_heap_linear_arena(MemoryArena *arena, void *ptr, u64 size) {
+		auto header = static_cast<MTHeapArenaHeader*>(arena->block);
+
+		if (free_from_mt_heap_block(header, threadHeapList, ptr, size)) {
+			// The block is empty so return it
+			auto block = threadHeapList;
+			threadHeapList = block->next;
+			reset_mt_heap_block(block);
+			return_free_mt_heap_block(header, block);
+		}
+	}
+
+	void clear_heap_linear_arena(MemoryArena *arena) {
+		auto header = static_cast<MTHeapArenaHeader*>(arena->block);
+
+		while (threadHeapList) {
+			auto block = threadHeapList;
+			threadHeapList = block->next;
+
+			atomic_fetch_add(&header->totalAllocationCount, -block->allocationCount);
+			atomic_fetch_add(&header->totalRequestedMemory, -block->requestedMemory);
+			atomic_fetch_add(&header->totalUsedMemory, -block->usedMemory + sizeof(MTHeapBlockHeader));
+
+			reset_mt_heap_block(block);
+			return_free_mt_heap_block(header, block);
+		}
+	}
+
 	Result init_ring_arena(MemoryArena *const arena, Allocator *const allocator, u64 const size) {
 		if (size < sizeof(RingArenaHeader)) {
 			return Result::INVALID_ARGS;
