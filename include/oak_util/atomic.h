@@ -35,6 +35,15 @@ namespace oak {
 #endif // _MSC_VER
 	}
 
+	inline u32 atomic_load(u32 *mem) noexcept {
+#ifdef _MSC_VER
+		_ReadWriteBarrier();
+		return *reinterpret_cast<volatile unsigned long*>(mem);
+#else
+		return __atomic_load_n(mem, __ATOMIC_SEQ_CST);
+#endif // _MSC_VER
+	}
+
 	inline u64 atomic_load(u64 *mem) noexcept {
 #ifdef _MSC_VER
 		_ReadWriteBarrier();
@@ -64,6 +73,14 @@ namespace oak {
 	inline i64 atomic_store(i64 *mem, i64 value) noexcept {
 #ifdef _MSC_VER
 		return _InterlockedExchange64(reinterpret_cast<volatile __int64*>(mem), value);
+#else
+		return __atomic_exchange_n(mem, value, __ATOMIC_SEQ_CST);
+#endif // _MSC_VER
+	}
+
+	inline u32 atomic_store(u32 *mem, u32 value) noexcept {
+#ifdef _MSC_VER
+		return _InterlockedExchange(reinterpret_cast<volatile unsigned long*>(mem), value);
 #else
 		return __atomic_exchange_n(mem, value, __ATOMIC_SEQ_CST);
 #endif // _MSC_VER
@@ -169,6 +186,14 @@ namespace oak {
 #endif // _MSC_VER
 	}
 
+	inline u32 atomic_fetch_add(u32 *mem, u32 value) noexcept {
+#ifdef _MSC_VER
+		return _InterlockedExchangeAdd(reinterpret_cast<volatile unsigned long*>(mem), value);
+#else
+		return __atomic_fetch_add(mem, value, __ATOMIC_SEQ_CST);
+#endif // _MSC_VER
+	}
+
 	inline i64 atomic_fetch_add(i64 *mem, i64 value) noexcept {
 #ifdef _MSC_VER
 		return _InterlockedExchangeAdd64(reinterpret_cast<volatile __int64*>(mem), value);
@@ -207,8 +232,51 @@ namespace oak {
 	}
 
 	inline void atomic_unlock(i32 *lock) noexcept {
-		atomic_store(lock, 0);
+		auto oldValue = atomic_store(lock, 0);
+		assert(oldValue == 1 && "unlocked non locked lock");
 	}
 
+	inline void atomic_rw_lock_read(i32 *rwLock) noexcept {
+		i32 locked = atomic_load(rwLock);
+		if (locked > 0)
+			locked = 0;
+
+		while (!atomic_compare_exchange(rwLock, &locked, locked - 1))
+			if (locked > 0)
+				locked = 0;
+	}
+
+	inline bool atomic_rw_try_lock_read(i32 *rwLock) noexcept {
+		i32 locked = atomic_load(rwLock);
+		if (locked > 0)
+			return false;
+
+		while (!atomic_compare_exchange(rwLock, &locked, locked - 1))
+			if (locked > 0)
+				return false;
+
+		return true;
+	}
+
+	inline void atomic_rw_unlock_read(i32 *rwLock) noexcept {
+		auto oldValue = atomic_fetch_add(rwLock, 1);
+		assert(oldValue < 0 && "unlocked non read locked rw lock");
+	}
+
+	inline void atomic_rw_lock_write(i32 *rwLock) noexcept {
+		atomic_lock(rwLock);
+	}
+
+	inline i32 atomic_rw_try_lock_write(i32 *rwLock) noexcept {
+		i32 locked = 0;
+		if (atomic_compare_exchange(rwLock, &locked, 1))
+			return 0;
+
+		return locked;
+	}
+
+	inline void atomic_rw_unlock_write(i32 *rwLock) noexcept {
+		atomic_unlock(rwLock);
+	}
 }
 
