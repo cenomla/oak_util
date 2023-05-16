@@ -166,7 +166,7 @@ namespace oak {
 
 namespace {
 
-	thread_local MTHeapBlockHeader *threadHeapList = nullptr;
+	static thread_local MTHeapBlockHeader *threadHeapList = nullptr;
 
 	void reset_mt_heap_block(MTHeapBlockHeader *block) {
 		block->next = nullptr;
@@ -245,7 +245,8 @@ namespace {
 		if (!block || !ptr || !size)
 			return false;
 
-		assert(ptr > block && ptr <= add_ptr(block, header->blockSize));
+		if (ptr < block || ptr > add_ptr(block, header->blockSize))
+			return false;
 
 		auto offset = ptr_diff(ptr, block);
 		auto nUsedMemory = block->usedMemory;
@@ -286,7 +287,10 @@ namespace {
 	}
 
 	void* allocate_from_heap_linear_arena(MemoryArena *arena, u64 size, u64 alignment) {
+		assert(alignment <= 64);
 		auto header = static_cast<MTHeapArenaHeader*>(arena->block);
+		if (size > header->blockSize - align(sizeof(MTHeapBlockHeader), 64))
+			return header->allocator->allocate(size, alignment);
 
 		auto result = allocate_from_mt_heap_block(header, threadHeapList, size, alignment);
 		if (result)
@@ -302,6 +306,8 @@ namespace {
 
 	void free_from_heap_linear_arena(MemoryArena *arena, void *ptr, u64 size) {
 		auto header = static_cast<MTHeapArenaHeader*>(arena->block);
+		if (size > header->blockSize - align(sizeof(MTHeapBlockHeader), 64))
+			return header->allocator->deallocate(ptr, size);
 
 		if (free_from_mt_heap_block(header, threadHeapList, ptr, size)) {
 			// The block is empty so return it
@@ -596,6 +602,9 @@ namespace {
 #else
 		free(ptr);
 #endif
+	}
+
+	void std_clear_wrapper(MemoryArena*) {
 	}
 
 	Allocator* globalAllocator;

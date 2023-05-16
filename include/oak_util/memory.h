@@ -68,6 +68,7 @@ namespace oak {
 		MemoryArena *arena = nullptr;
 		void* (*allocFn)(MemoryArena *self, u64 size, u64 alignment) = nullptr;
 		void (*freeFn)(MemoryArena *self, void *ptr, u64 size) = nullptr;
+		void (*clearFn)(MemoryArena *self) = nullptr;
 
 		void* allocate(u64 size, u64 alignment) {
 			return (*allocFn)(arena, size, alignment);
@@ -75,6 +76,10 @@ namespace oak {
 
 		void deallocate(void *ptr, u64 size) {
 			(*freeFn)(arena, ptr, size);
+		}
+
+		void clear() {
+			(*clearFn)(arena);
 		}
 	};
 
@@ -138,6 +143,11 @@ namespace oak {
 		allocator->deallocate(static_cast<void*>(ptr), sizeof(T) * count);
 	}
 
+	template<typename T>
+	void deallocate(Allocator *allocator, T const *ptr, i64 count) {
+		allocator->deallocate(const_cast<void*>(static_cast<void const*>(ptr)), sizeof(T) * count);
+	}
+
 	template<typename... types>
 	void deallocate_soa(Allocator *allocator, void *ptr, i64 count) {
 		allocator->deallocate(ptr, soa_offset<sizeof...(types), types...>(count));
@@ -164,6 +174,7 @@ namespace oak {
 
 	OAK_UTIL_API void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align);
 	OAK_UTIL_API void std_free_wrapper(MemoryArena*, void *ptr, u64);
+	OAK_UTIL_API void std_clear_wrapper(MemoryArena*);
 
 	OAK_UTIL_API extern Allocator* globalAllocator;
 	OAK_UTIL_API extern Allocator* temporaryAllocator;
