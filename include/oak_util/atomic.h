@@ -22,7 +22,7 @@ namespace oak {
 		_ReadWriteBarrier();
 		return *reinterpret_cast<volatile long*>(mem);
 #else
-		return __atomic_load_n(mem, __ATOMIC_SEQ_CST);
+		return __atomic_load_n(mem, __ATOMIC_ACQUIRE);
 #endif // _MSC_VER
 	}
 
@@ -31,7 +31,7 @@ namespace oak {
 		_ReadWriteBarrier();
 		return *reinterpret_cast<volatile __int64*>(mem);
 #else
-		return __atomic_load_n(mem, __ATOMIC_SEQ_CST);
+		return __atomic_load_n(mem, __ATOMIC_ACQUIRE);
 #endif // _MSC_VER
 	}
 
@@ -40,7 +40,7 @@ namespace oak {
 		_ReadWriteBarrier();
 		return *reinterpret_cast<volatile unsigned long*>(mem);
 #else
-		return __atomic_load_n(mem, __ATOMIC_SEQ_CST);
+		return __atomic_load_n(mem, __ATOMIC_ACQUIRE);
 #endif // _MSC_VER
 	}
 
@@ -49,7 +49,7 @@ namespace oak {
 		_ReadWriteBarrier();
 		return *reinterpret_cast<volatile unsigned __int64*>(mem);
 #else
-		return __atomic_load_n(mem, __ATOMIC_SEQ_CST);
+		return __atomic_load_n(mem, __ATOMIC_ACQUIRE);
 #endif // _MSC_VER
 	}
 
@@ -58,7 +58,7 @@ namespace oak {
 		_ReadWriteBarrier();
 		return *reinterpret_cast<void * volatile *>(mem);
 #else
-		return __atomic_load_n(mem, __ATOMIC_SEQ_CST);
+		return __atomic_load_n(mem, __ATOMIC_ACQUIRE);
 #endif // _MSC_VER
 	}
 
@@ -66,7 +66,7 @@ namespace oak {
 #ifdef _MSC_VER
 		return _InterlockedExchange(reinterpret_cast<volatile long*>(mem), value);
 #else
-		return __atomic_exchange_n(mem, value, __ATOMIC_SEQ_CST);
+		return __atomic_exchange_n(mem, value, __ATOMIC_ACQ_REL);
 #endif // _MSC_VER
 	}
 
@@ -74,7 +74,7 @@ namespace oak {
 #ifdef _MSC_VER
 		return _InterlockedExchange64(reinterpret_cast<volatile __int64*>(mem), value);
 #else
-		return __atomic_exchange_n(mem, value, __ATOMIC_SEQ_CST);
+		return __atomic_exchange_n(mem, value, __ATOMIC_ACQ_REL);
 #endif // _MSC_VER
 	}
 
@@ -82,7 +82,7 @@ namespace oak {
 #ifdef _MSC_VER
 		return _InterlockedExchange(reinterpret_cast<volatile unsigned long*>(mem), value);
 #else
-		return __atomic_exchange_n(mem, value, __ATOMIC_SEQ_CST);
+		return __atomic_exchange_n(mem, value, __ATOMIC_ACQ_REL);
 #endif // _MSC_VER
 	}
 
@@ -90,7 +90,7 @@ namespace oak {
 #ifdef _MSC_VER
 		return _InterlockedExchange64(reinterpret_cast<volatile __int64*>(mem), value);
 #else
-		return __atomic_exchange_n(mem, value, __ATOMIC_SEQ_CST);
+		return __atomic_exchange_n(mem, value, __ATOMIC_ACQ_REL);
 #endif // _MSC_VER
 	}
 
@@ -98,7 +98,7 @@ namespace oak {
 #ifdef _MSC_VER
 		return _InterlockedExchangePointer(reinterpret_cast<void * volatile *>(mem), value);
 #else
-		return __atomic_exchange_n(mem, value, __ATOMIC_SEQ_CST);
+		return __atomic_exchange_n(mem, value, __ATOMIC_ACQ_REL);
 #endif // _MSC_VER
 	}
 
@@ -116,7 +116,7 @@ namespace oak {
 				expected,
 				value,
 				false,
-				__ATOMIC_ACQUIRE,
+				__ATOMIC_ACQ_REL,
 				__ATOMIC_RELAXED);
 #endif // _MSC_VER
 	}
@@ -135,7 +135,7 @@ namespace oak {
 				expected,
 				value,
 				false,
-				__ATOMIC_ACQUIRE,
+				__ATOMIC_ACQ_REL,
 				__ATOMIC_RELAXED);
 #endif // _MSC_VER
 	}
@@ -154,7 +154,7 @@ namespace oak {
 				expected,
 				value,
 				false,
-				__ATOMIC_ACQUIRE,
+				__ATOMIC_ACQ_REL,
 				__ATOMIC_RELAXED);
 #endif // _MSC_VER
 	}
@@ -173,7 +173,7 @@ namespace oak {
 				expected,
 				value,
 				false,
-				__ATOMIC_ACQUIRE,
+				__ATOMIC_ACQ_REL,
 				__ATOMIC_RELAXED);
 #endif // _MSC_VER
 	}
@@ -182,7 +182,7 @@ namespace oak {
 #ifdef _MSC_VER
 		return _InterlockedExchangeAdd(reinterpret_cast<volatile long*>(mem), value);
 #else
-		return __atomic_fetch_add(mem, value, __ATOMIC_SEQ_CST);
+		return __atomic_fetch_add(mem, value, __ATOMIC_ACQ_REL);
 #endif // _MSC_VER
 	}
 
@@ -190,7 +190,7 @@ namespace oak {
 #ifdef _MSC_VER
 		return _InterlockedExchangeAdd(reinterpret_cast<volatile unsigned long*>(mem), value);
 #else
-		return __atomic_fetch_add(mem, value, __ATOMIC_SEQ_CST);
+		return __atomic_fetch_add(mem, value, __ATOMIC_ACQ_REL);
 #endif // _MSC_VER
 	}
 
@@ -198,7 +198,7 @@ namespace oak {
 #ifdef _MSC_VER
 		return _InterlockedExchangeAdd64(reinterpret_cast<volatile __int64*>(mem), value);
 #else
-		return __atomic_fetch_add(mem, value, __ATOMIC_SEQ_CST);
+		return __atomic_fetch_add(mem, value, __ATOMIC_ACQ_REL);
 #endif // _MSC_VER
 	}
 
@@ -206,7 +206,7 @@ namespace oak {
 #ifdef _MSC_VER
 		return _InterlockedExchangeAdd64(reinterpret_cast<volatile __int64*>(mem), value);
 #else
-		return __atomic_fetch_add(mem, value, __ATOMIC_SEQ_CST);
+		return __atomic_fetch_add(mem, value, __ATOMIC_ACQ_REL);
 #endif // _MSC_VER
 	}
 
@@ -214,7 +214,7 @@ namespace oak {
 #ifdef _MSC_VER
 		return _InterlockedExchangePointer(reinterpret_cast<void * volatile *>(mem), value);
 #else
-		return __atomic_fetch_add(mem, reinterpret_cast<long>(value), __ATOMIC_SEQ_CST);
+		return __atomic_fetch_add(mem, reinterpret_cast<long>(value), __ATOMIC_ACQ_REL);
 #endif // _MSC_VER
 	}
 
