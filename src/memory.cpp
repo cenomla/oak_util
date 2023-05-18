@@ -269,17 +269,13 @@ namespace {
 }
 
 	i32 init_heap_linear_arena(MemoryArena *arena, Allocator *allocator, u64 blockSize) {
-		auto header = allocate<MTHeapArenaHeader>(allocator, 1);
+		auto header = make<MTHeapArenaHeader>(allocator, 1);
 		if (!header)
 			return 2;
 
 		header->allocator = allocator;
 		header->blockSize = blockSize;
-		header->totalAllocationCount = 0;
-		header->totalRequestedMemory = 0;
 		header->totalUsedMemory = sizeof(MTHeapArenaHeader);
-		header->usedBlocks = 0;
-		header->totalBlocks = 0;
 
 		*arena = { header, sizeof(MTHeapArenaHeader) };
 
@@ -594,6 +590,16 @@ namespace {
 #else
 		return aligned_alloc(alignment, size);
 #endif
+	}
+
+	void* std_aligned_alloc_garbage_wrapper(MemoryArena*, u64 size, u64 alignment) {
+#ifdef _WIN32
+		auto result = _aligned_malloc(size, alignment);
+#else
+		auto result = aligned_alloc(alignment, size);
+#endif
+		std::memset(result, 0x99, size);
+		return result;
 	}
 
 	void std_free_wrapper(MemoryArena*, void *ptr, u64) {

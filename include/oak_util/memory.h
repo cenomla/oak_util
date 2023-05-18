@@ -173,6 +173,7 @@ namespace oak {
 	}
 
 	OAK_UTIL_API void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align);
+	OAK_UTIL_API void* std_aligned_alloc_garbage_wrapper(MemoryArena*, u64 size, u64 align);
 	OAK_UTIL_API void std_free_wrapper(MemoryArena*, void *ptr, u64);
 	OAK_UTIL_API void std_clear_wrapper(MemoryArena*);
 
