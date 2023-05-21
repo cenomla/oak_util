@@ -294,6 +294,7 @@ namespace {
 		auto ndata = make<char>(allocator, size);
 		if (buffer->data) {
 			std::memcpy(ndata, buffer->data, buffer->count);
+			deallocate(allocator, buffer->data, buffer->count);
 		}
 		buffer->data = ndata;
 		buffer->count = size;

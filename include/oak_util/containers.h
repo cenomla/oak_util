@@ -87,7 +87,7 @@ namespace oak {
 
 		void destroy(Allocator *allocator) noexcept {
 			if (data) {
-				deallocate(allocator, data, capacity * sizeof(T));
+				deallocate(allocator, data, capacity);
 				data = nullptr;
 			}
 			capacity = 0;
@@ -188,7 +188,7 @@ namespace oak {
 
 		void destroy(Allocator *allocator) noexcept {
 			if (data) {
-				deallocate(allocator, data, capacity * sizeof(T));
+				deallocate(allocator, data, capacity);
 				data = nullptr;
 			}
 			count = 0;

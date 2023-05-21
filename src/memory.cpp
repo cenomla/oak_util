@@ -223,6 +223,8 @@ namespace {
 		if (!block || !size || !alignment)
 			return nullptr;
 
+		assert(size < header->blockSize);
+
 		auto offset = align(block->usedMemory, alignment);
 		auto nUsedMemory = offset + size;
 
@@ -242,11 +244,13 @@ namespace {
 	}
 
 	bool free_from_mt_heap_block(MTHeapArenaHeader *header, MTHeapBlockHeader *block, void *ptr, u64 size) {
-		if (!block || !ptr || !size)
+		if (!block)
 			return false;
 
 		if (ptr < block || ptr > add_ptr(block, header->blockSize))
 			return false;
+
+		assert(size < block->requestedMemory);
 
 		auto offset = ptr_diff(ptr, block);
 		auto nUsedMemory = block->usedMemory;
@@ -283,10 +287,12 @@ namespace {
 	}
 
 	void* allocate_from_heap_linear_arena(MemoryArena *arena, u64 size, u64 alignment) {
+		if (!size || !alignment)
+			return nullptr;
+
 		assert(alignment <= 64);
 		auto header = static_cast<MTHeapArenaHeader*>(arena->block);
-		if (size > header->blockSize - align(sizeof(MTHeapBlockHeader), 64))
-			return header->allocator->allocate(size, alignment);
+		assert(size < header->blockSize - 64);
 
 		auto result = allocate_from_mt_heap_block(header, threadHeapList, size, alignment);
 		if (result)
@@ -301,9 +307,13 @@ namespace {
 	}
 
 	void free_from_heap_linear_arena(MemoryArena *arena, void *ptr, u64 size) {
+		if (!ptr || !size) {
+			assert(ptr == nullptr && size == 0);
+			return;
+		}
+
 		auto header = static_cast<MTHeapArenaHeader*>(arena->block);
-		if (size > header->blockSize - align(sizeof(MTHeapBlockHeader), 64))
-			return header->allocator->deallocate(ptr, size);
+		assert(size < header->blockSize - 64);
 
 		if (free_from_mt_heap_block(header, threadHeapList, ptr, size)) {
 			// The block is empty so return it
