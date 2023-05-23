@@ -61,7 +61,7 @@ namespace oak {
 		FixedVector(Allocator *allocator, std::initializer_list<T> list) noexcept
 				: data{ nullptr }, capacity{ 0 } {
 			reserve(allocator, list.size());
-			std::memcpy(data, list.data(), list.size() * sizeof(T));
+			std::memcpy(data, list.begin(), list.size() * sizeof(T));
 		}
 
 		void reserve(Allocator *allocator, i64 nCapacity) noexcept {
@@ -156,7 +156,7 @@ namespace oak {
 		Vector(Allocator *allocator, std::initializer_list<T> list) noexcept
 				: data{ nullptr }, count{ 0 }, capacity{ 0 } {
 			resize(allocator, list.size());
-			std::memcpy(data, list.data(), list.size() * sizeof(T));
+			std::memcpy(data, list.begin(), list.size() * sizeof(T));
 		}
 
 		void reserve(Allocator *allocator, i64 nCapacity) noexcept {

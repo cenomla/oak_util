@@ -159,14 +159,18 @@ namespace oak {
 		_reflect() T data[N]{};
 
 		constexpr FixedArray() noexcept = default;
+
 		template<int C>
 		constexpr FixedArray(T (&array)[C]) noexcept {
 			static_assert(C <= N);
 			std::memcpy(data, array, capacity * sizeof(T));
 		}
-		template<typename ... Args>
-		constexpr FixedArray(Args && ... args) noexcept
-			: data{ std::forward<Args>(args) ... } {}
+
+		constexpr FixedArray(std::initializer_list<T> list) noexcept {
+			auto count = static_cast<i64>(list.size()) < capacity
+				? static_cast<i64>(list.size()) : capacity;
+			std::memcpy(data, list.begin(), count * sizeof(T));
+		}
 
 		constexpr T* begin() noexcept {
 			return data;
@@ -214,17 +218,25 @@ namespace oak {
 		_reflect() i64 count = 0;
 
 		constexpr Array() noexcept = default;
+
 		template<int C>
 		constexpr Array(T (&array)[C]) noexcept : count{ C } {
 			static_assert(C <= N);
 			std::memcpy(data, array, count * sizeof(T));
 		}
-		template<typename ... Args>
-		constexpr Array(Args && ... args) noexcept
-			: data{ std::forward<Args>(args) ... }, count{ sizeof...(args) } {}
+
+		constexpr Array(std::initializer_list<T> list) noexcept
+				: count{ static_cast<i64>(list.size()) < capacity ? static_cast<i64>(list.size()) : capacity } {
+			std::memcpy(data, list.begin(), count * sizeof(T));
+		}
+
 		template<typename U>
 		constexpr Array(Slice<U> slice) noexcept : count{ slice.count < capacity ? slice.count : capacity } {
 			std::memcpy(data, slice.data, count * sizeof(T));
+		}
+
+		constexpr void clear() noexcept {
+			count = 0;
 		}
 
 		constexpr T* begin() noexcept {
