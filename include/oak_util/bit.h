@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 
@@ -10,6 +11,7 @@
 namespace oak {
 
 	inline int clz(uint64_t value) {
+		assert(value != 0);
 #ifdef _MSC_VER
 		return __lzcnt64(value);
 #else
@@ -18,6 +20,7 @@ namespace oak {
 	}
 
 	inline int ctz(uint64_t value) {
+		assert(value != 0);
 #ifdef _MSC_VER
 		unsigned long index = 0;
 		_BitScanForward64(&index, value);
@@ -43,8 +46,14 @@ namespace oak {
 		return (value >> amount) | (value << (64 - amount));
 	}
 
+	inline bool is_pow2(uint64_t value) {
+		return bit_count(value) == 1;
+	}
+
 	inline uint64_t next_pow2(uint64_t value) {
-		return 1ull << (64 - clz(value));
+		if (value == 0)
+			return 1;
+		return uint64_t{ 1 } << (64 - clz(value));
 	}
 
 	inline int64_t next_pow2(int64_t value) {
@@ -55,7 +64,7 @@ namespace oak {
 	}
 
 	inline uint64_t ensure_pow2(uint64_t value) {
-		return ctz(value) + clz(value) + 1 == 64 ? value : next_pow2(value);
+		return is_pow2(value) ? value : next_pow2(value);
 	}
 
 	inline int64_t ensure_pow2(int64_t value) {
@@ -73,7 +82,7 @@ namespace oak {
 	}
 
 	inline uint64_t blog2(uint64_t value) {
-		return 63ull - clz(value);
+		return uint64_t{ 63 } - clz(value);
 	}
 
 	template<typename T>
