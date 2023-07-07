@@ -10,7 +10,6 @@
 #pragma intrinsic(_InterlockedExchangeAdd64)
 #pragma intrinsic(_InterlockedExchangePointer)
 #pragma intrinsic(_InterlockedCompareExchangePointer)
-#pragma intrinsic(_InterlockedExchangeAddPointer)
 #endif
 
 #include "types.h"
@@ -80,7 +79,7 @@ namespace oak {
 
 	inline u32 atomic_store(u32 *mem, u32 value) noexcept {
 #ifdef _MSC_VER
-		return _InterlockedExchange(reinterpret_cast<volatile unsigned long*>(mem), value);
+		return _InterlockedExchange(reinterpret_cast<volatile long*>(mem), value);
 #else
 		return __atomic_exchange_n(mem, value, __ATOMIC_ACQ_REL);
 #endif // _MSC_VER
@@ -142,7 +141,7 @@ namespace oak {
 
 	inline bool atomic_compare_exchange(u64 *mem, u64 *expected, u64 value) noexcept {
 #ifdef _MSC_VER
-		auto prev = _InterlockedCompareExchange64(reinterpret_cast<volatile __int64*>(mem), value, *expected);
+		auto prev = static_cast<u64>(_InterlockedCompareExchange64(reinterpret_cast<volatile __int64*>(mem), value, *expected));
 		if (prev == *expected)
 			return true;
 
@@ -188,7 +187,7 @@ namespace oak {
 
 	inline u32 atomic_fetch_add(u32 *mem, u32 value) noexcept {
 #ifdef _MSC_VER
-		return _InterlockedExchangeAdd(reinterpret_cast<volatile unsigned long*>(mem), value);
+		return _InterlockedExchangeAdd(reinterpret_cast<volatile long*>(mem), value);
 #else
 		return __atomic_fetch_add(mem, value, __ATOMIC_ACQ_REL);
 #endif // _MSC_VER
