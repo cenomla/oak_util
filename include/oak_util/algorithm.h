@@ -374,6 +374,14 @@ namespace oak {
 	}
 
 	template<typename T>
+	constexpr bool slice_starts_with(Slice<T> slice, Slice<T> value) noexcept {
+		if (slice.count < value.count)
+			return false;
+
+		return sub_slice(slice, 0, value.count) == value;
+	}
+
+	template<typename T>
 	constexpr i64 slice_count(Slice<T> slice, T value, i64 start = 0) noexcept {
 		i64 count = 0;
 		for (auto i = start; i < slice.count; ++i) {
