@@ -1,11 +1,16 @@
 #pragma once
 
 #include "types.h"
+#include "bit.h"
 
 namespace oak {
 
 	inline void* add_ptr(void *p, i64 x) noexcept {
 		return reinterpret_cast<void*>(reinterpret_cast<u64>(p) + x);
+	}
+
+	inline void* add_ptr(void *p, u64 x) noexcept {
+		return bit_cast<void*>(bit_cast<u64>(p) + x);
 	}
 
 	inline void const* add_ptr(void const *p, i64 x) noexcept {

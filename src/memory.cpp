@@ -13,10 +13,11 @@
 
 namespace oak {
 
-	Result init_linear_arena(MemoryArena *const arena, Allocator *const allocator, u64 const size) {
-		if (size < sizeof(LinearArenaHeader)) {
+	Result init_linear_arena(MemoryArena *arena, Allocator *allocator, u64 size) {
+		if (size < sizeof(LinearArenaHeader))
 			return Result::INVALID_ARGS;
-		}
+
+		size = align(size, 2048);
 
 		auto block = allocator->allocate(size, 2048);
 		if (!block) {
@@ -598,7 +599,7 @@ namespace {
 #ifdef _WIN32
 		return _aligned_malloc(size, alignment);
 #else
-		return aligned_alloc(alignment, size);
+		return aligned_alloc(alignment, align(size, alignment));
 #endif
 	}
 
@@ -606,9 +607,9 @@ namespace {
 #ifdef _WIN32
 		auto result = _aligned_malloc(size, alignment);
 #else
-		auto result = aligned_alloc(alignment, size);
+		auto result = aligned_alloc(alignment, align(size, alignment));
 #endif
-		std::memset(result, 0x99, size);
+		std::memset(result, 0x99, align(size, alignment));
 		return result;
 	}
 
