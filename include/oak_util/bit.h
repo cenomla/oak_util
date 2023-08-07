@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cassert>
-#include <cstdint>
-#include <cstring>
+#include <assert.h>
+#include <stdint.h>
+#include <string.h>
 
 #ifdef _MSC_VER
 #include <intrin.h>
@@ -114,7 +114,7 @@ namespace oak {
 	constexpr T bit_cast(U const& u) noexcept {
 		static_assert(sizeof(U) <= sizeof(T));
 		T result{};
-		std::memcpy(&result, &u, sizeof(U));
+		memcpy(&result, &u, sizeof(U));
 		return result;
 	}
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
+#include <assert.h>
+#include <string.h>
 #include <type_traits>
 #include <utility>
 
@@ -51,7 +51,7 @@ namespace oak {
 			// Copy current delegate
 			Delegate result = *this;
 			void *nFunction = nAllocator->allocate(result.dynamicStorage.functionSize, 8);
-			std::memcpy(nFunction, result.dynamicStorage.function, result.dynamicStorage.functionSize);
+			memcpy(nFunction, result.dynamicStorage.function, result.dynamicStorage.functionSize);
 			result.dynamicStorage.function = nFunction;
 
 			return result;
@@ -70,9 +70,9 @@ namespace oak {
 				assert(allocator);
 				dynamicStorage.function = allocate<FT>(allocator, 1);
 				dynamicStorage.functionSize = sizeof(obj);
-				std::memcpy(dynamicStorage.function, &obj, sizeof(obj));
+				memcpy(dynamicStorage.function, &obj, sizeof(obj));
 			} else {
-				std::memcpy(staticStorage, &obj, sizeof(obj));
+				memcpy(staticStorage, &obj, sizeof(obj));
 			}
 
 			// Set invokeFn based on invoke synatax of the passed functor

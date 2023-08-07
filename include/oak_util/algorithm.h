@@ -1,7 +1,7 @@
 #pragma once
 
+#include <string.h>
 #include <utility>
-#include <cstring>
 
 #include "containers.h"
 #include "memory.h"
@@ -79,7 +79,7 @@ namespace oak {
 			return;
 
 		auto temp = allocate<T>(allocator, arrayCount);
-		std::memcpy(temp, array, arrayCount * sizeof(T));
+		memcpy(temp, array, arrayCount * sizeof(T));
 		detail::ms_impl_split(array, temp, 0, arrayCount, std::forward<F>(functor));
 	}
 
@@ -89,7 +89,7 @@ namespace oak {
 			return;
 
 		auto temp = allocate<T>(allocator, arrayCount);
-		std::memcpy(temp, array, arrayCount * sizeof(T));
+		memcpy(temp, array, arrayCount * sizeof(T));
 		detail::ms_impl_split(array, temp, 0, arrayCount, less<T>);
 	}
 
@@ -124,7 +124,7 @@ namespace oak {
 		u32 mask = rv - 1;
 
 		for (u32 c = 0, shift = 0; c < groups; ++c, shift += r) {
-			std::memset(count, 0, sizeof(u32) * rv);
+			memset(count, 0, sizeof(u32) * rv);
 
 			for (i64 i = 0; i < arrayCount; ++i) {
 				++count[(t0[i].*pMem >> shift) & mask];
@@ -161,7 +161,7 @@ namespace oak {
 		u32 mask = rv - 1;
 
 		for (u32 c = 0, shift = 0; c < groups; ++c, shift += r) {
-			std::memset(count, 0, sizeof(u32) * rv);
+			memset(count, 0, sizeof(u32) * rv);
 
 			for (i64 i = 0; i < arrayCount; ++i) {
 				++count[(t0[i] >> shift) & mask];
@@ -226,7 +226,7 @@ namespace oak {
 			return push(array, value);
 		}
 		assert(array->count < array->capacity);
-		std::memmove(array->data + index + 1, array->data + index, (array->count++ - index) * sizeof(E));
+		memmove(array->data + index + 1, array->data + index, (array->count++ - index) * sizeof(E));
 		array->data[index] = value;
 
 		return array->data + index;
@@ -240,7 +240,7 @@ namespace oak {
 		if (array->count == array->capacity) {
 			array->reserve(allocator, array->capacity == 0 ? 4 : array->capacity * 2);
 		}
-		std::memmove(array->data + index + 1, array->data + index, (array->count++ - index) * sizeof(E));
+		memmove(array->data + index + 1, array->data + index, (array->count++ - index) * sizeof(E));
 		array->data[index] = value;
 
 		return array->data + index;
@@ -249,7 +249,7 @@ namespace oak {
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
 	constexpr void remove(ArrayType *array, i64 index) noexcept {
 		assert(array->count > 0);
-		std::memmove(array->data + index, array->data + index + 1, (--array->count - index) * sizeof(E));
+		memmove(array->data + index, array->data + index + 1, (--array->count - index) * sizeof(E));
 	}
 
 	template<typename ArrayType>
@@ -434,7 +434,7 @@ namespace oak {
 		if (count > dst.capacity) {
 			count = dst.capacity;
 		}
-		std::memcpy(dst.data, src.data, count * sizeof(T));
+		memcpy(dst.data, src.data, count * sizeof(T));
 		dst.count = count;
 		return count;
 	}

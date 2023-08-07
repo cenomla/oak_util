@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstring>
+#include <string.h>
 
 #include "types.h"
 #include "bit.h"
@@ -48,40 +48,35 @@ namespace oak {
 		FixedVector(Allocator *allocator, T const *data_, i64 count_) noexcept
 				: data{ nullptr }, capacity{ 0 } {
 			reserve(allocator, count_);
-			std::memcpy(data, data_, count_ * sizeof(T));
+			memcpy(data, data_, count_ * sizeof(T));
 		}
 
 		template<i64 Count>
 		FixedVector(Allocator *allocator, T const (&array)[Count]) noexcept
 				: data{ nullptr }, capacity{ 0 } {
 			reserve(allocator, Count);
-			std::memcpy(data, array, Count * sizeof(T));
+			memcpy(data, array, Count * sizeof(T));
 		}
 
 		FixedVector(Allocator *allocator, std::initializer_list<T> list) noexcept
 				: data{ nullptr }, capacity{ 0 } {
 			reserve(allocator, list.size());
-			std::memcpy(data, list.begin(), list.size() * sizeof(T));
+			memcpy(data, list.begin(), list.size() * sizeof(T));
 		}
 
 		void reserve(Allocator *allocator, i64 nCapacity) noexcept {
-			if (nCapacity <= capacity) {
-				// If the array is already big enough no need to resize
+			// If the array is already big enough no need to resize
+			if (nCapacity <= capacity)
 				return;
-			}
-			auto nData = allocate<T>(allocator, nCapacity);
-			if (data) {
-				std::memcpy(nData, data, capacity * sizeof(T));
-				deallocate(allocator, data, capacity);
-			}
-			data = nData;
+
+			data = reallocate<T>(allocator, data, capacity, nCapacity);
 			capacity = nCapacity;
 		}
 
 		FixedVector clone(Allocator *allocator, i64 minCapacity = 0) const noexcept {
 			FixedVector nVec;
 			nVec.reserve(allocator, capacity < minCapacity ? minCapacity : capacity);
-			std::memcpy(nVec.data, data, capacity * sizeof(T));
+			memcpy(nVec.data, data, capacity * sizeof(T));
 			return nVec;
 		}
 
@@ -143,33 +138,28 @@ namespace oak {
 		Vector(Allocator *allocator, T const *data_, i64 count_) noexcept
 				: data{ nullptr }, count{ 0 }, capacity{ 0 } {
 			resize(allocator, count_);
-			std::memcpy(data, data_, count_ * sizeof(T));
+			memcpy(data, data_, count_ * sizeof(T));
 		}
 
 		template<i64 Count>
 		Vector(Allocator *allocator, T const (&array)[Count]) noexcept
 				: data{ nullptr }, count{ 0 }, capacity{ 0 } {
 			resize(allocator, Count);
-			std::memcpy(data, array, Count * sizeof(T));
+			memcpy(data, array, Count * sizeof(T));
 		}
 
 		Vector(Allocator *allocator, std::initializer_list<T> list) noexcept
 				: data{ nullptr }, count{ 0 }, capacity{ 0 } {
 			resize(allocator, list.size());
-			std::memcpy(data, list.begin(), list.size() * sizeof(T));
+			memcpy(data, list.begin(), list.size() * sizeof(T));
 		}
 
 		void reserve(Allocator *allocator, i64 nCapacity) noexcept {
-			if (nCapacity <= capacity) {
-				// If the array is already big enough no need to resize
+			// If the array is already big enough no need to resize
+			if (nCapacity <= capacity)
 				return;
-			}
-			auto nData = allocate<T>(allocator, nCapacity);
-			if (data) {
-				std::memcpy(nData, data, count * sizeof(T));
-				deallocate(allocator, data, capacity);
-			}
-			data = nData;
+
+			data = reallocate<T>(allocator, data, capacity, nCapacity);
 			capacity = nCapacity;
 		}
 
@@ -182,7 +172,7 @@ namespace oak {
 			Vector nVec;
 			nVec.reserve(allocator, capacity < minCapacity ? minCapacity : capacity);
 			nVec.count = count;
-			std::memcpy(nVec.data, data, count * sizeof(T));
+			memcpy(nVec.data, data, count * sizeof(T));
 			return nVec;
 		}
 

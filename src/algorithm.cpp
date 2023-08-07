@@ -1,8 +1,7 @@
 #define OAK_UTIL_EXPORT_SYMBOLS
-
 #include <oak_util/algorithm.h>
 
-#include <cstring>
+#include <string.h>
 
 #include <oak_util/memory.h>
 
@@ -20,7 +19,7 @@ namespace oak {
 			return str.data;
 
 		auto cstr = allocate<char>(allocator, str.count + 1);
-		std::memmove(cstr, str.data, str.count);
+		memmove(cstr, str.data, str.count);
 		cstr[str.count] = 0;
 
 		return cstr;
@@ -28,7 +27,7 @@ namespace oak {
 
 	String copy_str(Allocator *allocator, String string, bool isCStr) noexcept {
 		auto nData = allocate<char>(allocator, string.count + isCStr);
-		std::memcpy(nData, string.data, string.count + isCStr);
+		memcpy(nData, string.data, string.count + isCStr);
 		return { nData, string.count };
 	}
 

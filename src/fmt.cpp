@@ -2,11 +2,11 @@
 
 #include <oak_util/fmt.h>
 
-#include <cassert>
-#include <cctype>
-#include <cstdlib>
-#include <cstring>
-#include <cstdio>
+#include <assert.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 namespace oak {
 
@@ -120,7 +120,7 @@ namespace {
 	String to_str(Allocator *allocator, f32 v, FmtKind fmtKind, i32 precision) {
 		constexpr usize bufSize = 32;
 		auto str = make<char>(allocator, bufSize);
-		std::snprintf(
+		snprintf(
 				str, bufSize, choose_snprintf_float_fmt_string(fmtKind), precision, v);
 		return str;
 	}
@@ -128,7 +128,7 @@ namespace {
 	String to_str(Allocator *allocator, f64 v, FmtKind fmtKind, i32 precision) {
 		constexpr usize bufSize = 32;
 		auto str = make<char>(allocator, bufSize);
-		std::snprintf(
+		snprintf(
 				str, bufSize, choose_snprintf_double_fmt_string(fmtKind), precision, v);
 		return str;
 	}
@@ -178,7 +178,7 @@ namespace {
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = static_cast<u8>(std::strtoul(cstr, &end, 0));
+		*v = static_cast<u8>(strtoul(cstr, &end, 0));
 
 		return end - cstr;
 	}
@@ -188,7 +188,7 @@ namespace {
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = static_cast<u16>(std::strtoul(cstr, &end, 0));
+		*v = static_cast<u16>(strtoul(cstr, &end, 0));
 
 		return end - cstr;
 	}
@@ -198,7 +198,7 @@ namespace {
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = std::strtoul(cstr, &end, 0);
+		*v = strtoul(cstr, &end, 0);
 
 		return end - cstr;
 	}
@@ -208,7 +208,7 @@ namespace {
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = std::strtoull(cstr, &end, 0);
+		*v = strtoull(cstr, &end, 0);
 
 		return end - cstr;
 	}
@@ -218,7 +218,7 @@ namespace {
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = static_cast<i8>(std::strtol(cstr, &end, 0));
+		*v = static_cast<i8>(strtol(cstr, &end, 0));
 
 		return end - cstr;
 	}
@@ -228,7 +228,7 @@ namespace {
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = static_cast<i16>(std::strtol(cstr, &end, 0));
+		*v = static_cast<i16>(strtol(cstr, &end, 0));
 
 		return end - cstr;
 	}
@@ -238,7 +238,7 @@ namespace {
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = std::strtol(cstr, &end, 0);
+		*v = strtol(cstr, &end, 0);
 
 		return end - cstr;
 	}
@@ -248,7 +248,7 @@ namespace {
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = std::strtoll(cstr, &end, 0);
+		*v = strtoll(cstr, &end, 0);
 
 		return end - cstr;
 	}
@@ -258,7 +258,7 @@ namespace {
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 32));
 		char *end;
-		*v = std::strtof(cstr, &end);
+		*v = strtof(cstr, &end);
 
 		return end - cstr;
 	}
@@ -268,7 +268,7 @@ namespace {
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 32));
 		char *end;
-		*v = std::strtod(cstr, &end);
+		*v = strtod(cstr, &end);
 
 		return end - cstr;
 	}
@@ -279,13 +279,13 @@ namespace {
 	}
 
 	void FileBuffer::write(void const *data, usize size) {
-		std::fwrite(data, 1, size, file);
-		std::fflush(file);
+		fwrite(data, 1, size, file);
+		fflush(file);
 	}
 
 	void StringBuffer::write(void const *data, usize size) {
 		assert(size <= buffer->count - pos);
-		std::memcpy(buffer->data + pos, data, size);
+		memcpy(buffer->data + pos, data, size);
 		pos += size;
 	}
 
@@ -293,7 +293,7 @@ namespace {
 		size += pos;
 		auto ndata = make<char>(allocator, size);
 		if (buffer->data) {
-			std::memcpy(ndata, buffer->data, buffer->count);
+			memcpy(ndata, buffer->data, buffer->count);
 			deallocate(allocator, buffer->data, buffer->count);
 		}
 		buffer->data = ndata;
@@ -302,13 +302,13 @@ namespace {
 
 	void SliceBuffer::write(void const *data, usize size) {
 		assert(buffer->count + static_cast<i64>(size) <= capacity);
-		std::memcpy(buffer->data + buffer->count, data, size);
+		memcpy(buffer->data + buffer->count, data, size);
 		buffer->count += size;
 	}
 
 	void ArrayBuffer::write(void const *data, usize size) {
 		assert(*count + static_cast<i64>(size) <= capacity);
-		std::memcpy(buffer + *count, data, size);
+		memcpy(buffer + *count, data, size);
 		*count += size;
 	}
 

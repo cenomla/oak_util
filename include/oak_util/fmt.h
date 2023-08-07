@@ -1,7 +1,7 @@
 #pragma once
 
 #include <utility>
-#include <cstdio>
+#include <stdio.h>
 
 #include "types.h"
 #include "atomic.h"

@@ -7,126 +7,100 @@
 
 namespace oak {
 
-	struct MemoryArena {
-		void *block = nullptr;
-		u64 size = 0;
+	struct MemoryArena;
+
+	struct MemoryArenaHeader {
+		enum FlagBits : u32 {
+			CHAINED = 0x1,
+		};
+
+		usize capacity = 0;
+		usize usedMemory = 0;
+		usize commitSize = 0;
+		usize pageSize = 0;
+		void *next = nullptr;
+		void *last = nullptr;
+		u32 flags = 0;
+
+		// Debug info
+		i64 allocationCount = 0;
+		usize requestedMemory = 0;
+
+		// Thread synchronization
+		alignas(64) i32 _lock = 0;
+		MemoryArena *_nextArena = nullptr;
+		u64 _threadId = 0;
 	};
 
-	struct LinearArenaHeader {
-		u64 allocationCount;
-		u64 requestedMemory;
-		u64 usedMemory;
-		void *next;
-	};
-
-	struct MTHeapBlockHeader {
-		MTHeapBlockHeader *next = nullptr;
-		u64 allocationCount = 0;
-		u64 requestedMemory = 0;
-		u64 usedMemory = 0;
-	};
-
-	struct MTHeapArenaHeader {
-		Allocator *allocator = nullptr;
-		u64 blockSize = 0;
+	struct MTMemoryArenaHeader {
+		usize threadArenaSize = 0;
 
 		u64 totalAllocationCount = 0;
 		u64 totalRequestedMemory = 0;
 		u64 totalUsedMemory = 0;
-		u64 usedBlocks = 0;
-		u64 totalBlocks = 0;
 
 		alignas(64) i32 _lock = 0;
-		MTHeapBlockHeader *freeHeapList = nullptr;
-	};
-
-	struct RingArenaHeader {
-		u32 offset;
-		u64 allocationCount;
-		u64 requestedMemory;
-		u32 usedMemory;
-		void *next;
-	};
-
-	struct StackHeader {
-		i64 allocationCount;
-		i64 requestedMemory;
-	};
-
-	struct PoolNode {
-		PoolNode *next;
-		u64 size;
-	};
-
-	struct PoolHeader {
-		PoolNode *freeList;
-		u64 poolSize;
-		u64 alignment;
+		MemoryArena *first = nullptr;
+		MemoryArena *last = nullptr;
 	};
 
 	struct Allocator {
 		MemoryArena *arena = nullptr;
 		void* (*allocFn)(MemoryArena *self, u64 size, u64 alignment) = nullptr;
 		void (*freeFn)(MemoryArena *self, void *ptr, u64 size) = nullptr;
+		void* (*reallocFn)(MemoryArena *self, void *ptr, u64 size, u64 nSize, u64 alignment) = nullptr;
 		void (*clearFn)(MemoryArena *self) = nullptr;
 
-		void* allocate(u64 size, u64 alignment) {
+		inline void* allocate(u64 size, u64 alignment) {
 			return (*allocFn)(arena, size, alignment);
 		}
 
-		void deallocate(void *ptr, u64 size) {
+		inline void deallocate(void *ptr, u64 size) {
 			(*freeFn)(arena, ptr, size);
 		}
 
-		void clear() {
+		inline void* realloc(void *ptr, u64 size, u64 nSize, u64 alignment) {
+			return (*reallocFn)(arena, ptr, size, nSize, alignment);
+		}
+
+		inline void clear() {
 			(*clearFn)(arena);
 		}
 	};
 
-	OAK_UTIL_API Result init_linear_arena(MemoryArena *arena, Allocator *allocator, u64 size);
-	OAK_UTIL_API Result init_linear_arena(MemoryArena *arena, void *ptr, u64 size);
-	OAK_UTIL_API Result init_atomic_linear_arena(MemoryArena *arena, Allocator *allocator, u64 size);
-	OAK_UTIL_API void* allocate_from_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
-	OAK_UTIL_API void* allocate_from_atomic_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
-	OAK_UTIL_API void free_from_linear_arena(MemoryArena *arena, void *ptr, u64 size);
-	OAK_UTIL_API void free_from_atomic_linear_arena(MemoryArena *arena, void *ptr, u64 size);
-	OAK_UTIL_API Result copy_linear_arena(MemoryArena *dst, MemoryArena *src);
-	OAK_UTIL_API Result copy_atomic_linear_arena(MemoryArena *dst, MemoryArena *src);
-	OAK_UTIL_API void clear_linear_arena(MemoryArena *arena);
-	OAK_UTIL_API void clear_atomic_linear_arena(MemoryArena *arena);
+	OAK_UTIL_API void* virtual_alloc(usize size);
+	OAK_UTIL_API bool virtual_try_grow(void *addr, usize size, usize nSize);
+	OAK_UTIL_API void virtual_free(void *addr, usize size);
+	OAK_UTIL_API i32 commit_region(void *addr, usize size);
+	OAK_UTIL_API i32 decommit_region(void *addr, usize size);
 
-	OAK_UTIL_API i32 init_heap_linear_arena(MemoryArena *arena, Allocator *allocator, u64 blockSize);
-	OAK_UTIL_API void* allocate_from_heap_linear_arena(MemoryArena *arena, u64 size, u64 alignment);
-	OAK_UTIL_API void free_from_heap_linear_arena(MemoryArena *arena, void *ptr, u64 size);
-	OAK_UTIL_API void clear_heap_linear_arena(MemoryArena *arena);
+	OAK_UTIL_API i32 memory_arena_init(MemoryArena **arena, usize size);
+	OAK_UTIL_API i32 memory_arena_init(MemoryArena **arena, void *addr, usize size);
+	OAK_UTIL_API void memory_arena_destroy(MemoryArena *arena);
+	OAK_UTIL_API void* memory_arena_alloc(MemoryArena *arena, usize size, usize alignment);
+	OAK_UTIL_API void memory_arena_free(MemoryArena *arena, void *addr, usize size);
+	OAK_UTIL_API void* memory_arena_realloc(
+			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
+	OAK_UTIL_API void memory_arena_clear(MemoryArena *arena);
 
-	OAK_UTIL_API Result init_ring_arena(MemoryArena *arena, Allocator *allocator, u64 size);
-	OAK_UTIL_API void* allocate_from_ring_arena(MemoryArena *arena, u64 size, u64 alignment);
-	OAK_UTIL_API void deallocate_from_ring_arena(MemoryArena *arena, void *ptr, u64 size);
-	OAK_UTIL_API void clear_ring_arena(MemoryArena *arena);
+	OAK_UTIL_API i32 mt_memory_arena_init(MemoryArena **arena, usize size);
+	OAK_UTIL_API void mt_memory_arena_destroy(MemoryArena *arena);
+	OAK_UTIL_API void* mt_memory_arena_alloc(MemoryArena *arena, usize size, usize alignment);
+	OAK_UTIL_API void mt_memory_arena_free(MemoryArena *arena, void *addr, usize size);
+	OAK_UTIL_API void* mt_memory_arena_realloc(
+			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
+	OAK_UTIL_API void mt_memory_arena_clear(MemoryArena *arena);
 
-	OAK_UTIL_API void destroy_arena(MemoryArena *arena, Allocator *allocator);
-	OAK_UTIL_API bool arena_contains(MemoryArena *arena, void *ptr);
+	OAK_UTIL_API void* sys_alloc(MemoryArena *arena, usize size, usize alignment);
+	OAK_UTIL_API void sys_free(MemoryArena *arena, void *addr, usize size);
+	OAK_UTIL_API void* sys_realloc(
+			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
+	OAK_UTIL_API void sys_clear(MemoryArena *arena);
 
-	OAK_UTIL_API void* push_stack(MemoryArena *arena);
-	OAK_UTIL_API void pop_stack(MemoryArena *arena, void *stackPtr);
-
-	OAK_UTIL_API Result init_memory_pool(MemoryArena *arena, Allocator *allocator, u64 size, u64 alignment);
-
-	OAK_UTIL_API void* allocate_from_pool(MemoryArena *arena, u64 size, u64 alignment);
-	OAK_UTIL_API void free_from_pool(MemoryArena *arena, void *ptr, u64 size);
-
-	struct ArenaStack {
-		MemoryArena *arena = nullptr;
-		void *stackPtr = nullptr;
-
-		ArenaStack(MemoryArena *arena_)
-			: arena{ arena_ }, stackPtr{ push_stack(arena) } {}
-
-		~ArenaStack() {
-			pop_stack(arena, stackPtr);
-		}
-	};
+	OAK_UTIL_API Allocator make_arena_allocator(usize size);
+	OAK_UTIL_API Allocator make_arena_allocator(void *addr, usize size);
+	OAK_UTIL_API Allocator make_mt_arena_allocator(usize size);
+	OAK_UTIL_API Allocator make_sys_allocator();
 
 	template<typename T>
 	T* allocate(Allocator *allocator, i64 count) {
@@ -153,6 +127,20 @@ namespace oak {
 		allocator->deallocate(ptr, soa_offset<sizeof...(types), types...>(count));
 	}
 
+	template<typename T>
+	T* reallocate(Allocator *allocator, T *ptr, i64 count, i64 nCount) {
+		return static_cast<T*>(allocator->realloc(ptr, sizeof(T) * count, sizeof(T) * nCount, alignof(T)));
+	}
+
+	template<typename... types>
+	void* reallocate_soa(Allocator *allocator, void *ptr, i64 count, i64 nCount) {
+		return allocator->realloc(
+				ptr,
+				soa_offset<sizeof...(types), types...>(count),
+				soa_offset<sizeof...(types), types...>(nCount),
+				max_align<types...>());
+	}
+
 	template<typename T, typename... TArgs>
 	T* make(Allocator *allocator, i64 count, TArgs&&... args) {
 		auto result = allocate<T>(allocator, count);
@@ -172,19 +160,12 @@ namespace oak {
 		deallocate<T>(allocator, ptr, count);
 	}
 
-	OAK_UTIL_API void* std_aligned_alloc_wrapper(MemoryArena*, u64 size, u64 align);
-	OAK_UTIL_API void* std_aligned_alloc_garbage_wrapper(MemoryArena*, u64 size, u64 align);
-	OAK_UTIL_API void std_free_wrapper(MemoryArena*, void *ptr, u64);
-	OAK_UTIL_API void std_clear_wrapper(MemoryArena*);
-
 	OAK_UTIL_API extern Allocator* globalAllocator;
 	OAK_UTIL_API extern Allocator* temporaryAllocator;
 
 	#define TMP_ALLOC(size)\
-		u8 tmpMemory[sizeof(LinearArenaHeader) + size];\
-		MemoryArena tmpArena;\
-		Allocator tmpAlloc{ &tmpArena, allocate_from_linear_arena, free_from_linear_arena };\
-		init_linear_arena(&tmpArena, tmpMemory, sizeof(tmpMemory))
+		u8 _tmpMemory[sizeof(MemoryArenaHeader) + size];\
+		Allocator tmpAlloc = make_arena_allocator(_tmpMemory, sizeof(_tmpMemory))
 
 }
 
