@@ -1,4 +1,4 @@
-project('oak_util', 'cpp', default_options : ['cpp_std=c++17', 'warning_level=3'])
+project('oak_util', 'cpp', default_options : ['cpp_std=c++17', 'warning_level=3', 'werror=true'])
 
 cxx = meson.get_compiler('cpp')
 

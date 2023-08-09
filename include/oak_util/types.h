@@ -385,7 +385,7 @@ namespace oak {
 		constexpr u64 operator()(String const& str) const noexcept {
 			u64 hash = 0;
 
-			for (i64 i = 0; i < str.count; i++) {
+			for (i64 i = 0; i < str.count; ++i) {
 				hash = str.data[i] + (hash << 6) + (hash << 16) - hash;
 			}
 

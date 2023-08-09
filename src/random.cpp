@@ -70,7 +70,7 @@ namespace oak {
 
 	f64 LFGenerator::random_double() {
 		advance_state();
-		return (state[pos] >> 12) * TWO_M52;
+		return static_cast<f64>(state[pos] >> 12) * TWO_M52;
 	}
 
 	f32 LFGenerator::random_float() {

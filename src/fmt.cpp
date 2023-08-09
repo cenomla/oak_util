@@ -35,19 +35,6 @@ namespace {
 		return str;
 	}
 
-	char const* choose_snprintf_double_fmt_string(FmtKind fmtKind) noexcept {
-		char const* str;
-		switch (fmtKind) {
-			case FmtKind::DEFAULT: case FmtKind::DEC: str = "%.*lg"; break;
-			case FmtKind::HEX: str = "%.*la"; break;
-			case FmtKind::HEX_CAP: str = "%.*lA"; break;
-			case FmtKind::EXP: str = "%.*le"; break;
-			default: str = ""; break;
-		}
-
-		return str;
-	}
-
 }
 
 	String to_str(Allocator *allocator, char v, FmtKind, i32) {
@@ -67,7 +54,7 @@ namespace {
 		i64 idx = 0;
 		do {
 			auto c = static_cast<char>(v % base);
-			str[idx++] = c > 9 ? letter + c - 10 : '0' + c;
+			str[idx++] = static_cast<char>(c > 9 ? letter + c - 10 : '0' + c);
 			v /= base;
 		} while (v > 0);
 
@@ -101,7 +88,7 @@ namespace {
 		i64 idx = 0;
 		do {
 			auto c = static_cast<char>(v % base);
-			str[idx++] = c > 9 ? letter + c - 10 : '0' + c;
+			str[idx++] = static_cast<char>(c > 9 ? letter + c - 10 : '0' + c);
 			v /= base;
 		} while (v > 0);
 
@@ -121,7 +108,7 @@ namespace {
 		constexpr usize bufSize = 32;
 		auto str = make<char>(allocator, bufSize);
 		snprintf(
-				str, bufSize, choose_snprintf_float_fmt_string(fmtKind), precision, v);
+				str, bufSize, choose_snprintf_float_fmt_string(fmtKind), precision, static_cast<f64>(v));
 		return str;
 	}
 
@@ -129,7 +116,7 @@ namespace {
 		constexpr usize bufSize = 32;
 		auto str = make<char>(allocator, bufSize);
 		snprintf(
-				str, bufSize, choose_snprintf_double_fmt_string(fmtKind), precision, v);
+				str, bufSize, choose_snprintf_float_fmt_string(fmtKind), precision, v);
 		return str;
 	}
 
@@ -147,7 +134,7 @@ namespace {
 			{
 				auto nstr = allocate<char>(allocator, str.count);
 				for (i64 i = 0; i < str.count; ++i)
-					nstr[i] = tolower(str[i]);
+					nstr[i] = static_cast<char>(tolower(str[i]));
 				return String{ nstr, str.count };
 			}
 			break;
@@ -155,7 +142,7 @@ namespace {
 			{
 				auto nstr = allocate<char>(allocator, str.count);
 				for (i64 i = 0; i < str.count; ++i)
-					nstr[i] = toupper(str[i]);
+					nstr[i] = static_cast<char>(toupper(str[i]));
 				return String{ nstr, str.count };
 			}
 			break;
@@ -166,14 +153,14 @@ namespace {
 		}
 	}
 
-	i32 from_str(char *v, String str) {
+	i64 from_str(char *v, String str) {
 		if (!str.count)
 			return -1;
 		*v = str[0];
 		return 1;
 	}
 
-	i32 from_str(u8 *v, String str) {
+	i64 from_str(u8 *v, String str) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
@@ -183,7 +170,7 @@ namespace {
 		return end - cstr;
 	}
 
-	i32 from_str(u16 *v, String str) {
+	i64 from_str(u16 *v, String str) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
@@ -193,17 +180,17 @@ namespace {
 		return end - cstr;
 	}
 
-	i32 from_str(u32 *v, String str) {
+	i64 from_str(u32 *v, String str) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = strtoul(cstr, &end, 0);
+		*v = static_cast<u32>(strtoul(cstr, &end, 0));
 
 		return end - cstr;
 	}
 
-	i32 from_str(u64 *v, String str) {
+	i64 from_str(u64 *v, String str) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
@@ -213,7 +200,7 @@ namespace {
 		return end - cstr;
 	}
 
-	i32 from_str(i8 *v, String str) {
+	i64 from_str(i8 *v, String str) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
@@ -223,7 +210,7 @@ namespace {
 		return end - cstr;
 	}
 
-	i32 from_str(i16 *v, String str) {
+	i64 from_str(i16 *v, String str) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
@@ -233,17 +220,17 @@ namespace {
 		return end - cstr;
 	}
 
-	i32 from_str(i32 *v, String str) {
+	i64 from_str(i32 *v, String str) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = strtol(cstr, &end, 0);
+		*v = static_cast<i32>(strtol(cstr, &end, 0));
 
 		return end - cstr;
 	}
 
-	i32 from_str(i64 *v, String str) {
+	i64 from_str(i64 *v, String str) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
@@ -253,7 +240,7 @@ namespace {
 		return end - cstr;
 	}
 
-	i32 from_str(f32 *v, String str) {
+	i64 from_str(f32 *v, String str) {
 		TMP_ALLOC(32);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 32));
@@ -263,7 +250,7 @@ namespace {
 		return end - cstr;
 	}
 
-	i32 from_str(f64 *v, String str) {
+	i64 from_str(f64 *v, String str) {
 		TMP_ALLOC(32);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 32));
@@ -273,7 +260,7 @@ namespace {
 		return end - cstr;
 	}
 
-	i32 from_str(String *v, String str) {
+	i64 from_str(String *v, String str) {
 		*v = str;
 		return str.count;
 	}

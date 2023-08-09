@@ -19,6 +19,15 @@ namespace oak {
 #endif
 	}
 
+	inline int clz(uint32_t value) {
+		assert(value != 0);
+#ifdef _MSC_VER
+		return __lzcnt(value);
+#else
+		return __builtin_clz(value);
+#endif
+	}
+
 	inline int ctz(uint64_t value) {
 		assert(value != 0);
 #ifdef _MSC_VER
@@ -85,29 +94,33 @@ namespace oak {
 		return uint64_t{ 63 } - clz(value);
 	}
 
+	inline uint32_t blog2(uint32_t value) {
+		return uint32_t{ 31 } - clz(value);
+	}
+
 	template<typename T>
 	constexpr void set_bit(T& value, int32_t n) noexcept {
-		value |= (T{1} << n);
+		value |= static_cast<T>(T{1} << n);
 	}
 
 	template<typename T>
 	constexpr bool get_bit(T& value, int32_t n) noexcept {
-		return value & (T{1} << n);
+		return value & static_cast<T>(T{1} << n);
 	}
 
 	template<typename T>
 	constexpr void clear_bit(T& value, int32_t n) noexcept {
-		value &= ~(T{1} << n);
+		value &= static_cast<T>(~(T{1} << n));
 	}
 
 	template<typename T>
 	constexpr void toggle_bit(T& value, int32_t n) noexcept {
-		value ^= (T{1} << n);
+		value ^= static_cast<T>(T{1} << n);
 	}
 
 	template<typename T>
 	constexpr void change_bit(T& value, int32_t n, bool set) noexcept {
-		value ^= (-static_cast<T>(set) ^ value) & (T{1} << n);
+		value ^= static_cast<T>((-static_cast<T>(set) ^ value) & (T{1} << n));
 	}
 
 	template<typename T, typename U>
