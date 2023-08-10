@@ -238,7 +238,7 @@ namespace {
 		if (!addr)
 			return memory_arena_alloc(arena, nSize, alignment);
 
-		auto header = bit_cast<MemoryArenaHeader*>(addr);
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
 
 		{
 			atomic_lock(&header->_lock);
@@ -476,9 +476,6 @@ namespace {
 
 		return allocator;
 	}
-
-	Allocator* globalAllocator;
-	Allocator* temporaryAllocator;
 
 }
 

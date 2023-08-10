@@ -160,8 +160,8 @@ namespace oak {
 		deallocate<T>(allocator, ptr, count);
 	}
 
-	OAK_UTIL_API extern Allocator* globalAllocator;
-	OAK_UTIL_API extern Allocator* temporaryAllocator;
+	OAK_UTIL_API inline Allocator* globalAllocator = nullptr;
+	OAK_UTIL_API inline Allocator* temporaryAllocator = nullptr;
 
 	#define TMP_ALLOC(size)\
 		u8 _tmpMemory[sizeof(MemoryArenaHeader) + size];\
