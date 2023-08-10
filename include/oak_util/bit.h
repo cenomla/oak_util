@@ -13,7 +13,7 @@ namespace oak {
 	inline int clz(uint64_t value) {
 		assert(value != 0);
 #ifdef _MSC_VER
-		return __lzcnt64(value);
+		return static_cast<int>(__lzcnt64(value));
 #else
 		return __builtin_clzll(value);
 #endif
@@ -22,7 +22,7 @@ namespace oak {
 	inline int clz(uint32_t value) {
 		assert(value != 0);
 #ifdef _MSC_VER
-		return __lzcnt(value);
+		return static_cast<int>(__lzcnt(value));
 #else
 		return __builtin_clz(value);
 #endif
@@ -33,7 +33,7 @@ namespace oak {
 #ifdef _MSC_VER
 		unsigned long index = 0;
 		_BitScanForward64(&index, value);
-		return index;
+		return static_cast<int>(index);
 #else
 		return __builtin_ctzll(value);
 #endif
@@ -41,7 +41,7 @@ namespace oak {
 
 	inline int bit_count(uint64_t value) {
 #ifdef _MSC_VER
-		return __popcnt64(value);
+		return static_cast<int>(__popcnt64(value));
 #else
 		return __builtin_popcountll(value);
 #endif

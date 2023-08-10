@@ -2,6 +2,10 @@
 #include <oak_util/memory.h>
 
 #ifdef _WIN32
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#define NOGDI
+#include <windows.h>
 #else
 #include <sanitizer/asan_interface.h>
 #include <sys/mman.h>
@@ -24,6 +28,9 @@ namespace {
 
 	usize _get_page_size() {
 #ifdef _WIN32
+		SYSTEM_INFO si;
+		GetSystemInfo(&si);
+		return si.dwPageSize;
 #else
 		auto scResult = sysconf(_SC_PAGE_SIZE);
 		if (scResult == -1)
@@ -67,6 +74,7 @@ namespace {
 
 	void* virtual_alloc(usize size) {
 #ifdef _WIN32
+		return VirtualAlloc(nullptr, size, MEM_RESERVE, PAGE_READWRITE);
 #else
 		auto result = mmap(nullptr, size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 		if (result == MAP_FAILED)
@@ -78,6 +86,16 @@ namespace {
 
 	bool virtual_try_grow(void *addr, usize size, usize nSize) {
 #ifdef _WIN32
+		auto nAddr = add_ptr(addr, size);
+		auto result = VirtualAlloc(nAddr, nSize - size, MEM_RESERVE, PAGE_READWRITE);
+		if (result == nullptr)
+			return false;
+		if (result != nAddr) {
+			VirtualFree(result, 0, MEM_RELEASE);
+			return false;
+		}
+
+		return true;
 #else
 		auto nAddr = add_ptr(addr, size);
 		auto result = mmap(nAddr, nSize - size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
@@ -94,6 +112,9 @@ namespace {
 
 	void virtual_free(void *addr, usize size) {
 #ifdef _WIN32
+		(void)size;
+		auto result = VirtualFree(addr, 0, MEM_RELEASE);
+		assert(result);
 #else
 		auto result = munmap(addr, size);
 		assert(result == 0);
@@ -102,6 +123,13 @@ namespace {
 
 	i32 commit_region(void *addr, usize size) {
 #ifdef _WIN32
+		auto result = VirtualAlloc(addr, size, MEM_COMMIT, PAGE_READWRITE);
+		if (result == nullptr)
+			return 1;
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+		__asan_poison_memory_region(addr, size);
+#endif
+		return 0;
 #else
 		if (mprotect(addr, size, PROT_READ|PROT_WRITE) == -1)
 			return 1;
@@ -112,6 +140,12 @@ namespace {
 
 	i32 decommit_region(void *addr, usize size) {
 #ifdef _WIN32
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+		__asan_unpoison_memory_region(addr, size);
+#endif
+		if (VirtualFree(addr, size, MEM_DECOMMIT) == 0)
+			return 1;
+		return 0;
 #else
 		ASAN_UNPOISON_MEMORY_REGION(addr, size);
 		if (mprotect(addr, size, PROT_NONE) == -1)
@@ -134,7 +168,9 @@ namespace {
 			virtual_free(addr, size);
 			return 1;
 		}
-		ASAN_UNPOISON_MEMORY_REGION(addr, sizeof(MemoryArenaHeader));
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+		__asan_unpoison_memory_region(addr, sizeof(MemoryArenaHeader));
+#endif
 
 		auto header = static_cast<MemoryArenaHeader*>(addr);
 		header->capacity = size;
@@ -178,7 +214,9 @@ namespace {
 		header->_nextArena = nullptr;
 		header->_threadId = 0;
 
-		ASAN_POISON_MEMORY_REGION(add_ptr(addr, sizeof(MemoryArenaHeader)), size - sizeof(MemoryArenaHeader));
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+		__asan_poison_memory_region(add_ptr(addr, sizeof(MemoryArenaHeader)), size - sizeof(MemoryArenaHeader));
+#endif
 
 		*arena = static_cast<MemoryArena*>(addr);
 
@@ -193,7 +231,9 @@ namespace {
 			virtual_free(header, capacity);
 		} else {
 			// The arena no longer manages the memory region referenced by addr
-			ASAN_UNPOISON_MEMORY_REGION(header, header->capacity);
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+			__asan_unpoison_memory_region(header, header->capacity);
+#endif
 		}
 	}
 
@@ -215,7 +255,9 @@ namespace {
 		header->allocationCount += 1;
 		header->requestedMemory += size;
 
-		ASAN_UNPOISON_MEMORY_REGION(add_ptr(header, offset), size);
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+		__asan_unpoison_memory_region(add_ptr(header, offset), size);
+#endif
 
 		return add_ptr(header, offset);
 	}
@@ -231,7 +273,10 @@ namespace {
 
 		header->requestedMemory -= size;
 		header->allocationCount -= 1;
-		ASAN_POISON_MEMORY_REGION(addr, size);
+
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+		__asan_poison_memory_region(addr, size);
+#endif
 	}
 
 	void* memory_arena_realloc(MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment) {
@@ -255,7 +300,9 @@ namespace {
 				header->usedMemory = offset + nSize;
 				header->requestedMemory += nSize - size;
 
-				ASAN_UNPOISON_MEMORY_REGION(add_ptr(header, offset), nSize);
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+				__asan_unpoison_memory_region(add_ptr(header, offset), nSize);
+#endif
 
 				return add_ptr(header, offset);
 			}
@@ -278,9 +325,12 @@ namespace {
 		header->usedMemory = sizeof(MemoryArenaHeader);
 		header->allocationCount = 0;
 		header->requestedMemory = 0;
-		ASAN_POISON_MEMORY_REGION(
+
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+		__asan_poison_memory_region(
 				add_ptr(header, sizeof(MemoryArenaHeader)),
 				header->capacity - sizeof(MemoryArenaHeader));
+#endif
 	}
 
 	i32 mt_memory_arena_init(MemoryArena **arena, usize size) {
@@ -296,7 +346,10 @@ namespace {
 			virtual_free(addr, pageSize);
 			return 1;
 		}
-		ASAN_UNPOISON_MEMORY_REGION(addr, sizeof(MTMemoryArenaHeader));
+
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+		__asan_unpoison_memory_region(addr, sizeof(MTMemoryArenaHeader));
+#endif
 
 		auto header = static_cast<MTMemoryArenaHeader*>(addr);
 
@@ -382,7 +435,9 @@ namespace {
 			return nullptr;
 		}
 
-		ASAN_UNPOISON_MEMORY_REGION(addr, size);
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+		__asan_unpoison_memory_region(addr, size);
+#endif
 		return addr;
 	}
 
@@ -413,7 +468,9 @@ namespace {
 			auto nAddr = add_ptr(addr, size);
 			auto dSize = nSize - size;
 			if (commit_region(nAddr, dSize) == 0) {
-				ASAN_UNPOISON_MEMORY_REGION(nAddr, dSize);
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+				__asan_unpoison_memory_region(nAddr, dSize);
+#endif
 				return addr;
 			}
 			virtual_free(nAddr, dSize);

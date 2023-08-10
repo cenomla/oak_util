@@ -20,7 +20,7 @@ namespace oak {
 		if (!str.count)
 			return "";
 
-#if !(__has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__))
+#if !__has_feature(address_sanitizer) && !defined(__SANITIZE_ADDRESS__)
 		if (is_c_str(str))
 			return str.data;
 #endif
