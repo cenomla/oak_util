@@ -11,7 +11,8 @@ namespace oak {
 
 	struct MemoryArenaHeader {
 		enum FlagBits : u32 {
-			CHAINED = 0x1,
+			CHAINED_BIT = 0x1,
+			SUB_ALLOCATED_BIT = 0x2,
 		};
 
 		usize capacity = 0;
@@ -30,6 +31,11 @@ namespace oak {
 		alignas(64) i32 _lock = 0;
 		MemoryArena *_nextArena = nullptr;
 		u64 _threadId = 0;
+	};
+
+	struct MemoryPoolHeader {
+		usize objectSize = 0;
+		void *freeList = nullptr;
 	};
 
 	struct MTMemoryArenaHeader {
@@ -83,6 +89,13 @@ namespace oak {
 			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
 	OAK_UTIL_API void memory_arena_clear(MemoryArena *arena);
 
+	OAK_UTIL_API i32 memory_pool_init(MemoryArena **arena, usize size, usize objectSize);
+	OAK_UTIL_API void* memory_pool_alloc(MemoryArena *arena, usize size, usize alignment);
+	OAK_UTIL_API void memory_pool_free(MemoryArena *arena, void *addr, usize size);
+	OAK_UTIL_API void* memory_pool_relloc(
+			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
+	OAK_UTIL_API void memory_pool_clear(MemoryArena *arena);
+
 	OAK_UTIL_API i32 mt_memory_arena_init(MemoryArena **arena, usize size);
 	OAK_UTIL_API void mt_memory_arena_destroy(MemoryArena *arena);
 	OAK_UTIL_API void* mt_memory_arena_alloc(MemoryArena *arena, usize size, usize alignment);
@@ -99,6 +112,7 @@ namespace oak {
 
 	OAK_UTIL_API Allocator make_arena_allocator(usize size);
 	OAK_UTIL_API Allocator make_arena_allocator(void *addr, usize size);
+	OAK_UTIL_API Allocator make_pool_allocator(usize size, usize objectSize);
 	OAK_UTIL_API Allocator make_mt_arena_allocator(usize size);
 	OAK_UTIL_API Allocator make_sys_allocator();
 
