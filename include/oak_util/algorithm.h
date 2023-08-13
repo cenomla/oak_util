@@ -79,6 +79,7 @@ namespace oak {
 			return;
 
 		auto temp = allocate<T>(allocator, arrayCount);
+		SCOPE_EXIT(deallocate(allocator, temp, arrayCount));
 		memcpy(temp, array, arrayCount * sizeof(T));
 		detail::ms_impl_split(array, temp, 0, arrayCount, std::forward<F>(functor));
 	}
@@ -89,6 +90,7 @@ namespace oak {
 			return;
 
 		auto temp = allocate<T>(allocator, arrayCount);
+		SCOPE_EXIT(deallocate(allocator, temp, arrayCount));
 		memcpy(temp, array, arrayCount * sizeof(T));
 		detail::ms_impl_split(array, temp, 0, arrayCount, less<T>);
 	}
@@ -112,13 +114,16 @@ namespace oak {
 	constexpr void radix_sort(Allocator *allocator, T *array, i64 arrayCount, u32 r = 8) {
 		auto t0 = array;
 		auto t1 = allocate<T>(allocator, arrayCount);
+		SCOPE_EXIT(deallocate(allocator, t1, arrayCount));
 
 		u32 b = sizeof(U) * 8;
 
 		// Num values per radix
 		u32 rv = 1 << r;
 		auto count = allocate<u32>(allocator, rv);
+		SCOPE_EXIT(deallocate(allocator, count, rv));
 		auto prefix = allocate<u32>(allocator, rv);
+		SCOPE_EXIT(deallocate(allocator, prefix, rv));
 
 		auto groups = b / r;
 		u32 mask = rv - 1;
@@ -149,13 +154,16 @@ namespace oak {
 	constexpr void radix_sort(Allocator *allocator, T *array, i64 arrayCount, u32 r = 8) {
 		auto t0 = array;
 		auto t1 = allocate<T>(allocator, arrayCount);
+		SCOPE_EXIT(deallocate(allocator, t1, arrayCount));
 
 		u32 b = sizeof(T) * 8;
 
 		// Num values per radix
 		u32 rv = 1 << r;
 		auto count = allocate<u32>(allocator, rv);
+		SCOPE_EXIT(deallocate(allocator, count, rv));
 		auto prefix = allocate<u32>(allocator, rv);
+		SCOPE_EXIT(deallocate(allocator, prefix, rv));
 
 		auto groups = b / r;
 		u32 mask = rv - 1;
