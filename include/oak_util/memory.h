@@ -104,6 +104,7 @@ namespace oak {
 			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
 	OAK_UTIL_API void mt_memory_arena_clear(MemoryArena *arena);
 
+	OAK_UTIL_API i32 sys_alloc_init(MemoryArena **arena);
 	OAK_UTIL_API void* sys_alloc(MemoryArena *arena, usize size, usize alignment);
 	OAK_UTIL_API void sys_free(MemoryArena *arena, void *addr, usize size);
 	OAK_UTIL_API void* sys_realloc(

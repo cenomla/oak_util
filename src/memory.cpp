@@ -528,21 +528,54 @@ namespace {
 		memory_arena_clear(localArena);
 	}
 
-	void* sys_alloc(MemoryArena*, usize size, usize alignment) {
+	i32 sys_alloc_init(MemoryArena **arena) {
+		usize pageSize;
+		auto addr = _virtual_alloc_with_header(
+				sizeof(MemoryArenaHeader), sizeof(MemoryArenaHeader), &pageSize);
+		if (!addr)
+			return 1;
+
+		auto header = static_cast<MemoryArenaHeader*>(addr);
+		header->capacity = 0;
+		header->usedMemory = sizeof(MemoryArenaHeader);
+		header->commitSize = pageSize;
+		header->pageSize = pageSize;
+		header->next = nullptr;
+		header->last = nullptr;
+		header->flags = 0;
+
+		header->allocationCount = 0;
+		header->requestedMemory = 0;
+
+		header->_lock = 0;
+		header->_nextArena = nullptr;
+		header->_threadId = 0;
+
+		*arena = static_cast<MemoryArena*>(addr);
+
+		return 0;
+	}
+
+	void* sys_alloc(MemoryArena* arena, usize size, usize alignment) {
 		if (!size)
 			return nullptr;
 
 		auto pageSize = _get_page_size();
 		assert(alignment <= pageSize);
-		size = align(size, pageSize);
+		auto alignedSize = align(size, pageSize);
 
-		auto addr = virtual_alloc(size);
+		auto addr = virtual_alloc(alignedSize);
 		if (!addr)
 			return nullptr;
-		if (commit_region(addr, size) != 0) {
-			virtual_free(addr, size);
+		if (commit_region(addr, alignedSize) != 0) {
+			virtual_free(addr, alignedSize);
 			return nullptr;
 		}
+
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
+		header->usedMemory += alignedSize;
+		header->requestedMemory += size;
+		++header->allocationCount;
 
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 		__asan_unpoison_memory_region(addr, size);
@@ -550,13 +583,18 @@ namespace {
 		return addr;
 	}
 
-	void sys_free(MemoryArena*, void *addr, usize size) {
+	void sys_free(MemoryArena* arena, void *addr, usize size) {
 		if (!size)
 			return;
-		size = align(size, _get_page_size());
+		auto alignedSize = align(size, _get_page_size());
 
-		decommit_region(addr, size);
-		virtual_free(addr, size);
+		decommit_region(addr, alignedSize);
+		virtual_free(addr, alignedSize);
+
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
+		header->usedMemory -= alignedSize;
+		header->requestedMemory -= size;
+		--header->allocationCount;
 	}
 
 	void* sys_realloc(
@@ -567,16 +605,19 @@ namespace {
 		auto pageSize = _get_page_size();
 		assert(alignment <= pageSize);
 
-		size = align(size, pageSize);
-		if (size >= nSize)
+		auto alignedSize = align(size, pageSize);
+		if (alignedSize >= nSize)
 			return addr;
-		nSize = align(nSize, pageSize);
+		auto nAlignedSize = align(nSize, pageSize);
 
 
-		if (virtual_try_grow(addr, size, nSize)) {
-			auto nAddr = add_ptr(addr, size);
-			auto dSize = nSize - size;
+		if (virtual_try_grow(addr, alignedSize, nAlignedSize)) {
+			auto nAddr = add_ptr(addr, alignedSize);
+			auto dSize = nAlignedSize - alignedSize;
 			if (commit_region(nAddr, dSize) == 0) {
+				auto header = bit_cast<MemoryArenaHeader*>(arena);
+				header->usedMemory += dSize;
+				header->requestedMemory += nSize - size;
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 				__asan_unpoison_memory_region(nAddr, dSize);
 #endif
@@ -585,11 +626,11 @@ namespace {
 			virtual_free(nAddr, dSize);
 		}
 
-		auto nAddr = sys_alloc(arena, nSize, alignment);
+		auto nAddr = sys_alloc(arena, nAlignedSize, alignment);
 		if (!nAddr)
 			return nullptr;
-		memcpy(nAddr, addr, size);
-		sys_free(arena, addr, size);
+		memcpy(nAddr, addr, alignedSize);
+		sys_free(arena, addr, alignedSize);
 		return nAddr;
 	}
 
@@ -646,7 +687,8 @@ namespace {
 
 	Allocator make_sys_allocator() {
 		Allocator allocator;
-		allocator.arena = nullptr;
+		if (sys_alloc_init(&allocator.arena) != 0)
+			return {};
 		allocator.allocFn = sys_alloc;
 		allocator.freeFn = sys_free;
 		allocator.reallocFn = sys_realloc;
