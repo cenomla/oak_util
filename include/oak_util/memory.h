@@ -179,7 +179,7 @@ namespace oak {
 	OAK_UTIL_API inline Allocator* temporaryAllocator = nullptr;
 
 	#define TMP_ALLOC(size)\
-		u8 _tmpMemory[sizeof(MemoryArenaHeader) + size];\
+		alignas(64) u8 _tmpMemory[sizeof(MemoryArenaHeader) + size];\
 		Allocator tmpAlloc = make_arena_allocator(_tmpMemory, sizeof(_tmpMemory))
 
 }
