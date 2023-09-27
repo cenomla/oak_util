@@ -35,6 +35,14 @@ namespace {
 		return str;
 	}
 
+	void sb_buffer_write(void *userData, void const *data, usize size) {
+		static_cast<StringBuffer*>(userData)->write(data, size);
+	}
+
+	void sb_buffer_resize(void *userData, usize size) {
+		static_cast<StringBuffer*>(userData)->resize(size);
+	}
+
 }
 
 	String to_str(Allocator *allocator, char v, FmtKind, i32) {
@@ -265,6 +273,14 @@ namespace {
 		return str.count;
 	}
 
+	void IBuffer::write(void const *data, usize size) {
+		writeFn(userData, data, size);
+	}
+
+	void IBuffer::resize(usize size) {
+		resizeFn(userData, size);
+	}
+
 	void FileBuffer::write(void const *data, usize size) {
 		fwrite(data, 1, size, file);
 		fflush(file);
@@ -285,6 +301,10 @@ namespace {
 		}
 		buffer->data = ndata;
 		buffer->count = size;
+	}
+
+	IBuffer StringBuffer::get_buffer_interface() {
+		return { this, sb_buffer_write, sb_buffer_resize };
 	}
 
 	void SliceBuffer::write(void const *data, usize size) {

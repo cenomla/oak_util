@@ -176,6 +176,15 @@ namespace oak {
 		static constexpr bool value = sizeof(test<T>(0)) == sizeof(char);
 	};
 
+	struct OAK_UTIL_API IBuffer {
+		void *userData = nullptr;
+		void (*writeFn)(void *userData, void const *data, usize size) = nullptr;
+		void (*resizeFn)(void *userData, usize size) = nullptr;
+
+		void write(void const *data, usize size);
+		void resize(usize size);
+	};
+
 	struct OAK_UTIL_API FileBuffer {
 		void write(void const *data, usize size);
 
@@ -189,6 +198,8 @@ namespace oak {
 		Allocator *allocator = nullptr;
 		Slice<char> *buffer = nullptr;
 		u64 pos = 0;
+
+		IBuffer get_buffer_interface();
 	};
 
 	struct OAK_UTIL_API SliceBuffer {
