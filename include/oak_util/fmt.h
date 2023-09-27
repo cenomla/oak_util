@@ -156,14 +156,14 @@ namespace oak {
 			Allocator *allocator, String str, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
 
 	OAK_UTIL_API i64 from_str(char *v, String str);
-	OAK_UTIL_API i64 from_str(u8 *v, String str);
-	OAK_UTIL_API i64 from_str(u16 *v, String str);
-	OAK_UTIL_API i64 from_str(u32 *v, String str);
-	OAK_UTIL_API i64 from_str(u64 *v, String str);
-	OAK_UTIL_API i64 from_str(i8 *v, String str);
-	OAK_UTIL_API i64 from_str(i16 *v, String str);
-	OAK_UTIL_API i64 from_str(i32 *v, String str);
-	OAK_UTIL_API i64 from_str(i64 *v, String str);
+	OAK_UTIL_API i64 from_str(u8 *v, String str, i32 base = 0);
+	OAK_UTIL_API i64 from_str(u16 *v, String str, i32 base = 0);
+	OAK_UTIL_API i64 from_str(u32 *v, String str, i32 base = 0);
+	OAK_UTIL_API i64 from_str(u64 *v, String str, i32 base = 0);
+	OAK_UTIL_API i64 from_str(i8 *v, String str, i32 base = 0);
+	OAK_UTIL_API i64 from_str(i16 *v, String str, i32 base = 0);
+	OAK_UTIL_API i64 from_str(i32 *v, String str, i32 base = 0);
+	OAK_UTIL_API i64 from_str(i64 *v, String str, i32 base = 0);
 	OAK_UTIL_API i64 from_str(f32 *v, String str);
 	OAK_UTIL_API i64 from_str(f64 *v, String str);
 	OAK_UTIL_API i64 from_str(String *v, String str);

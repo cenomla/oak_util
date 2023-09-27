@@ -160,82 +160,82 @@ namespace {
 		return 1;
 	}
 
-	i64 from_str(u8 *v, String str) {
+	i64 from_str(u8 *v, String str, i32 base) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = static_cast<u8>(strtoul(cstr, &end, 0));
+		*v = static_cast<u8>(strtoul(cstr, &end, base));
 
 		return end - cstr;
 	}
 
-	i64 from_str(u16 *v, String str) {
+	i64 from_str(u16 *v, String str, i32 base) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = static_cast<u16>(strtoul(cstr, &end, 0));
+		*v = static_cast<u16>(strtoul(cstr, &end, base));
 
 		return end - cstr;
 	}
 
-	i64 from_str(u32 *v, String str) {
+	i64 from_str(u32 *v, String str, i32 base) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = static_cast<u32>(strtoul(cstr, &end, 0));
+		*v = static_cast<u32>(strtoul(cstr, &end, base));
 
 		return end - cstr;
 	}
 
-	i64 from_str(u64 *v, String str) {
+	i64 from_str(u64 *v, String str, i32 base) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = strtoull(cstr, &end, 0);
+		*v = strtoull(cstr, &end, base);
 
 		return end - cstr;
 	}
 
-	i64 from_str(i8 *v, String str) {
+	i64 from_str(i8 *v, String str, i32 base) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = static_cast<i8>(strtol(cstr, &end, 0));
+		*v = static_cast<i8>(strtol(cstr, &end, base));
 
 		return end - cstr;
 	}
 
-	i64 from_str(i16 *v, String str) {
+	i64 from_str(i16 *v, String str, i32 base) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = static_cast<i16>(strtol(cstr, &end, 0));
+		*v = static_cast<i16>(strtol(cstr, &end, base));
 
 		return end - cstr;
 	}
 
-	i64 from_str(i32 *v, String str) {
+	i64 from_str(i32 *v, String str, i32 base) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = static_cast<i32>(strtol(cstr, &end, 0));
+		*v = static_cast<i32>(strtol(cstr, &end, base));
 
 		return end - cstr;
 	}
 
-	i64 from_str(i64 *v, String str) {
+	i64 from_str(i64 *v, String str, i32 base) {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
 		char *end;
-		*v = strtoll(cstr, &end, 0);
+		*v = strtoll(cstr, &end, base);
 
 		return end - cstr;
 	}
