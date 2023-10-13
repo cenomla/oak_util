@@ -2,12 +2,36 @@
 #include <oak_util/memory.h>
 
 #ifdef _WIN32
+
+#if defined(__SANITIZE_ADDRESS__)
+#define HAS_ASAN 1
+#else
+#define HAS_ASAN 0
+#endif // defined(__SANITIZE_ADDRESS__)
+
+#else
+#include <sanitizer/asan_interface.h>
+
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#define HAS_ASAN 1
+#else
+#define HAS_ASAN 0
+#endif // __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+
+#endif // _WIN32
+
+#if HAS_ASAN
+#	define ASAN_RED_ZONE_SIZE 8
+#else
+#	define ASAN_RED_ZONE_SIZE 0
+#endif
+
+#ifdef _WIN32
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #define NOGDI
 #include <windows.h>
 #else
-#include <sanitizer/asan_interface.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -266,7 +290,7 @@ namespace {
 		if (_memory_arena_ensure_commit_size(header, offset + size) != 0)
 			return nullptr;
 
-		header->usedMemory = offset + size;
+		header->usedMemory = offset + size + ASAN_RED_ZONE_SIZE;
 		header->allocationCount += 1;
 		header->requestedMemory += size;
 
@@ -283,10 +307,10 @@ namespace {
 		atomic_lock(&header->_lock);
 		SCOPE_EXIT(atomic_unlock(&header->_lock));
 
-		if (add_ptr(header, header->usedMemory - size) == addr)
-			header->usedMemory -= size;
+		if (add_ptr(header, header->usedMemory - (size + ASAN_RED_ZONE_SIZE)) == addr)
+			header->usedMemory -= size + ASAN_RED_ZONE_SIZE;
 
-		header->requestedMemory -= size;
+		header->requestedMemory -= size + ASAN_RED_ZONE_SIZE;
 		header->allocationCount -= 1;
 
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
@@ -304,7 +328,7 @@ namespace {
 			atomic_lock(&header->_lock);
 			SCOPE_EXIT(atomic_unlock(&header->_lock));
 
-			auto offset = header->usedMemory - size;
+			auto offset = header->usedMemory - (size + ASAN_RED_ZONE_SIZE);
 			if (add_ptr(header, offset) == addr) {
 				if (offset + nSize > header->capacity)
 					return nullptr;
@@ -312,7 +336,7 @@ namespace {
 				if (_memory_arena_ensure_commit_size(header, offset + nSize) != 0)
 					return nullptr;
 
-				header->usedMemory = offset + nSize;
+				header->usedMemory = offset + nSize + ASAN_RED_ZONE_SIZE;
 				header->requestedMemory += nSize - size;
 
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
@@ -337,15 +361,15 @@ namespace {
 		atomic_lock(&header->_lock);
 		SCOPE_EXIT(atomic_unlock(&header->_lock));
 
-		header->usedMemory = sizeof(MemoryArenaHeader);
-		header->allocationCount = 0;
-		header->requestedMemory = 0;
-
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 		__asan_poison_memory_region(
 				add_ptr(header, sizeof(MemoryArenaHeader)),
-				header->capacity - sizeof(MemoryArenaHeader));
+				header->usedMemory - sizeof(MemoryArenaHeader));
 #endif
+
+		header->usedMemory = sizeof(MemoryArenaHeader);
+		header->allocationCount = 0;
+		header->requestedMemory = 0;
 	}
 
 	i32 memory_pool_init(MemoryArena **arena, usize size, usize objectSize) {
