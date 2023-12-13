@@ -21,6 +21,7 @@ namespace oak {
 		usize pageSize = 0;
 		void *next = nullptr;
 		void *last = nullptr;
+		usize alignSize = 0;
 		u32 flags = 0;
 
 		// Debug info
@@ -82,6 +83,7 @@ namespace oak {
 
 	OAK_UTIL_API i32 memory_arena_init(MemoryArena **arena, usize size);
 	OAK_UTIL_API i32 memory_arena_init(MemoryArena **arena, void *addr, usize size);
+	OAK_UTIL_API void memory_arena_align_size(MemoryArena *arena, usize alignSize);
 	OAK_UTIL_API void memory_arena_destroy(MemoryArena *arena);
 	OAK_UTIL_API void* memory_arena_alloc(MemoryArena *arena, usize size, usize alignment);
 	OAK_UTIL_API void memory_arena_free(MemoryArena *arena, void *addr, usize size);

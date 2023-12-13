@@ -217,6 +217,7 @@ namespace {
 		header->pageSize = pageSize;
 		header->next = nullptr;
 		header->last = nullptr;
+		header->alignSize = 1;
 		header->flags = 0;
 
 		header->allocationCount = 0;
@@ -243,6 +244,7 @@ namespace {
 		header->pageSize = _get_page_size();
 		header->next = nullptr;
 		header->last = nullptr;
+		header->alignSize = 1;
 		header->flags = MemoryArenaHeader::SUB_ALLOCATED_BIT;
 
 		header->allocationCount = 0;
@@ -259,6 +261,15 @@ namespace {
 		*arena = static_cast<MemoryArena*>(addr);
 
 		return 0;
+	}
+
+	void memory_arena_align_size(MemoryArena *arena, usize alignSize) {
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
+
+		atomic_lock(&header->_lock);
+		SCOPE_EXIT(atomic_unlock(&header->_lock));
+
+		header->alignSize = alignSize;
 	}
 
 	void memory_arena_destroy(MemoryArena *arena) {
@@ -282,15 +293,17 @@ namespace {
 		SCOPE_EXIT(atomic_unlock(&header->_lock));
 
 		assert(alignment <= header->pageSize);
+		assert(header->alignSize > 0);
 
 		auto offset = align(header->usedMemory, alignment);
-		if (offset + size > header->capacity)
+		auto alignedSize = align(size, header->alignSize);
+		if (offset + alignedSize > header->capacity)
 			return nullptr;
 
-		if (_memory_arena_ensure_commit_size(header, offset + size) != 0)
+		if (_memory_arena_ensure_commit_size(header, offset + alignedSize) != 0)
 			return nullptr;
 
-		header->usedMemory = offset + size + ASAN_RED_ZONE_SIZE;
+		header->usedMemory = offset + alignedSize + ASAN_RED_ZONE_SIZE;
 		header->allocationCount += 1;
 		header->requestedMemory += size;
 
@@ -307,10 +320,13 @@ namespace {
 		atomic_lock(&header->_lock);
 		SCOPE_EXIT(atomic_unlock(&header->_lock));
 
-		if (add_ptr(header, header->usedMemory - (size + ASAN_RED_ZONE_SIZE)) == addr)
-			header->usedMemory -= size + ASAN_RED_ZONE_SIZE;
+		assert(header->alignSize > 0);
 
-		header->requestedMemory -= size + ASAN_RED_ZONE_SIZE;
+		auto alignedSize = align(size, header->alignSize);
+		if (add_ptr(header, header->usedMemory - (alignedSize + ASAN_RED_ZONE_SIZE)) == addr)
+			header->usedMemory -= alignedSize + ASAN_RED_ZONE_SIZE;
+
+		header->requestedMemory -= size;
 		header->allocationCount -= 1;
 
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
@@ -328,7 +344,10 @@ namespace {
 			atomic_lock(&header->_lock);
 			SCOPE_EXIT(atomic_unlock(&header->_lock));
 
-			auto offset = header->usedMemory - (size + ASAN_RED_ZONE_SIZE);
+			assert(header->alignSize > 0);
+
+			auto alignedSize = align(size, header->alignSize);
+			auto offset = header->usedMemory - (alignedSize + ASAN_RED_ZONE_SIZE);
 			if (add_ptr(header, offset) == addr) {
 				if (offset + nSize > header->capacity)
 					return nullptr;
@@ -387,6 +406,7 @@ namespace {
 		header->usedMemory = sizeof(MemoryArenaHeader) + sizeof(MemoryPoolHeader);
 		header->commitSize = pageSize;
 		header->pageSize = pageSize;
+		header->alignSize = 1;
 		header->flags = 0;
 
 		header->allocationCount = 0;
