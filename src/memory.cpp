@@ -428,7 +428,7 @@ namespace {
 		memory_arena_destroy(arena);
 	}
 
-	void* memory_pool_alloc(MemoryArena *arena, usize size, usize) {
+	void* memory_pool_alloc(MemoryArena *arena, usize size, usize alignment) {
 		size = align(size, sizeof(void*));
 		auto header = bit_cast<MemoryArenaHeader*>(arena);
 		auto poolHeader = static_cast<MemoryPoolHeader*>(add_ptr(header, sizeof(MemoryArenaHeader)));
@@ -452,7 +452,7 @@ namespace {
 			}
 		}
 
-		return memory_arena_alloc(arena, objectSize, objectSize);
+		return memory_arena_alloc(arena, objectSize, alignment);
 	}
 
 	void memory_pool_free(MemoryArena *arena, void *addr, usize size) {
