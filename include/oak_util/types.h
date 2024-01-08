@@ -451,6 +451,10 @@ namespace oak {
 		return static_cast<Slice<E>>(array);
 	}
 
+	template<typename E>
+	constexpr Slice<E> slc_value(E& elem) noexcept {
+		return { &elem, 1 };
+	}
 }
 
 /*
