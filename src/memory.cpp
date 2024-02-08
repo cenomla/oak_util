@@ -497,6 +497,15 @@ namespace {
 #endif
 	}
 
+	usize memory_pool_get_object_size(MemoryArena *arena) {
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
+		auto poolHeader = static_cast<MemoryPoolHeader*>(add_ptr(header, sizeof(MemoryArenaHeader)));
+		atomic_lock(&header->_lock);
+		SCOPE_EXIT(atomic_unlock(&header->_lock));
+
+		return poolHeader->objectSize;
+	}
+
 	i32 mt_memory_arena_init(MemoryArena **arena, usize size) {
 		usize pageSize;
 		auto addr = _virtual_alloc_with_header(

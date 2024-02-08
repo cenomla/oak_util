@@ -97,6 +97,7 @@ namespace oak {
 	OAK_UTIL_API void* memory_pool_relloc(
 			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
 	OAK_UTIL_API void memory_pool_clear(MemoryArena *arena);
+	OAK_UTIL_API usize memory_pool_get_object_size(MemoryArena *arena);
 
 	OAK_UTIL_API i32 mt_memory_arena_init(MemoryArena **arena, usize size);
 	OAK_UTIL_API void mt_memory_arena_destroy(MemoryArena *arena);
