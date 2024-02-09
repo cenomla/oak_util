@@ -13,6 +13,48 @@ namespace oak {
 		return lhs < rhs;
 	}
 
+	constexpr bool is_lower(char c) noexcept {
+		return c >= 'a' && c <= 'z';
+	}
+
+	constexpr bool is_upper(char c) noexcept {
+		return c >= 'A' && c <= 'Z';
+	}
+
+	constexpr bool is_space(char c) noexcept {
+		return c == ' ' || c == '\n' || c == '\t' || c == '\v';
+	}
+
+	constexpr char to_lower(char c) noexcept {
+		if (is_upper(c))
+			return 'a' + c - 'A';
+		return c;
+	}
+
+	constexpr char to_upper(char c) noexcept {
+		if (is_lower(c))
+			return 'A' + c - 'a';
+		return c;
+	}
+
+	template<typename type>
+	constexpr bool compare_case_insensitive(Slice<type> const lhs, Slice<type> const rhs) noexcept;
+
+	template<>
+	constexpr bool compare_case_insensitive(Slice<char const> const lhs, Slice<char const> const rhs) noexcept {
+		if (lhs.count != rhs.count)
+			return false;
+		if (lhs.data == rhs.data)
+			return true;
+
+		for (i64 i = 0; i < lhs.count; ++i) {
+			if (to_lower(lhs[i]) != to_lower(rhs[i]))
+				return false;
+		}
+
+		return true;
+	}
+
 	namespace detail {
 		template<typename T, typename F>
 		constexpr void ms_impl_merge(T *array, T *buffer, i64 begin, i64 middle, i64 end, F&& functor) noexcept {
@@ -375,6 +417,23 @@ namespace oak {
 
 		for (i64 i = start; i <= slice.count - value.count; i++) {
 			if (value == Slice<T>{ slice.data + i, value.count }) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	template<typename T>
+	constexpr i64 find_slice_case_insensitive(Slice<T> slice, Slice<T> value, i64 start = 0) noexcept;
+
+	template<>
+	constexpr i64 find_slice_case_insensitive(
+			Slice<char const> slice, Slice<char const> value, i64 start) noexcept {
+		if (slice.count < value.count)
+			return -1;
+
+		for (i64 i = start; i <= slice.count - value.count; i++) {
+			if (compare_case_insensitive(value, Slice<char const>{ slice.data + i, value.count })) {
 				return i;
 			}
 		}
