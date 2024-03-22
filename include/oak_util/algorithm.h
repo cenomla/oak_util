@@ -21,6 +21,10 @@ namespace oak {
 		return c >= 'A' && c <= 'Z';
 	}
 
+	constexpr bool is_alpha(char c) noexcept {
+		return is_lower(c) || is_upper(c);
+	}
+
 	constexpr bool is_space(char c) noexcept {
 		return c == ' ' || c == '\n' || c == '\t' || c == '\v';
 	}
