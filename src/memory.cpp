@@ -32,12 +32,12 @@
 #define NOGDI
 #include <windows.h>
 #else
+#include <stdlib.h>
+#include <pthread.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
 #endif // _WIN32
-
-#include <stdlib.h>
 
 #include <oak_util/atomic.h>
 #include <oak_util/types.h>
@@ -60,6 +60,14 @@ namespace {
 		if (scResult == -1)
 			return 1;
 		return static_cast<usize>(scResult);
+#endif
+	}
+
+	u64 _get_thread_id() {
+#ifdef _WIN32
+		return GetCurrentThreadId();
+#else
+		return static_cast<u64>(pthread_self());
 #endif
 	}
 
@@ -103,8 +111,26 @@ namespace {
 		if (_threadLocalArena)
 			return _threadLocalArena;
 
+		auto threadId = _get_thread_id();
+		{
+
+			atomic_lock(&header->_lock);
+			SCOPE_EXIT(atomic_unlock(&header->_lock));
+
+			auto it = &header->first;
+			while (*it != nullptr) {
+				if (bit_cast<MemoryArenaHeader*>(*it)->_threadId == threadId) {
+					_threadLocalArena = *it;
+					return _threadLocalArena;
+				}
+				it = &(bit_cast<MemoryArenaHeader*>(*it)->_nextArena);
+			}
+		}
+
 		if (memory_arena_init(&_threadLocalArena, header->threadArenaSize) != 0)
 			return nullptr;
+
+		bit_cast<MemoryArenaHeader*>(_threadLocalArena)->_threadId = threadId;
 
 		atomic_lock(&header->_lock);
 		SCOPE_EXIT(atomic_unlock(&header->_lock));
@@ -132,13 +158,12 @@ namespace {
 #endif // _WIN32
 	}
 
-	bool virtual_try_grow(void *addr, usize size, usize nSize) {
+	bool virtual_try_grow(void *addr, [[maybe_unused]] usize size, usize nSize) {
 #ifdef _WIN32
-		auto nAddr = add_ptr(addr, size);
-		auto result = VirtualAlloc(nAddr, nSize - size, MEM_RESERVE, PAGE_READWRITE);
+		auto result = VirtualAlloc(addr, nSize, MEM_RESERVE, PAGE_READWRITE);
 		if (result == nullptr)
 			return false;
-		if (result != nAddr) {
+		if (result != addr) {
 			VirtualFree(result, 0, MEM_RELEASE);
 			return false;
 		}
@@ -413,7 +438,7 @@ namespace {
 		header->requestedMemory = 0;
 
 		header->_lock = 0;
-		header->_nextArena = 0;
+		header->_nextArena = nullptr;
 		header->_threadId = 0;
 
 		poolHeader->objectSize = align(objectSize, sizeof(void*));
@@ -471,7 +496,7 @@ namespace {
 #endif
 	}
 
-	void* memory_pool_relloc(MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment) {
+	void* memory_pool_realloc(MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment) {
 		assert(size == nSize);
 		(void)arena;
 		(void)alignment;
@@ -627,6 +652,7 @@ namespace {
 
 		auto header = bit_cast<MemoryArenaHeader*>(arena);
 		header->usedMemory += alignedSize;
+		header->commitSize += alignedSize;
 		header->requestedMemory += size;
 		++header->allocationCount;
 
@@ -646,6 +672,7 @@ namespace {
 
 		auto header = bit_cast<MemoryArenaHeader*>(arena);
 		header->usedMemory -= alignedSize;
+		header->commitSize -= alignedSize;
 		header->requestedMemory -= size;
 		--header->allocationCount;
 	}
@@ -670,6 +697,7 @@ namespace {
 			if (commit_region(nAddr, dSize) == 0) {
 				auto header = bit_cast<MemoryArenaHeader*>(arena);
 				header->usedMemory += dSize;
+				header->commitSize += dSize;
 				header->requestedMemory += nSize - size;
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 				__asan_unpoison_memory_region(nAddr, dSize);
@@ -718,10 +746,10 @@ namespace {
 		Allocator allocator;
 		if (memory_pool_init(&allocator.arena, size, objectSize) != 0)
 			return {};
-		allocator.allocFn = memory_arena_alloc;
-		allocator.freeFn = memory_arena_free;
-		allocator.reallocFn = memory_arena_realloc;
-		allocator.clearFn = memory_arena_clear;
+		allocator.allocFn = memory_pool_alloc;
+		allocator.freeFn = memory_pool_free;
+		allocator.reallocFn = memory_pool_realloc;
+		allocator.clearFn = memory_pool_clear;
 
 		return allocator;
 	}
@@ -748,6 +776,39 @@ namespace {
 		allocator.clearFn = sys_clear;
 
 		return allocator;
+	}
+
+	void* global_allocator_malloc(usize size) {
+		auto result = globalAllocator->allocate(size + sizeof(usize), sizeof(void*));
+		if (!result)
+			return nullptr;
+		memcpy(result, &size, sizeof(usize));
+		return add_ptr(result, sizeof(usize));
+	}
+
+	void* global_allocator_realloc(void *ptr, usize newSize) {
+		usize size = 0;
+
+		if (ptr) {
+			ptr = sub_ptr(ptr, sizeof(usize));
+			memcpy(&size, ptr, sizeof(usize));
+		}
+
+		auto result = globalAllocator->realloc(ptr, size + sizeof(usize), newSize + sizeof(usize), sizeof(void*));
+		if (!result)
+			return nullptr;
+
+		memcpy(result, &newSize, sizeof(usize));
+		return add_ptr(result, sizeof(usize));
+	}
+
+	void global_allocator_free(void *ptr) {
+		if (!ptr)
+			return;
+		usize size;
+		ptr = sub_ptr(ptr, sizeof(usize));
+		memcpy(&size, ptr, sizeof(usize));
+		globalAllocator->deallocate(ptr, size);
 	}
 
 }

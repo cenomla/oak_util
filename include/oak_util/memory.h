@@ -94,7 +94,7 @@ namespace oak {
 	OAK_UTIL_API i32 memory_pool_init(MemoryArena **arena, usize size, usize objectSize);
 	OAK_UTIL_API void* memory_pool_alloc(MemoryArena *arena, usize size, usize alignment);
 	OAK_UTIL_API void memory_pool_free(MemoryArena *arena, void *addr, usize size);
-	OAK_UTIL_API void* memory_pool_relloc(
+	OAK_UTIL_API void* memory_pool_realloc(
 			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
 	OAK_UTIL_API void memory_pool_clear(MemoryArena *arena);
 	OAK_UTIL_API usize memory_pool_get_object_size(MemoryArena *arena);
@@ -119,6 +119,11 @@ namespace oak {
 	OAK_UTIL_API Allocator make_pool_allocator(usize size, usize objectSize);
 	OAK_UTIL_API Allocator make_mt_arena_allocator(usize size);
 	OAK_UTIL_API Allocator make_sys_allocator();
+
+	// For use with APIs that don't support size based allocator interfaces
+	OAK_UTIL_API void* global_allocator_malloc(usize size);
+	OAK_UTIL_API void* global_allocator_realloc(void *ptr, usize size);
+	OAK_UTIL_API void global_allocator_free(void *ptr);
 
 	template<typename T>
 	T* allocate(Allocator *allocator, i64 count) {
