@@ -57,9 +57,9 @@ using byte = unsigned char;
 #define USIZE_OVERRIDE_NEEDED
 #endif
 
-#define ssizeof(x) static_cast<i64>(sizeof(x))
+#define ssizeof(x) static_cast<isize>(sizeof(x))
 #define array_count(x) (sizeof(x)/sizeof(*x))
-#define sarray_count(x) static_cast<i64>(array_count(x))
+#define sarray_count(x) static_cast<isize>(array_count(x))
 
 #define MACRO_CAT_IMPL(x, y) x##y
 #define MACRO_CAT(x, y) MACRO_CAT_IMPL(x, y)

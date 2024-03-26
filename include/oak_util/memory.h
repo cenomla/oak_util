@@ -39,6 +39,16 @@ namespace oak {
 		void *freeList = nullptr;
 	};
 
+	struct MemoryHeapHeader {
+		usize minPoolObjectSize = 0;
+		usize maxPoolObjectSize = 0;
+		usize poolSize = 0;
+		usize pageSize = 0;
+
+		MemoryArena *sysArena = nullptr;
+		MemoryArena *pools[7] = {};
+	};
+
 	struct MTMemoryArenaHeader {
 		usize threadArenaSize = 0;
 
@@ -46,9 +56,10 @@ namespace oak {
 		u64 totalRequestedMemory = 0;
 		u64 totalUsedMemory = 0;
 
-		alignas(64) i32 _lock = 0;
 		MemoryArena *first = nullptr;
 		MemoryArena *last = nullptr;
+
+		alignas(64) i32 _lock = 0;
 	};
 
 	struct Allocator {
@@ -99,6 +110,14 @@ namespace oak {
 	OAK_UTIL_API void memory_pool_clear(MemoryArena *arena);
 	OAK_UTIL_API usize memory_pool_get_object_size(MemoryArena *arena);
 
+	OAK_UTIL_API i32 memory_heap_init(MemoryArena **arena, usize size);
+	OAK_UTIL_API void memory_heap_destroy(MemoryArena *arena);
+	OAK_UTIL_API void* memory_heap_alloc(MemoryArena *arena, usize size, usize alignment);
+	OAK_UTIL_API void memory_heap_free(MemoryArena *arena, void *addr, usize size);
+	OAK_UTIL_API void* memory_heap_realloc(
+			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
+	OAK_UTIL_API void memory_heap_clear(MemoryArena *arena);
+
 	OAK_UTIL_API i32 mt_memory_arena_init(MemoryArena **arena, usize size);
 	OAK_UTIL_API void mt_memory_arena_destroy(MemoryArena *arena);
 	OAK_UTIL_API void* mt_memory_arena_alloc(MemoryArena *arena, usize size, usize alignment);
@@ -117,6 +136,7 @@ namespace oak {
 	OAK_UTIL_API Allocator make_arena_allocator(usize size);
 	OAK_UTIL_API Allocator make_arena_allocator(void *addr, usize size);
 	OAK_UTIL_API Allocator make_pool_allocator(usize size, usize objectSize);
+	OAK_UTIL_API Allocator make_heap_allocator(usize size);
 	OAK_UTIL_API Allocator make_mt_arena_allocator(usize size);
 	OAK_UTIL_API Allocator make_sys_allocator();
 

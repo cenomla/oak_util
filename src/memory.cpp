@@ -86,7 +86,7 @@ namespace {
 			virtual_free(addr, size);
 			return nullptr;
 		}
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 		__asan_unpoison_memory_region(addr, headerSize);
 #else
 		(void)headerSize;
@@ -199,7 +199,7 @@ namespace {
 		auto result = VirtualAlloc(addr, size, MEM_COMMIT, PAGE_READWRITE);
 		if (result == nullptr)
 			return 1;
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 		__asan_poison_memory_region(addr, size);
 #endif
 		return 0;
@@ -213,7 +213,7 @@ namespace {
 
 	i32 decommit_region(void *addr, usize size) {
 #ifdef _WIN32
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 		__asan_unpoison_memory_region(addr, size);
 #endif
 		if (VirtualFree(addr, size, MEM_DECOMMIT) == 0)
@@ -279,7 +279,7 @@ namespace {
 		header->_nextArena = nullptr;
 		header->_threadId = 0;
 
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 		__asan_poison_memory_region(add_ptr(addr, sizeof(MemoryArenaHeader)), size - sizeof(MemoryArenaHeader));
 #endif
 
@@ -301,7 +301,7 @@ namespace {
 		auto header = bit_cast<MemoryArenaHeader*>(arena);
 		if (header->flags & MemoryArenaHeader::SUB_ALLOCATED_BIT) {
 			// The arena no longer manages the memory region referenced by addr
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 			__asan_unpoison_memory_region(header, header->capacity);
 #endif
 		} else {
@@ -332,7 +332,7 @@ namespace {
 		header->allocationCount += 1;
 		header->requestedMemory += size;
 
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 		__asan_unpoison_memory_region(add_ptr(header, offset), size);
 #endif
 
@@ -354,7 +354,7 @@ namespace {
 		header->requestedMemory -= size;
 		header->allocationCount -= 1;
 
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 		__asan_poison_memory_region(addr, size);
 #endif
 	}
@@ -383,7 +383,7 @@ namespace {
 				header->usedMemory = offset + nSize + ASAN_RED_ZONE_SIZE;
 				header->requestedMemory += nSize - size;
 
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 				__asan_unpoison_memory_region(add_ptr(header, offset), nSize);
 #endif
 
@@ -405,7 +405,7 @@ namespace {
 		atomic_lock(&header->_lock);
 		SCOPE_EXIT(atomic_unlock(&header->_lock));
 
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 		__asan_poison_memory_region(
 				add_ptr(header, sizeof(MemoryArenaHeader)),
 				header->usedMemory - sizeof(MemoryArenaHeader));
@@ -458,18 +458,16 @@ namespace {
 		auto header = bit_cast<MemoryArenaHeader*>(arena);
 		auto poolHeader = static_cast<MemoryPoolHeader*>(add_ptr(header, sizeof(MemoryArenaHeader)));
 
-		usize objectSize;
+		usize objectSize = poolHeader->objectSize;
+		assert(size <= objectSize);
 
 		{
 			atomic_lock(&header->_lock);
 			SCOPE_EXIT(atomic_unlock(&header->_lock));
 
-			objectSize = poolHeader->objectSize;
-			assert(size <= objectSize);
-
 			if (poolHeader->freeList) {
 				auto addr = poolHeader->freeList;
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 				__asan_unpoison_memory_region(addr, size);
 #endif
 				poolHeader->freeList = *static_cast<void**>(addr);
@@ -491,7 +489,7 @@ namespace {
 		*static_cast<void**>(addr) = poolHeader->freeList;
 		poolHeader->freeList = addr;
 
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 		__asan_poison_memory_region(addr, size);
 #endif
 	}
@@ -515,7 +513,7 @@ namespace {
 
 		poolHeader->freeList = nullptr;
 
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 		__asan_poison_memory_region(
 				add_ptr(header, sizeof(MemoryArenaHeader) + sizeof(MemoryPoolHeader)),
 				header->capacity - sizeof(MemoryArenaHeader) - sizeof(MemoryPoolHeader));
@@ -523,12 +521,115 @@ namespace {
 	}
 
 	usize memory_pool_get_object_size(MemoryArena *arena) {
-		auto header = bit_cast<MemoryArenaHeader*>(arena);
-		auto poolHeader = static_cast<MemoryPoolHeader*>(add_ptr(header, sizeof(MemoryArenaHeader)));
-		atomic_lock(&header->_lock);
-		SCOPE_EXIT(atomic_unlock(&header->_lock));
-
+		auto poolHeader = static_cast<MemoryPoolHeader*>(add_ptr(arena, sizeof(MemoryArenaHeader)));
 		return poolHeader->objectSize;
+	}
+
+	i32 memory_heap_init(MemoryArena **arena, usize size) {
+		usize pageSize;
+		auto addr = _virtual_alloc_with_header(
+				sizeof(MemoryHeapHeader), sizeof(MemoryHeapHeader), &pageSize);
+
+		if (!addr)
+			return 1;
+
+		// Allocate headers
+		auto header = static_cast<MemoryHeapHeader*>(addr);
+		header->minPoolObjectSize = 32;
+		header->maxPoolObjectSize = 2048;
+		header->poolSize = size;
+		header->pageSize = pageSize;
+
+		if (sys_alloc_init(&header->sysArena) != 0)
+			return 1;
+
+		for (isize i = 0; i < sarray_count(header->pools); ++i) {
+			if (memory_pool_init(header->pools + i, header->poolSize, 1 << (5 + i)) != 0)
+				return 1;
+		}
+
+		*arena = static_cast<MemoryArena*>(addr);
+
+		return 0;
+	}
+
+	void memory_heap_destroy(MemoryArena *arena) {
+		auto header = bit_cast<MemoryHeapHeader*>(arena);
+		for (isize i = 0; i < sarray_count(header->pools); ++i) {
+			memory_arena_destroy(header->pools[i]);
+		}
+
+		decommit_region(header, sizeof(MemoryHeapHeader));
+		virtual_free(header, sizeof(MemoryHeapHeader));
+	}
+
+	void* memory_heap_alloc(MemoryArena *arena, usize size, usize alignment) {
+		auto header = bit_cast<MemoryHeapHeader*>(arena);
+
+		auto objectSize = ensure_pow2(size);
+		assert(alignment <= objectSize);
+
+		isize poolIdx = blog2(objectSize) - 5;
+
+		if (poolIdx < 0)
+			poolIdx = 0;
+
+		if (poolIdx > 6)
+			return sys_alloc(header->sysArena, size, alignment);
+
+		assert(0 <= poolIdx && poolIdx < 7);
+
+		return memory_pool_alloc(header->pools[poolIdx], objectSize, objectSize);
+	}
+
+	void memory_heap_free(MemoryArena *arena, void *addr, usize size) {
+		auto header = bit_cast<MemoryHeapHeader*>(arena);
+
+		auto objectSize = ensure_pow2(size);
+		isize poolIdx = blog2(objectSize) - 5;
+
+		if (poolIdx < 0)
+			poolIdx = 0;
+
+		if (poolIdx > 6) {
+			sys_free(header->sysArena, addr, size);
+			return;
+		}
+
+		assert(0 <= poolIdx && poolIdx < 7);
+
+		return memory_pool_free(header->pools[poolIdx], addr, objectSize);
+	}
+
+	void* memory_heap_realloc(
+			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment) {
+		auto header = bit_cast<MemoryHeapHeader*>(arena);
+
+		if (ensure_pow2(size) > header->maxPoolObjectSize && ensure_pow2(nSize) > header->maxPoolObjectSize) {
+			return sys_realloc(header->sysArena, addr, size, nSize, alignment);
+		} else if (size == nSize) {
+			return addr;
+		} else {
+			auto nAddr = memory_heap_alloc(arena, nSize, alignment);
+			if (!nAddr)
+				return nullptr;
+
+			if (addr) {
+				memcpy(nAddr, addr, size);
+				memory_heap_free(arena, addr, size);
+			}
+
+			return nAddr;
+		}
+	}
+
+	void memory_heap_clear(MemoryArena *arena) {
+		auto header = bit_cast<MemoryHeapHeader*>(arena);
+
+		sys_clear(header->sysArena);
+		for (isize i = 0; i < sarray_count(header->pools); ++i) {
+			memory_pool_clear(header->pools[i]);
+		}
 	}
 
 	i32 mt_memory_arena_init(MemoryArena **arena, usize size) {
@@ -638,9 +739,9 @@ namespace {
 		if (!size)
 			return nullptr;
 
-		auto pageSize = _get_page_size();
-		assert(alignment <= pageSize);
-		auto alignedSize = align(size, pageSize);
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
+		assert(alignment <= header->pageSize);
+		auto alignedSize = align(size, header->pageSize);
 
 		auto addr = virtual_alloc(alignedSize);
 		if (!addr)
@@ -650,13 +751,12 @@ namespace {
 			return nullptr;
 		}
 
-		auto header = bit_cast<MemoryArenaHeader*>(arena);
 		header->usedMemory += alignedSize;
 		header->commitSize += alignedSize;
 		header->requestedMemory += size;
 		++header->allocationCount;
 
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if HAS_ASAN
 		__asan_unpoison_memory_region(addr, size);
 #endif
 		return addr;
@@ -665,12 +765,13 @@ namespace {
 	void sys_free(MemoryArena* arena, void *addr, usize size) {
 		if (!size)
 			return;
-		auto alignedSize = align(size, _get_page_size());
+
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
+		auto alignedSize = align(size, header->pageSize);
 
 		decommit_region(addr, alignedSize);
 		virtual_free(addr, alignedSize);
 
-		auto header = bit_cast<MemoryArenaHeader*>(arena);
 		header->usedMemory -= alignedSize;
 		header->commitSize -= alignedSize;
 		header->requestedMemory -= size;
@@ -682,36 +783,38 @@ namespace {
 		if (!addr)
 			return sys_alloc(arena, nSize, alignment);
 
-		auto pageSize = _get_page_size();
-		assert(alignment <= pageSize);
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
+		assert(alignment <= header->pageSize);
 
-		auto alignedSize = align(size, pageSize);
-		if (alignedSize >= nSize)
+		auto alignedSize = align(size, header->pageSize);
+		if (alignedSize >= nSize) {
+#if HAS_ASAN
+			__asan_unpoison_memory_region(addr, nSize);
+#endif
 			return addr;
-		auto nAlignedSize = align(nSize, pageSize);
-
+		}
+		auto nAlignedSize = align(nSize, header->pageSize);
 
 		if (virtual_try_grow(addr, alignedSize, nAlignedSize)) {
 			auto nAddr = add_ptr(addr, alignedSize);
 			auto dSize = nAlignedSize - alignedSize;
 			if (commit_region(nAddr, dSize) == 0) {
-				auto header = bit_cast<MemoryArenaHeader*>(arena);
 				header->usedMemory += dSize;
 				header->commitSize += dSize;
 				header->requestedMemory += nSize - size;
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
-				__asan_unpoison_memory_region(nAddr, dSize);
+#if HAS_ASAN
+				__asan_unpoison_memory_region(addr, nSize);
 #endif
 				return addr;
 			}
 			virtual_free(nAddr, dSize);
 		}
 
-		auto nAddr = sys_alloc(arena, nAlignedSize, alignment);
+		auto nAddr = sys_alloc(arena, nSize, alignment);
 		if (!nAddr)
 			return nullptr;
-		memcpy(nAddr, addr, alignedSize);
-		sys_free(arena, addr, alignedSize);
+		memcpy(nAddr, addr, size);
+		sys_free(arena, addr, size);
 		return nAddr;
 	}
 
@@ -754,6 +857,18 @@ namespace {
 		return allocator;
 	}
 
+	Allocator make_heap_allocator(usize size) {
+		Allocator allocator;
+		if (memory_heap_init(&allocator.arena, size) != 0)
+			return {};
+		allocator.allocFn = memory_heap_alloc;
+		allocator.freeFn = memory_heap_free;
+		allocator.reallocFn = memory_heap_realloc;
+		allocator.clearFn = memory_heap_clear;
+
+		return allocator;
+	}
+
 	Allocator make_mt_arena_allocator(usize size) {
 		Allocator allocator;
 		if (mt_memory_arena_init(&allocator.arena, size) != 0)
@@ -779,35 +894,37 @@ namespace {
 	}
 
 	void* global_allocator_malloc(usize size) {
-		auto result = globalAllocator->allocate(size + sizeof(usize), sizeof(void*));
+		static_assert(alignof(max_align_t) >= sizeof(size));
+		auto result = globalAllocator->allocate(size + alignof(max_align_t), alignof(max_align_t));
 		if (!result)
 			return nullptr;
-		memcpy(result, &size, sizeof(usize));
-		return add_ptr(result, sizeof(usize));
+		memcpy(result, &size, sizeof(size));
+		return add_ptr(result, alignof(max_align_t));
 	}
 
 	void* global_allocator_realloc(void *ptr, usize newSize) {
 		usize size = 0;
 
 		if (ptr) {
-			ptr = sub_ptr(ptr, sizeof(usize));
-			memcpy(&size, ptr, sizeof(usize));
+			ptr = sub_ptr(ptr, alignof(max_align_t));
+			memcpy(&size, ptr, sizeof(size));
 		}
 
-		auto result = globalAllocator->realloc(ptr, size + sizeof(usize), newSize + sizeof(usize), sizeof(void*));
+		auto result = globalAllocator->realloc(
+				ptr, size + alignof(max_align_t), newSize + alignof(max_align_t), alignof(max_align_t));
 		if (!result)
 			return nullptr;
 
-		memcpy(result, &newSize, sizeof(usize));
-		return add_ptr(result, sizeof(usize));
+		memcpy(result, &newSize, sizeof(newSize));
+		return add_ptr(result, alignof(max_align_t));
 	}
 
 	void global_allocator_free(void *ptr) {
 		if (!ptr)
 			return;
 		usize size;
-		ptr = sub_ptr(ptr, sizeof(usize));
-		memcpy(&size, ptr, sizeof(usize));
+		ptr = sub_ptr(ptr, alignof(max_align_t));
+		memcpy(&size, ptr, sizeof(size));
 		globalAllocator->deallocate(ptr, size);
 	}
 
