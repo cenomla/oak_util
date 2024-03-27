@@ -42,11 +42,10 @@ namespace oak {
 	struct MemoryHeapHeader {
 		usize minPoolObjectSize = 0;
 		usize maxPoolObjectSize = 0;
-		usize poolSize = 0;
-		usize pageSize = 0;
+		usize heapSmallPageSize = 0;
+		usize heapLargePageSize = 0;
 
-		MemoryArena *sysArena = nullptr;
-		MemoryArena *pools[7] = {};
+		void *poolFreeLists[16] = {};
 	};
 
 	struct MTMemoryArenaHeader {
@@ -111,7 +110,6 @@ namespace oak {
 	OAK_UTIL_API usize memory_pool_get_object_size(MemoryArena *arena);
 
 	OAK_UTIL_API i32 memory_heap_init(MemoryArena **arena, usize size);
-	OAK_UTIL_API void memory_heap_destroy(MemoryArena *arena);
 	OAK_UTIL_API void* memory_heap_alloc(MemoryArena *arena, usize size, usize alignment);
 	OAK_UTIL_API void memory_heap_free(MemoryArena *arena, void *addr, usize size);
 	OAK_UTIL_API void* memory_heap_realloc(

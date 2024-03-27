@@ -32,7 +32,6 @@
 #define NOGDI
 #include <windows.h>
 #else
-#include <stdlib.h>
 #include <pthread.h>
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -71,7 +70,7 @@ namespace {
 #endif
 	}
 
-	void* _virtual_alloc_with_header(usize size, usize headerSize, usize *pageSize_) {
+	void* _virtual_alloc_with_header(usize size, [[maybe_unused]] usize headerSize, usize *pageSize_) {
 		auto pageSize = _get_page_size();
 		assert(pageSize >= headerSize);
 		if (pageSize_)
@@ -88,8 +87,6 @@ namespace {
 		}
 #if HAS_ASAN
 		__asan_unpoison_memory_region(addr, headerSize);
-#else
-		(void)headerSize;
 #endif
 
 		return addr;
@@ -142,6 +139,46 @@ namespace {
 			header->first = header->last;
 
 		return _threadLocalArena;
+	}
+
+	isize _memory_heap_pool_idx(
+			usize *objectSize,
+			MemoryHeapHeader *heapHeader,
+			usize size,
+			usize alignment) {
+		auto pow2Size = ensure_pow2(size);
+		*objectSize = pow2Size;
+
+		assert(alignment <= pow2Size);
+
+		isize poolIdxOffset = blog2(heapHeader->minPoolObjectSize);
+		isize maxPoolIdx = blog2(heapHeader->maxPoolObjectSize) - poolIdxOffset;
+		isize poolIdx = blog2(pow2Size) - poolIdxOffset;
+
+		if (poolIdx < 0)
+			poolIdx = 0;
+
+		if (poolIdx > maxPoolIdx)
+			poolIdx = -1;
+
+		return poolIdx;
+	}
+
+	void* _memory_heap_alloc_pages(MemoryArenaHeader *header, usize size) {
+		auto offset = align(header->usedMemory, header->pageSize);
+		auto alignedSize = align(size, header->pageSize);
+		if (offset + alignedSize > header->capacity)
+			return nullptr;
+
+		if (_memory_arena_ensure_commit_size(header, offset + alignedSize) != 0)
+			return nullptr;
+
+		header->usedMemory = offset + alignedSize;
+#if HAS_ASAN
+		__asan_unpoison_memory_region(add_ptr(header, offset), size);
+#endif
+
+		return add_ptr(header, offset);
 	}
 
 }
@@ -528,24 +565,37 @@ namespace {
 	i32 memory_heap_init(MemoryArena **arena, usize size) {
 		usize pageSize;
 		auto addr = _virtual_alloc_with_header(
-				sizeof(MemoryHeapHeader), sizeof(MemoryHeapHeader), &pageSize);
+				size, sizeof(MemoryArenaHeader) + sizeof(MemoryHeapHeader), &pageSize);
 
 		if (!addr)
 			return 1;
 
-		// Allocate headers
-		auto header = static_cast<MemoryHeapHeader*>(addr);
-		header->minPoolObjectSize = 32;
-		header->maxPoolObjectSize = 2048;
-		header->poolSize = size;
+		// Initialize headers
+		auto header = static_cast<MemoryArenaHeader*>(addr);
+		auto heapHeader = static_cast<MemoryHeapHeader*>(add_ptr(addr, sizeof(MemoryArenaHeader)));
+		header->capacity = size;
+		header->usedMemory = sizeof(MemoryArenaHeader) + sizeof(MemoryHeapHeader);
+		header->commitSize = pageSize;
 		header->pageSize = pageSize;
+		header->next = nullptr;
+		header->last = nullptr;
+		header->alignSize = 1;
+		header->flags = 0;
 
-		if (sys_alloc_init(&header->sysArena) != 0)
-			return 1;
+		header->allocationCount = 0;
+		header->requestedMemory = 0;
 
-		for (isize i = 0; i < sarray_count(header->pools); ++i) {
-			if (memory_pool_init(header->pools + i, header->poolSize, 1 << (5 + i)) != 0)
-				return 1;
+		header->_lock = 0;
+		header->_nextArena = nullptr;
+		header->_threadId = 0;
+
+		heapHeader->minPoolObjectSize = 1 << 5;
+		heapHeader->maxPoolObjectSize = 1 << (5 + sarray_count(heapHeader->poolFreeLists) - 1);
+		heapHeader->heapSmallPageSize = 64 << 10;
+		heapHeader->heapLargePageSize = 2 << 20;
+
+		for (isize i = 0; i < sarray_count(heapHeader->poolFreeLists); ++i) {
+			heapHeader->poolFreeLists[i] = nullptr;
 		}
 
 		*arena = static_cast<MemoryArena*>(addr);
@@ -553,61 +603,102 @@ namespace {
 		return 0;
 	}
 
-	void memory_heap_destroy(MemoryArena *arena) {
-		auto header = bit_cast<MemoryHeapHeader*>(arena);
-		for (isize i = 0; i < sarray_count(header->pools); ++i) {
-			memory_arena_destroy(header->pools[i]);
+	void* memory_heap_alloc(MemoryArena *arena, usize size, usize alignment) {
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
+		auto heapHeader = static_cast<MemoryHeapHeader*>(add_ptr(arena, sizeof(MemoryArenaHeader)));
+
+		assert(alignment <= header->pageSize);
+		assert(sizeof(void*) <= heapHeader->minPoolObjectSize);
+
+		usize objectSize;
+		isize poolIdx = _memory_heap_pool_idx(&objectSize, heapHeader, size, alignment);
+
+		[[maybe_unused]] usize minSize = size < sizeof(void*) ? sizeof(void*) : size;
+
+		if (poolIdx >= 0) {
+			assert(poolIdx < sarray_count(heapHeader->poolFreeLists));
+
+			void **freeList = heapHeader->poolFreeLists + poolIdx;
+
+			if (*freeList) {
+				void *addr = *freeList;
+
+#if HAS_ASAN
+				__asan_unpoison_memory_region(addr, minSize);
+#endif
+
+				*freeList = *static_cast<void**>(addr);
+				++header->allocationCount;
+				header->requestedMemory += size;
+
+				return addr;
+			} else {
+				usize heapPageSize = heapHeader->heapSmallPageSize;
+				if (size > heapHeader->heapSmallPageSize >> 1)
+					heapPageSize = heapHeader->heapLargePageSize;
+				void *addr = _memory_heap_alloc_pages(header, heapPageSize);
+
+				// Build free list for page
+				isize slotCount = heapPageSize/objectSize;
+				for (isize i = 1; i < slotCount - 1; ++i) {
+					void *slot = add_ptr(addr, i*objectSize);
+					*static_cast<void**>(slot) = add_ptr(addr, (i + 1)*objectSize);
+				}
+				*static_cast<void**>(add_ptr(addr, (slotCount - 1)*objectSize)) = nullptr;
+				*freeList = add_ptr(addr, objectSize);
+				++header->allocationCount;
+				header->requestedMemory += size;
+
+#if HAS_ASAN
+				__asan_poison_memory_region(add_ptr(addr, minSize), heapPageSize - minSize);
+#endif
+
+				return addr;
+			}
 		}
 
-		decommit_region(header, sizeof(MemoryHeapHeader));
-		virtual_free(header, sizeof(MemoryHeapHeader));
-	}
-
-	void* memory_heap_alloc(MemoryArena *arena, usize size, usize alignment) {
-		auto header = bit_cast<MemoryHeapHeader*>(arena);
-
-		auto objectSize = ensure_pow2(size);
-		assert(alignment <= objectSize);
-
-		isize poolIdx = blog2(objectSize) - 5;
-
-		if (poolIdx < 0)
-			poolIdx = 0;
-
-		if (poolIdx > 6)
-			return sys_alloc(header->sysArena, size, alignment);
-
-		assert(0 <= poolIdx && poolIdx < 7);
-
-		return memory_pool_alloc(header->pools[poolIdx], objectSize, objectSize);
+		return nullptr;
 	}
 
 	void memory_heap_free(MemoryArena *arena, void *addr, usize size) {
-		auto header = bit_cast<MemoryHeapHeader*>(arena);
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
+		auto heapHeader = static_cast<MemoryHeapHeader*>(add_ptr(arena, sizeof(MemoryArenaHeader)));
 
-		auto objectSize = ensure_pow2(size);
-		isize poolIdx = blog2(objectSize) - 5;
+		usize objectSize;
+		isize poolIdx = _memory_heap_pool_idx(&objectSize, heapHeader, size, 0);
 
-		if (poolIdx < 0)
-			poolIdx = 0;
+		assert(poolIdx >= 0);
 
-		if (poolIdx > 6) {
-			sys_free(header->sysArena, addr, size);
-			return;
+		if (poolIdx >= 0) {
+			assert(poolIdx < sarray_count(heapHeader->poolFreeLists));
+			void **it = heapHeader->poolFreeLists + poolIdx;
+
+			*static_cast<void**>(addr) = *it;
+			*it = addr;
+
+			--header->allocationCount;
+			header->requestedMemory -= size;
+
+#if HAS_ASAN
+			__asan_poison_memory_region(addr, align(size, alignof(void*)));
+#endif
 		}
-
-		assert(0 <= poolIdx && poolIdx < 7);
-
-		return memory_pool_free(header->pools[poolIdx], addr, objectSize);
 	}
 
 	void* memory_heap_realloc(
 			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment) {
-		auto header = bit_cast<MemoryHeapHeader*>(arena);
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
+		auto heapHeader = static_cast<MemoryHeapHeader*>(add_ptr(arena, sizeof(MemoryArenaHeader)));
 
-		if (ensure_pow2(size) > header->maxPoolObjectSize && ensure_pow2(nSize) > header->maxPoolObjectSize) {
-			return sys_realloc(header->sysArena, addr, size, nSize, alignment);
-		} else if (size == nSize) {
+		usize objectSize;
+		isize oldPoolIdx = _memory_heap_pool_idx(&objectSize, heapHeader, size, alignment);
+		isize newPoolIdx = _memory_heap_pool_idx(&objectSize, heapHeader, nSize, alignment);
+
+		if (oldPoolIdx == newPoolIdx) {
+#if HAS_ASAN
+			__asan_unpoison_memory_region(addr, nSize);
+#endif
+			header->requestedMemory += (nSize - size);
 			return addr;
 		} else {
 			auto nAddr = memory_heap_alloc(arena, nSize, alignment);
@@ -624,12 +715,22 @@ namespace {
 	}
 
 	void memory_heap_clear(MemoryArena *arena) {
-		auto header = bit_cast<MemoryHeapHeader*>(arena);
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
+		auto heapHeader = static_cast<MemoryHeapHeader*>(add_ptr(header, sizeof(MemoryArenaHeader)));
 
-		sys_clear(header->sysArena);
-		for (isize i = 0; i < sarray_count(header->pools); ++i) {
-			memory_pool_clear(header->pools[i]);
+		header->usedMemory = sizeof(MemoryArenaHeader) + sizeof(MemoryHeapHeader);
+		header->allocationCount = 0;
+		header->requestedMemory = 0;
+
+		for (isize i = 0; i < sarray_count(heapHeader->poolFreeLists); ++i) {
+			heapHeader->poolFreeLists[i] = nullptr;
 		}
+
+#if HAS_ASAN
+		__asan_poison_memory_region(
+				add_ptr(header, sizeof(MemoryArenaHeader) + sizeof(MemoryHeapHeader)),
+				header->capacity - sizeof(MemoryArenaHeader) - sizeof(MemoryHeapHeader));
+#endif
 	}
 
 	i32 mt_memory_arena_init(MemoryArena **arena, usize size) {
