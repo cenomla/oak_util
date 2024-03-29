@@ -175,7 +175,7 @@ namespace {
 
 		header->usedMemory = offset + alignedSize;
 #if HAS_ASAN
-		__asan_unpoison_memory_region(add_ptr(header, offset), size);
+		__asan_unpoison_memory_region(add_ptr(header, offset), alignedSize);
 #endif
 
 		return add_ptr(header, offset);
@@ -587,7 +587,7 @@ namespace {
 
 		header->_lock = 0;
 		header->_nextArena = nullptr;
-		header->_threadId = 0;
+		header->_threadId = _get_thread_id();
 
 		heapHeader->minPoolObjectSize = 1 << 5;
 		heapHeader->maxPoolObjectSize = 1 << (5 + sarray_count(heapHeader->poolFreeLists) - 1);
@@ -613,53 +613,54 @@ namespace {
 		usize objectSize;
 		isize poolIdx = _memory_heap_pool_idx(&objectSize, heapHeader, size, alignment);
 		assert(size <= objectSize);
+		assert(heapHeader->minPoolObjectSize <= objectSize && objectSize <= heapHeader->maxPoolObjectSize);
 
-		[[maybe_unused]] usize minSize = size < sizeof(void*) ? sizeof(void*) : size;
+		[[maybe_unused]] usize alignedSize = align(size, sizeof(void*));
+
+		atomic_lock(&header->_lock);
+		SCOPE_EXIT(atomic_unlock(&header->_lock));
 
 		if (poolIdx >= 0) {
 			assert(poolIdx < sarray_count(heapHeader->poolFreeLists));
 
 			void **freeList = heapHeader->poolFreeLists + poolIdx;
 
-			if (*freeList) {
-				assert(*freeList > arena);
-				void *addr = *freeList;
-
-#if HAS_ASAN
-				__asan_unpoison_memory_region(addr, minSize);
-#endif
-
-				*freeList = *static_cast<void**>(addr);
-				++header->allocationCount;
-				header->requestedMemory += size;
-
-				return addr;
-			} else {
+			if (!*freeList) {
 				usize heapPageSize = heapHeader->heapSmallPageSize;
 				if (size > heapHeader->heapSmallPageSize >> 1)
 					heapPageSize = heapHeader->heapLargePageSize;
+				assert(heapPageSize == align(heapPageSize, header->pageSize));
 				void *addr = _memory_heap_alloc_pages(header, heapPageSize);
 				if (!addr)
 					return nullptr;
 
+				memset(addr, 0, heapPageSize);
+
 				// Build free list for page
+				assert(objectSize < heapPageSize);
 				isize slotCount = heapPageSize/objectSize;
 				assert(slotCount > 1);
-				for (isize i = 1; i < slotCount - 1; ++i) {
+				for (isize i = 0; i < slotCount - 1; ++i) {
 					void *slot = add_ptr(addr, i*objectSize);
 					*static_cast<void**>(slot) = add_ptr(addr, (i + 1)*objectSize);
 				}
 				*static_cast<void**>(add_ptr(addr, (slotCount - 1)*objectSize)) = nullptr;
-				*freeList = add_ptr(addr, objectSize);
-				++header->allocationCount;
-				header->requestedMemory += size;
-
+				*freeList = addr;
 #if HAS_ASAN
-				__asan_poison_memory_region(add_ptr(addr, minSize), heapPageSize - minSize);
+				__asan_poison_memory_region(addr, heapPageSize);
 #endif
-
-				return addr;
 			}
+
+			void *addr = *freeList;
+			assert(addr && addr > arena && addr < add_ptr(arena, header->capacity));
+#if HAS_ASAN
+			__asan_unpoison_memory_region(addr, alignedSize);
+#endif
+			*freeList = *static_cast<void**>(addr);
+			++header->allocationCount;
+			header->requestedMemory += size;
+
+			return addr;
 		}
 
 		return nullptr;
@@ -672,7 +673,10 @@ namespace {
 		usize objectSize;
 		isize poolIdx = _memory_heap_pool_idx(&objectSize, heapHeader, size, 0);
 
-		[[maybe_unused]] usize minSize = size < sizeof(void*) ? sizeof(void*) : size;
+		[[maybe_unused]] usize alignedSize = align(size, sizeof(void*));
+
+		atomic_lock(&header->_lock);
+		SCOPE_EXIT(atomic_unlock(&header->_lock));
 
 		assert(poolIdx >= 0);
 		assert(addr > arena && addr < add_ptr(arena, header->capacity));
@@ -688,9 +692,12 @@ namespace {
 			header->requestedMemory -= size;
 
 #if HAS_ASAN
-			__asan_poison_memory_region(addr, minSize);
+			__asan_poison_memory_region(addr, alignedSize);
 #endif
+			return;
 		}
+
+		assert("unreachable" && false);
 	}
 
 	void* memory_heap_realloc(
@@ -707,13 +714,15 @@ namespace {
 		isize oldPoolIdx = _memory_heap_pool_idx(&objectSize, heapHeader, size, alignment);
 		isize newPoolIdx = _memory_heap_pool_idx(&objectSize, heapHeader, nSize, alignment);
 
-		[[maybe_unused]] usize minNSize = nSize < sizeof(void*) ? sizeof(void*) : nSize;
-
+		[[maybe_unused]] usize nAlignedSize = align(nSize, sizeof(void*));
+		assert(nSize <= objectSize);
 		if (oldPoolIdx == newPoolIdx) {
+			atomic_lock(&header->_lock);
+			SCOPE_EXIT(atomic_unlock(&header->_lock));
 #if HAS_ASAN
-			__asan_unpoison_memory_region(addr, minNSize);
+			__asan_unpoison_memory_region(addr, nAlignedSize);
 #endif
-			header->requestedMemory += (nSize - size);
+			header->requestedMemory += nSize - size;
 			return addr;
 		} else {
 			auto nAddr = memory_heap_alloc(arena, nSize, alignment);
@@ -730,6 +739,9 @@ namespace {
 	void memory_heap_clear(MemoryArena *arena) {
 		auto header = bit_cast<MemoryArenaHeader*>(arena);
 		auto heapHeader = static_cast<MemoryHeapHeader*>(add_ptr(header, sizeof(MemoryArenaHeader)));
+
+		atomic_lock(&header->_lock);
+		SCOPE_EXIT(atomic_unlock(&header->_lock));
 
 		header->usedMemory = sizeof(MemoryArenaHeader) + sizeof(MemoryHeapHeader);
 		header->allocationCount = 0;
