@@ -147,6 +147,8 @@ namespace {
 			usize size,
 			usize alignment) {
 		auto pow2Size = ensure_pow2(size);
+		if (pow2Size < heapHeader->minPoolObjectSize)
+			pow2Size = heapHeader->minPoolObjectSize;
 		*objectSize = pow2Size;
 
 		assert(alignment <= pow2Size);
@@ -155,9 +157,7 @@ namespace {
 		isize maxPoolIdx = blog2(heapHeader->maxPoolObjectSize) - poolIdxOffset;
 		isize poolIdx = blog2(pow2Size) - poolIdxOffset;
 
-		if (poolIdx < 0)
-			poolIdx = 0;
-
+		assert(poolIdx >= 0);
 		if (poolIdx > maxPoolIdx)
 			poolIdx = -1;
 
