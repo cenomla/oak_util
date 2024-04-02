@@ -705,10 +705,10 @@ namespace {
 		if (!addr)
 			return memory_heap_alloc(arena, nSize, alignment);
 
+		assert(nSize);
+
 		auto header = bit_cast<MemoryArenaHeader*>(arena);
 		auto heapHeader = static_cast<MemoryHeapHeader*>(add_ptr(arena, sizeof(MemoryArenaHeader)));
-
-		assert(nSize >= size);
 
 		usize objectSize;
 		isize oldPoolIdx = _memory_heap_pool_idx(&objectSize, heapHeader, size, alignment);
@@ -729,7 +729,8 @@ namespace {
 			if (!nAddr)
 				return nullptr;
 
-			memcpy(nAddr, addr, size);
+			auto copySize = size <= nSize ? size : nSize;
+			memcpy(nAddr, addr, copySize);
 			memory_heap_free(arena, addr, size);
 
 			return nAddr;
