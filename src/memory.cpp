@@ -145,7 +145,7 @@ namespace {
 			usize *objectSize,
 			MemoryHeapHeader *heapHeader,
 			usize size,
-			usize alignment) {
+			[[maybe_unused]] usize alignment) {
 		auto pow2Size = ensure_pow2(size);
 		if (pow2Size < heapHeader->minPoolObjectSize)
 			pow2Size = heapHeader->minPoolObjectSize;
@@ -226,7 +226,7 @@ namespace {
 		auto result = VirtualFree(addr, 0, MEM_RELEASE);
 		assert(result);
 #else
-		auto result = munmap(addr, size);
+		[[maybe_unused]] auto result = munmap(addr, size);
 		assert(result == 0);
 #endif // _WIN32
 	}
@@ -531,10 +531,8 @@ namespace {
 #endif
 	}
 
-	void* memory_pool_realloc(MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment) {
+	void* memory_pool_realloc(MemoryArena*, void *addr, [[maybe_unused]] usize size, [[maybe_unused]] usize nSize, usize) {
 		assert(size == nSize);
-		(void)arena;
-		(void)alignment;
 		return addr;
 	}
 
@@ -862,7 +860,7 @@ namespace {
 		return 0;
 	}
 
-	void* sys_alloc(MemoryArena* arena, usize size, usize alignment) {
+	void* sys_alloc(MemoryArena* arena, usize size, [[maybe_unused]] usize alignment) {
 		if (!size)
 			return nullptr;
 

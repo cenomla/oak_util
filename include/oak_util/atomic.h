@@ -231,7 +231,7 @@ namespace oak {
 	}
 
 	inline void atomic_unlock(i32 *lock) noexcept {
-		auto oldValue = atomic_store(lock, 0);
+		[[maybe_unused]] auto oldValue = atomic_store(lock, 0);
 		assert(oldValue == 1 && "unlocked non locked lock");
 	}
 
@@ -258,7 +258,7 @@ namespace oak {
 	}
 
 	inline void atomic_rw_unlock_read(i32 *rwLock) noexcept {
-		auto oldValue = atomic_fetch_add(rwLock, 1);
+		[[maybe_unused]] auto oldValue = atomic_fetch_add(rwLock, 1);
 		assert(oldValue < 0 && "unlocked non read locked rw lock");
 	}
 
