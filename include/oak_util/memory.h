@@ -144,6 +144,11 @@ namespace oak {
 	OAK_UTIL_API void global_allocator_free(void *ptr);
 
 	template<typename T>
+	void mem_copy(T *dst, T *src, i64 count) {
+		memcpy(dst, src, sizeof(T)*count);
+	}
+
+	template<typename T>
 	T* allocate(Allocator *allocator, i64 count) {
 		return static_cast<T*>(allocator->allocate(sizeof(T) * count, alignof(T)));
 	}
