@@ -527,6 +527,10 @@ namespace oak {
 		return v;
 	}
 
+	constexpr u64 hash_float(f32 v) {
+		return hash_int(bit_cast<u32>(v));
+	}
+
 	constexpr u64 hash_combine(u64 a, u64 b) noexcept {
 		// Combine the two hash values using a bunch of random large primes
 		return 262147 + a * 131101 + b * 65599;
