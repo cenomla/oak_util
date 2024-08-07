@@ -519,23 +519,6 @@ namespace oak {
 		}
 	}
 
-	constexpr u64 hash_int(u64 v) {
-		// Taken from the stack overflow article: https://stackoverflow.com/a/12996028
-		v = (v ^ (v >> 30)) * 0xbf58476d1ce4e5b9;
-		v = (v ^ (v >> 27)) * 0x94d049bb133111eb;
-		v = v ^ (v >> 31);
-		return v;
-	}
-
-	constexpr u64 hash_float(f32 v) {
-		return hash_int(bit_cast<u32>(v));
-	}
-
-	constexpr u64 hash_combine(u64 a, u64 b) noexcept {
-		// Combine the two hash values using a bunch of random large primes
-		return 262147 + a * 131101 + b * 65599;
-	}
-
 	OAK_UTIL_API bool is_c_str(String str) noexcept;
 	OAK_UTIL_API char const* as_c_str(Allocator *allocator, String str) noexcept;
 	OAK_UTIL_API String copy_str(Allocator *allocator, String str, bool isCStr = false) noexcept;

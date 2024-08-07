@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.h"
-#include "algorithm.h"
+#include "hash.h"
 
 namespace oak {
 

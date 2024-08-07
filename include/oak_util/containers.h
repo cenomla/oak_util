@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "types.h"
+#include "pair.h"
 #include "bit.h"
 #include "memory.h"
 
@@ -613,6 +614,101 @@ int main(int, char **) {
 	constexpr std::tuple<types&...> SOA<types...>::operator[](i64 const index) const noexcept {
 		using indices = std::make_index_sequence<std::tuple_size<std::tuple<types...>>::value>;
 		return detail::soa_sub_script_impl<std::tuple<types&...>>(*this, index, indices{});
+	}
+
+	namespace detail {
+
+		template<typename MapType, typename K = typename MapType::KeyType>
+		constexpr u64 hash_key(MapType *map, K const& value) {
+			return map->MapType::HashType::operator()(value);
+		}
+
+		template<
+			typename MapType,
+			typename Keys = typename MapType::KeyType,
+			typename K = Keys
+		>
+		constexpr i64 cmp_keys(MapType *map, Keys const& lhs, K const& rhs) {
+			return map->MapType::CmpType::operator()(lhs, rhs);
+		}
+
+		template<typename MapType>
+		constexpr i64 slot_idx(MapType *map, u64 hash) {
+			assert(is_pow2(map->capacity));
+			return hash & (map->capacity - 1);
+		}
+
+		template<typename MapType, bool (emptyFn)(MapType *map, i64 idx)>
+		constexpr i64 map_calc_first_index(MapType *map) {
+			for (i64 i = 0; i < map->capacity; ++i) {
+				if (!emptyFn(map, i))
+					return i;
+			}
+			return map->capacity;
+		}
+
+		template<typename MapType>
+		constexpr f32 map_calc_load_factor(MapType *map) {
+			if (!map->capacity)
+				return 1.f;
+			return static_cast<f32>(map->count) / map->capacity;
+		}
+
+		template<typename MapType>
+		constexpr bool map_empty_fn(MapType *map, i64 idx) {
+			return map->empty[idx];
+		}
+
+	}
+
+	template<
+		typename Container,
+		bool (emptyFn)(Container *container, i64 idx) = detail::map_empty_fn,
+		typename Keys = typename Container::KeyType,
+		typename K = Keys
+	>
+	constexpr Pair<i64, bool> open_address_linear_find(Container *container, Keys const *keys, K const& key) noexcept {
+		auto idx = detail::slot_idx(container, detail::hash_key(container, key));
+		auto range = container->capacity >> 1;
+		for (i64 d = 0; d < range; ++d) {
+			auto ridx = detail::slot_idx(container, idx + d);
+			if (emptyFn(container, ridx)) {
+				// If we reach an empty cell then exit because the key is not in the table
+				// let the caller know the cell is empty so they can fill it
+				return { ridx, true };
+			}
+			if (detail::cmp_keys(container, keys[ridx], key) == 0) {
+				// We found the key so return
+				return { ridx, false };
+			}
+		}
+		return { -1, false };
+	}
+
+	template<
+		typename Container,
+		bool (emptyFn)(Container *container, i64 idx) = detail::map_empty_fn,
+		typename Keys = typename Container::KeyType
+	>
+	constexpr i64 open_address_linear_remove(Container *container, Keys *keys, i64 idx) noexcept {
+		// cidx is the index of the slot we are trying to empty
+		// ridx is the index of the slot we are looking at to try and fill it
+		auto cidx = idx;
+		for (i64 d = 1; d < container->capacity; ++d) {
+			auto ridx = detail::slot_idx(container, idx + d);
+			if (emptyFn(container, ridx))
+				break;
+
+			// If the element in the slot we are looking at belongs at an earlier slot
+			auto sridx = detail::slot_idx(container, detail::hash_key(container, keys[ridx]));
+			if (cidx == sridx || ((sridx - cidx) & container->capacity >> 1) != 0) {
+				keys[cidx] = keys[ridx];
+				cidx = ridx;
+			}
+		}
+
+		// Must empty the element at cidx
+		return cidx;
 	}
 
 }
