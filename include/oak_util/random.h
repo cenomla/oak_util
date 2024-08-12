@@ -70,7 +70,7 @@ namespace oak {
 
 	template<typename T>
 	i32 random_range(T *generator, i32 min, i32 max) {
-		return static_cast<i32>(random_range(generator, static_cast<f32>(min), static_cast<f32>(max)));
+		return static_cast<i32>(random_range(generator, static_cast<f32>(min), static_cast<f32>(max) + 0.999999f));
 	}
 
 }
