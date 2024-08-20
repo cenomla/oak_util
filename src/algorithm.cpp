@@ -13,7 +13,12 @@
 namespace oak {
 
 	bool is_c_str(String str) noexcept {
+#if 0
 		return str.data[str.count] == 0;
+#else
+		(void)str;
+		return false;
+#endif
 	}
 
 	char const* as_c_str(Allocator *allocator, String str) noexcept {
