@@ -156,6 +156,11 @@ namespace oak {
 		i32 idx;
 	};
 
+	struct SortIndex64 {
+		u64 rdx;
+		i32 idx;
+	};
+
 	template<typename T, typename U, U T::* pMem = nullptr>
 	constexpr void radix_sort(Allocator *allocator, T *array, i64 arrayCount, u32 r = 8) {
 		auto t0 = array;

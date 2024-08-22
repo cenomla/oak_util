@@ -1073,5 +1073,40 @@ namespace {
 		globalAllocator->deallocate(ptr, size);
 	}
 
+	void* temporary_allocator_malloc(usize size) {
+		static_assert(alignof(max_align_t) >= sizeof(size));
+		auto result = temporaryAllocator->allocate(size + alignof(max_align_t), alignof(max_align_t));
+		if (!result)
+			return nullptr;
+		memcpy(result, &size, sizeof(size));
+		return add_ptr(result, alignof(max_align_t));
+	}
+
+	void* temporary_allocator_realloc(void *ptr, usize newSize) {
+		usize size = 0;
+
+		if (ptr) {
+			ptr = sub_ptr(ptr, alignof(max_align_t));
+			memcpy(&size, ptr, sizeof(size));
+		}
+
+		auto result = temporaryAllocator->realloc(
+				ptr, size + alignof(max_align_t), newSize + alignof(max_align_t), alignof(max_align_t));
+		if (!result)
+			return nullptr;
+
+		memcpy(result, &newSize, sizeof(newSize));
+		return add_ptr(result, alignof(max_align_t));
+	}
+
+	void temporary_allocator_free(void *ptr) {
+		if (!ptr)
+			return;
+		usize size;
+		ptr = sub_ptr(ptr, alignof(max_align_t));
+		memcpy(&size, ptr, sizeof(size));
+		temporaryAllocator->deallocate(ptr, size);
+	}
+
 }
 

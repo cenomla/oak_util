@@ -143,6 +143,10 @@ namespace oak {
 	OAK_UTIL_API void* global_allocator_realloc(void *ptr, usize size);
 	OAK_UTIL_API void global_allocator_free(void *ptr);
 
+	OAK_UTIL_API void* temporary_allocator_malloc(usize size);
+	OAK_UTIL_API void* temporary_allocator_realloc(void *ptr, usize size);
+	OAK_UTIL_API void temporary_allocator_free(void *ptr);
+
 	template<typename T>
 	void mem_copy(T *dst, T *src, i64 count) {
 		memcpy(dst, src, sizeof(T)*count);
