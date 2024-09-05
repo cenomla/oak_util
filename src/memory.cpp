@@ -21,7 +21,7 @@
 #endif // _WIN32
 
 #if HAS_ASAN
-#	define ASAN_RED_ZONE_SIZE 8
+#	define ASAN_RED_ZONE_SIZE 0
 #else
 #	define ASAN_RED_ZONE_SIZE 0
 #endif
