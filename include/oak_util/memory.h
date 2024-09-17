@@ -102,6 +102,7 @@ namespace oak {
 	OAK_UTIL_API void memory_arena_clear(MemoryArena *arena);
 
 	OAK_UTIL_API i32 memory_pool_init(MemoryArena **arena, usize size, usize objectSize);
+	OAK_UTIL_API void memory_pool_destroy(MemoryArena *arena);
 	OAK_UTIL_API void* memory_pool_alloc(MemoryArena *arena, usize size, usize alignment);
 	OAK_UTIL_API void memory_pool_free(MemoryArena *arena, void *addr, usize size);
 	OAK_UTIL_API void* memory_pool_realloc(
@@ -125,6 +126,7 @@ namespace oak {
 	OAK_UTIL_API void mt_memory_arena_clear(MemoryArena *arena);
 
 	OAK_UTIL_API i32 sys_alloc_init(MemoryArena **arena);
+	OAK_UTIL_API void sys_alloc_destroy(MemoryArena *arena);
 	OAK_UTIL_API void* sys_alloc(MemoryArena *arena, usize size, usize alignment);
 	OAK_UTIL_API void sys_free(MemoryArena *arena, void *addr, usize size);
 	OAK_UTIL_API void* sys_realloc(
@@ -148,7 +150,7 @@ namespace oak {
 	OAK_UTIL_API void temporary_allocator_free(void *ptr);
 
 	template<typename T>
-	void mem_copy(T *dst, T *src, i64 count) {
+	void mem_copy(T *dst, T const *src, i64 count) {
 		memcpy(dst, src, sizeof(T)*count);
 	}
 

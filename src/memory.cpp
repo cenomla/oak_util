@@ -860,7 +860,15 @@ namespace {
 		return 0;
 	}
 
-	void* sys_alloc(MemoryArena* arena, usize size, [[maybe_unused]] usize alignment) {
+	void sys_alloc_destroy(MemoryArena *arena) {
+		auto header = bit_cast<MemoryArenaHeader*>(arena);
+		auto pageSize = header->pageSize;
+
+		decommit_region(header, pageSize);
+		virtual_free(header, pageSize);
+	}
+
+	void* sys_alloc(MemoryArena *arena, usize size, [[maybe_unused]] usize alignment) {
 		if (!size)
 			return nullptr;
 
@@ -892,7 +900,7 @@ namespace {
 		return addr;
 	}
 
-	void sys_free(MemoryArena* arena, void *addr, usize size) {
+	void sys_free(MemoryArena *arena, void *addr, usize size) {
 		if (!size)
 			return;
 
