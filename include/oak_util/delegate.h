@@ -34,12 +34,19 @@ namespace oak {
 		Delegate() noexcept = default;
 
 		template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Delegate>>>
-		Delegate(T&& obj, Allocator *allocator = nullptr) noexcept {
+		Delegate(T&& obj) noexcept {
+			static_assert(sizeof(obj) <= sizeof(staticStorage));
+			set(std::forward<T>(obj), nullptr);
+		}
+
+		template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Delegate>>>
+		Delegate(T&& obj, Allocator *allocator) noexcept {
 			set(std::forward<T>(obj), allocator);
 		}
 
 		template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Delegate>>>
 		Delegate& operator=(T&& obj) noexcept {
+			static_assert(sizeof(obj) <= sizeof(staticStorage));
 			set(std::forward<T>(obj));
 			return *this;
 		}
