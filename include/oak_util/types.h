@@ -75,6 +75,8 @@ using byte = unsigned char;
 
 #endif //__OSIG_REFLECT_MACRO__
 
+#define OAK_DBG_NO_OPT __attribute__((optimize("O0")))
+
 namespace oak {
 
 	struct Allocator;
