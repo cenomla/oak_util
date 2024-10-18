@@ -29,6 +29,16 @@ using b32 = uint32_t;
 
 using byte = unsigned char;
 
+#ifndef NDEBUG
+#define OAK_UNREACHABLE(str) assert(str && false)
+#else
+#if defined(_MSC_VER) && !defined(__clang__)
+#define OAK_UNREACHABLE(str) __assume(false)
+#else
+#define OAK_UNREACHABLE(str) __builtin_unreachable()
+#endif
+#endif
+
 #ifdef _MSC_VER
 
 #ifdef OAK_UTIL_DYNAMIC_LIB
