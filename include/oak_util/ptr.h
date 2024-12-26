@@ -6,7 +6,7 @@
 namespace oak {
 
 	inline void* add_ptr(void *p, i64 x) noexcept {
-		return reinterpret_cast<void*>(reinterpret_cast<u64>(p) + x);
+		return bit_cast<void*>(bit_cast<u64>(p) + x);
 	}
 
 	inline void* add_ptr(void *p, u64 x) noexcept {
@@ -14,20 +14,24 @@ namespace oak {
 	}
 
 	inline void const* add_ptr(void const *p, i64 x) noexcept {
-		return reinterpret_cast<void const*>(reinterpret_cast<u64>(p) + x);
+		return bit_cast<void const*>(bit_cast<u64>(p) + x);
+	}
+
+	inline void const* add_ptr(void const *p, u64 x) noexcept {
+		return bit_cast<void const*>(bit_cast<u64>(p) + x);
 	}
 
 	inline void* sub_ptr(void *p, i64 x) noexcept {
-		return reinterpret_cast<void*>(reinterpret_cast<u64>(p) - x);
+		return bit_cast<void*>(bit_cast<u64>(p) - x);
 	}
 
 	inline void const* sub_ptr(void const *p, i64 x) noexcept {
-		return reinterpret_cast<void const*>(reinterpret_cast<u64>(p) - x);
+		return bit_cast<void const*>(bit_cast<u64>(p) - x);
 	}
 
 	inline u64 ptr_diff(void const *p0, void const *p1) noexcept {
-		auto min = reinterpret_cast<u64>(p0);
-		auto max = reinterpret_cast<u64>(p1);
+		auto min = bit_cast<u64>(p0);
+		auto max = bit_cast<u64>(p1);
 		if (min > max) {
 			auto x = min;
 			min = max;
