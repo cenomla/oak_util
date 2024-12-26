@@ -17,9 +17,50 @@ namespace oak {
 		return hash_int(bit_cast<u32>(v));
 	}
 
+	constexpr u64 hash_string(char const *data, i64 count) noexcept {
+		// Constexpr murmur hash 64a. This version under gcc O3 generates the same instructions
+		// as the optimized version which uses reinterpret_cast.
+		// The block read loop gets unrolled into a single mov instruction.
+		// Big endian architectures use a single mov instruction paired with a bswap.
+		u64 seed = u64{ 0xc70f6907 };
+		u64 m = u64{ 0xc6a4a7935bd1e995 };
+		u64 r = 47;
+
+		i64 c = count & (~i64{7});
+		u64 h = seed ^ (count*m);
+
+		auto end = data + c;
+
+		for (; data != end; data += 8) {
+			u64 k = 0;
+
+			for (u64 i = 0; i < 8; ++i)
+				k ^= static_cast<u64>(static_cast<u8>(data[i])) << (i*8);
+
+			k *= m;
+			k ^= k >> r;
+			k *= m;
+
+			h ^= k;
+			h *= m;
+		}
+
+		if (count & 7) {
+			for (u64 i = 0; i < (count & 7); ++i)
+				h ^= static_cast<u64>(static_cast<u8>(data[i])) << (i*8);
+			h *= m;
+		}
+
+		h ^= h >> r;
+		h *= m;
+		h ^= h >> r;
+
+		return h;
+	}
+
 	constexpr u64 hash_combine(u64 a, u64 b) noexcept {
-		// Combine the two hash values using a bunch of random large primes
-		return 262147 + a * 131101 + b * 65599;
+		u64 m = u64{ 0xc6a4a7935bd1e995 };
+		return (u64{ 0xc70f6907 } ^ (a*m)) ^ (b*m);
 	}
 
 	template<typename T>
@@ -55,13 +96,7 @@ namespace oak {
 	template<>
 	struct HashFn<String> {
 		constexpr u64 operator()(String const& str) const noexcept {
-			u64 hash = 0;
-
-			for (i64 i = 0; i < str.count; ++i) {
-				hash = str.data[i] + (hash << 6) + (hash << 16) - hash;
-			}
-
-			return hash + 1;
+			return hash_string(str.data, str.count);
 		}
 	};
 
