@@ -85,7 +85,11 @@ using byte = unsigned char;
 
 #endif //__OSIG_REFLECT_MACRO__
 
+#ifdef _MSC_VER
+#define OAK_DBG_NO_OPT
+#else
 #define OAK_DBG_NO_OPT __attribute__((optimize("O0")))
+#endif
 
 namespace oak {
 
