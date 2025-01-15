@@ -294,7 +294,7 @@ namespace oak {
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
 	constexpr E* insert_grow(ArrayType *array, Allocator *allocator, i64 index, E const& value) noexcept {
 		if (index == -1 || index == array->count) {
-			return push_grow(allocator, array, value);
+			return push_grow(array, allocator, value);
 		}
 		if (array->count == array->capacity) {
 			array->reserve(allocator, array->capacity == 0 ? 4 : array->capacity * 2);
