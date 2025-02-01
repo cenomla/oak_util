@@ -249,14 +249,14 @@ namespace oak {
 	}
 
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
-	constexpr E* push(ArrayType *array, E const& value) {
+	constexpr typename ArrayType::ElemType* push(ArrayType *array, E const& value) {
 		assert(array->count < array->capacity);
 		array->data[array->count++] = value;
 		return array->data + array->count - 1;
 	}
 
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
-	constexpr E* try_push(ArrayType *array, E const& value) {
+	constexpr typename ArrayType::ElemType* try_push(ArrayType *array, E const& value) {
 		if (array->count >= array->capacity)
 			return nullptr;
 		array->data[array->count++] = value;
@@ -264,7 +264,7 @@ namespace oak {
 	}
 
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
-	constexpr E* push_grow(ArrayType *array, Allocator *allocator, E const& value) {
+	constexpr typename ArrayType::ElemType* push_grow(ArrayType *array, Allocator *allocator, E const& value) {
 		if (array->count == array->capacity) {
 			array->reserve(allocator, array->capacity == 0 ? 4 : array->capacity * 2);
 		}
@@ -273,14 +273,14 @@ namespace oak {
 	}
 
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
-	constexpr E* pop(ArrayType *array) {
+	constexpr typename ArrayType::ElemType* pop(ArrayType *array) {
 		assert(array->count > 0);
 		--array->count;
 		return array->data + array->count;
 	}
 
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
-	constexpr E* insert(ArrayType *array, i64 index, E const& value) noexcept {
+	constexpr typename ArrayType::ElemType* insert(ArrayType *array, i64 index, E const& value) noexcept {
 		if (index == -1 || index == array->count) {
 			return push(array, value);
 		}
@@ -292,7 +292,7 @@ namespace oak {
 	}
 
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
-	constexpr E* insert_grow(ArrayType *array, Allocator *allocator, i64 index, E const& value) noexcept {
+	constexpr typename ArrayType::ElemType* insert_grow(ArrayType *array, Allocator *allocator, i64 index, E const& value) noexcept {
 		if (index == -1 || index == array->count) {
 			return push_grow(array, allocator, value);
 		}

@@ -39,6 +39,17 @@ namespace oak {
 #endif
 	}
 
+	inline int ctz(uint32_t value) {
+		assert(value != 0);
+#ifdef _MSC_VER
+		unsigned long index = 0;
+		_BitScanForward(&index, value);
+		return static_cast<int>(index);
+#else
+		return __builtin_ctz(value);
+#endif
+	}
+
 	inline int bit_count(uint64_t value) {
 #ifdef _MSC_VER
 		return static_cast<int>(__popcnt64(value));
