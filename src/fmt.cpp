@@ -25,7 +25,8 @@ namespace {
 	char const* choose_snprintf_float_fmt_string(FmtKind fmtKind) noexcept {
 		char const* str;
 		switch (fmtKind) {
-			case FmtKind::DEFAULT: case FmtKind::DEC: str = "%.*g"; break;
+			case FmtKind::DEFAULT: str = "%.*g"; break;
+			case FmtKind::DEC: str = "%.*f"; break;
 			case FmtKind::HEX: str = "%.*a"; break;
 			case FmtKind::HEX_CAP: str = "%.*A"; break;
 			case FmtKind::EXP: str = "%.*e"; break;
