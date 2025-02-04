@@ -27,9 +27,13 @@ using isize = ptrdiff_t;
 using f32 = float;
 using f64 = double;
 
+using b8 = bool;
 using b32 = uint32_t;
 
-using byte = unsigned char;
+using c8 = char;
+
+static_assert(sizeof(b8) == 1, "b8 type isn't 1 byte");
+static_assert(sizeof(usize) == sizeof(isize), "size types aren't the same width");
 
 #define ssizeof(x) static_cast<isize>(sizeof(x))
 #define array_count(x) (sizeof(x)/sizeof(*x))
