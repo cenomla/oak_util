@@ -3,7 +3,6 @@
 #include <oak_util/fmt.h>
 
 #include <assert.h>
-#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -143,7 +142,7 @@ namespace {
 			{
 				auto nstr = allocate<char>(allocator, str.count);
 				for (i64 i = 0; i < str.count; ++i)
-					nstr[i] = static_cast<char>(tolower(str[i]));
+					nstr[i] = to_lower(str[i]);
 				return String{ nstr, str.count };
 			}
 			break;
@@ -151,7 +150,7 @@ namespace {
 			{
 				auto nstr = allocate<char>(allocator, str.count);
 				for (i64 i = 0; i < str.count; ++i)
-					nstr[i] = static_cast<char>(toupper(str[i]));
+					nstr[i] = to_upper(str[i]);
 				return String{ nstr, str.count };
 			}
 			break;

@@ -29,6 +29,10 @@ namespace oak {
 		return c == ' ' || c == '\n' || c == '\t' || c == '\v';
 	}
 
+	constexpr bool is_print(char c) noexcept {
+		return c >= ' ' && c <= '~';
+	}
+
 	constexpr char to_lower(char c) noexcept {
 		if (is_upper(c))
 			return 'a' + c - 'A';
