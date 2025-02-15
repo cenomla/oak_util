@@ -155,6 +155,11 @@ namespace oak {
 	}
 
 	template<typename T>
+	void mem_move(T *dst, T const *src, i64 count) {
+		memmove(dst, src, sizeof(T)*count);
+	}
+
+	template<typename T>
 	T* allocate(Allocator *allocator, i64 count) {
 		return static_cast<T*>(allocator->allocate(sizeof(T) * count, alignof(T)));
 	}
