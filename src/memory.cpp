@@ -703,7 +703,10 @@ namespace {
 		if (!addr)
 			return memory_heap_alloc(arena, nSize, alignment);
 
-		assert(nSize);
+		if (!nSize) {
+			memory_heap_free(arena, addr, size);
+			return nullptr;
+		}
 
 		auto header = bit_cast<MemoryArenaHeader*>(arena);
 		auto heapHeader = static_cast<MemoryHeapHeader*>(add_ptr(arena, sizeof(MemoryArenaHeader)));
