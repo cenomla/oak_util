@@ -303,6 +303,7 @@ namespace oak {
 		if (array->count == array->capacity) {
 			array->reserve(allocator, array->capacity == 0 ? 4 : array->capacity * 2);
 		}
+		assert(0 <= index && index < array->count);
 		memmove(array->data + index + 1, array->data + index, (array->count++ - index) * sizeof(E));
 		array->data[index] = value;
 
@@ -312,11 +313,14 @@ namespace oak {
 	template<typename ArrayType, typename E = typename ArrayType::ElemType>
 	constexpr void remove(ArrayType *array, i64 index) noexcept {
 		assert(array->count > 0);
+		assert(0 <= index && index < array->count);
 		memmove(array->data + index, array->data + index + 1, (--array->count - index) * sizeof(E));
 	}
 
 	template<typename ArrayType>
 	constexpr void swap_and_pop(ArrayType *array, i64 index) noexcept {
+		assert(array->count > 0);
+		assert(0 <= index && index < array->count);
 		array->data[index] = array->data[--array->count];
 	}
 
