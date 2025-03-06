@@ -29,15 +29,8 @@ namespace oak {
 		return bit_cast<void const*>(bit_cast<u64>(p) - x);
 	}
 
-	inline u64 ptr_diff(void const *p0, void const *p1) noexcept {
-		auto min = bit_cast<u64>(p0);
-		auto max = bit_cast<u64>(p1);
-		if (min > max) {
-			auto x = min;
-			min = max;
-			max = x;
-		}
-		return max - min;
+	inline isize ptr_diff(void const *p0, void const *p1) noexcept {
+		return static_cast<char const*>(p0) - static_cast<char const*>(p1);
 	}
 
 	constexpr u64 align(u64 const value, u64 const alignment) noexcept {
