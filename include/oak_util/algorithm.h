@@ -378,6 +378,7 @@ namespace oak {
 
 	template<typename T>
 	constexpr Slice<T> sub_slice(Slice<T> slice, i64 start, i64 end = -1) noexcept {
+		assert(0 <= start && start <= slice.count);
 		// Bounds checking
 		if (end == -1 || end > slice.count)
 			end = slice.count;
@@ -463,6 +464,14 @@ namespace oak {
 			return false;
 
 		return sub_slice(slice, 0, value.count) == value;
+	}
+
+	template<typename T>
+	constexpr bool slice_ends_with(Slice<T> slice, Slice<T> value) noexcept {
+		if (slice.count < value.count)
+			return false;
+
+		return sub_slice(slice, slice.count - value.count) == value;
 	}
 
 	template<typename T>
