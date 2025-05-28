@@ -1,7 +1,11 @@
 #pragma once
 
 #ifndef NDEBUG
+#if defined(_MSC_VER) && !defined(__clang__)
+#define OAK_UNREACHABLE(str) do { assert(str && false); __assume(false); } while (0)
+#else
 #define OAK_UNREACHABLE(str) assert(str && false)
+#endif
 #else
 #if defined(_MSC_VER) && !defined(__clang__)
 #define OAK_UNREACHABLE(str) __assume(false)

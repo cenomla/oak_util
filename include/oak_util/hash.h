@@ -46,7 +46,7 @@ namespace oak {
 		}
 
 		if (count & 7) {
-			for (u64 i = 0; i < (count & 7); ++i)
+			for (u64 i = 0; i < static_cast<u64>(count & 7); ++i)
 				h ^= static_cast<u64>(static_cast<u8>(data[i])) << (i*8);
 			h *= m;
 		}
