@@ -64,7 +64,9 @@
 
 #ifdef _MSC_VER
 #define OAK_DBG_NO_OPT
+#define OAK_DBG_NO_OPT_FILE _Pragma("optimize(\"\", off)")
 #else
 #define OAK_DBG_NO_OPT __attribute__((optimize("O0")))
+#define OAK_DBG_NO_OPT_FILE _Pragma("GCC push_options") _Pragma("GCC optimize(\"O0\")")
 #endif
 
