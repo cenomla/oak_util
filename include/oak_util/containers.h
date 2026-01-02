@@ -44,6 +44,12 @@ namespace oak {
 		_reflect() T *data = nullptr;
 		_reflect() i64 capacity = 0;
 
+		static FixedVector from_reserve(Allocator *allocator, i64 count_) {
+			FixedVector result;
+			result.reserve(allocator, count_);
+			return result;
+		}
+
 		constexpr FixedVector() noexcept = default;
 
 		FixedVector(Allocator *allocator, T const *data_, i64 count_) noexcept
