@@ -4,7 +4,7 @@
 #if defined(_MSC_VER) && !defined(__clang__)
 #define OAK_UNREACHABLE(str) do { assert(str && false); __assume(false); } while (0)
 #else
-#define OAK_UNREACHABLE(str) assert(str && false)
+#define OAK_UNREACHABLE(str) do { assert(str && false); __builtin_unreachable(); } while (0)
 #endif
 #else
 #if defined(_MSC_VER) && !defined(__clang__)

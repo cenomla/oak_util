@@ -58,10 +58,10 @@ namespace oak {
 		T *data = nullptr;
 		i64 count = 0;
 
-		constexpr Slice() noexcept = default;
-		constexpr Slice(T *data_, i64 count_) noexcept : data{ data_ }, count{ count_ } {}
-		template<int C>
-		constexpr Slice(T (&array)[C]) noexcept : data{ array }, count{ C } {}
+		template<i64 C>
+		static constexpr Slice<T> from_array(T const (&array)[C]) {
+			return { array, C };
+		}
 
 		constexpr T* begin() noexcept {
 			return data;
@@ -94,6 +94,9 @@ namespace oak {
 		}
 	};
 
+	template<typename First>
+	Slice(First*, i64) -> Slice<First>;
+
 	template<typename type>
 	constexpr bool operator==(Slice<type> const lhs, Slice<type> const rhs) noexcept {
 		if (lhs.count != rhs.count)
@@ -114,28 +117,14 @@ namespace oak {
 		return !operator==(lhs, rhs);
 	}
 
-	template<typename T, usize N>
+	template<typename T, isize N>
 	struct _reflect(array) FixedArray {
 
 		using ElemType = T;
 
-		_reflect() static constexpr i64 capacity = static_cast<i64>(N);
+		_reflect() static constexpr i64 capacity = N;
 
-		_reflect() T data[N]{};
-
-		constexpr FixedArray() noexcept = default;
-
-		template<int C>
-		constexpr FixedArray(T (&array)[C]) noexcept {
-			static_assert(C <= N);
-			memcpy(data, array, capacity * sizeof(T));
-		}
-
-		constexpr FixedArray(std::initializer_list<T> list) noexcept {
-			auto count = static_cast<i64>(list.size()) < capacity
-				? static_cast<i64>(list.size()) : capacity;
-			memcpy(data, list.begin(), count * sizeof(T));
-		}
+		_reflect() T data[N] = {};
 
 		constexpr T* begin() noexcept {
 			return data;
@@ -163,41 +152,66 @@ namespace oak {
 			return data[idx];
 		}
 
+		constexpr operator Slice<T>() noexcept {
+			return Slice<T>{ data, capacity };
+		}
+
 		constexpr operator Slice<T const>() const noexcept {
 			return Slice<T const>{ data, capacity };
 		}
 
-		constexpr operator Slice<T>() noexcept {
-			return Slice<T>{ data, capacity };
-		}
 	};
 
-	template<typename T, usize N>
+	template<typename First, typename... Rest>
+	struct AllSame {
+		static_assert((std::is_same_v<First, Rest> && ...), "All types must be the same");
+
+		using Type = First;
+	};
+
+	template<typename First, typename... Rest>
+	FixedArray(First, Rest...) -> FixedArray<typename AllSame<First, Rest...>::Type, 1 + sizeof...(Rest)>;
+
+	template<typename T, isize N>
 	struct _reflect(array) Array {
 
 		using ElemType = T;
 
-		_reflect() static constexpr i64 capacity = static_cast<i64>(N);
+		_reflect() static constexpr i64 capacity = N;
 
-		_reflect() T data[N]{};
+		_reflect() T data[N] = {};
 		_reflect() i64 count = 0;
 
-		constexpr Array() noexcept = default;
+		template<isize C>
+		static constexpr Array from(T const (&v)[C]) {
+			static_assert(C <= capacity);
 
-		template<int C>
-		constexpr Array(T (&array)[C]) noexcept : count{ C } {
-			static_assert(C <= N);
-			memcpy(data, array, count * sizeof(T));
+			Array result;
+			memcpy(result.data, v, C*sizeof(T));
+			result.count = C;
+
+			return result;
 		}
 
-		constexpr Array(std::initializer_list<T> list) noexcept
-				: count{ static_cast<i64>(list.size()) < capacity ? static_cast<i64>(list.size()) : capacity } {
-			memcpy(data, list.begin(), count * sizeof(T));
+		template<isize C>
+		static constexpr Array from(FixedArray<T, C> const& v) {
+			static_assert(C <= capacity);
+
+			Array result;
+			memcpy(result.data, v.data, C*sizeof(T));
+			result.count = C;
+
+			return result;
 		}
 
-		template<typename U>
-		constexpr Array(Slice<U> slice) noexcept : count{ slice.count < capacity ? slice.count : capacity } {
-			memcpy(data, slice.data, count * sizeof(T));
+		static constexpr Array from_range(T const *data, i64 count) {
+			assert(count <= capacity);
+
+			Array result;
+			memcpy(result.data, data, count*sizeof(T));
+			result.count = count;
+
+			return result;
 		}
 
 		constexpr void clear() noexcept {
@@ -230,13 +244,14 @@ namespace oak {
 			return data[idx];
 		}
 
-		constexpr operator Slice<ElemType const>() const noexcept {
-			return Slice<T const>{ data, count };
-		}
-
 		constexpr operator Slice<T>() noexcept {
 			return Slice<T>{ data, count };
 		}
+
+		constexpr operator Slice<T const>() const noexcept {
+			return Slice<T const>{ data, count };
+		}
+
 	};
 
 	constexpr i64 c_str_len(char const *const str) noexcept {
@@ -338,15 +353,22 @@ namespace oak {
 		}
 	}
 
+	namespace {
 
-	template<typename ArrayType, typename E = typename ArrayType::ElemType>
-	constexpr Slice<E> slc(ArrayType& array) noexcept {
+		template<typename ArrayType, typename RawArrayType = std::remove_reference_t<ArrayType>>
+		using ArraySliceElem = std::conditional_t<
+			std::is_const_v<RawArrayType>, typename RawArrayType::ElemType const, typename RawArrayType::ElemType>;
+
+	}
+
+	template<typename ArrayType, typename E = ArraySliceElem<ArrayType>>
+	constexpr Slice<E> slc(ArrayType&& array) noexcept {
 		return static_cast<Slice<E>>(array);
 	}
 
-	template<typename ArrayType, typename E = typename ArrayType::ElemType>
-	constexpr Slice<E> slc(ArrayType&& array) noexcept {
-		return static_cast<Slice<E>>(array);
+	template<typename ArrayType, typename E = ArraySliceElem<ArrayType>>
+	constexpr Slice<E const> slc_const(ArrayType&& array) noexcept {
+		return static_cast<Slice<E const>>(array);
 	}
 
 	template<typename E>
