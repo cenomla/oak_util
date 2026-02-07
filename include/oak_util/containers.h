@@ -129,6 +129,12 @@ namespace oak {
 		_reflect() i64 count = 0;
 		_reflect() i64 capacity = 0;
 
+		static Vector from_reserve(Allocator *allocator, i64 capacity) {
+			Vector result;
+			result.reserve(allocator, capacity);
+			return result;
+		}
+
 		void reserve(Allocator *allocator, i64 nCapacity) noexcept {
 			// If the array is already big enough no need to resize
 			if (nCapacity <= capacity)
