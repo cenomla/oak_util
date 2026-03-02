@@ -59,7 +59,7 @@ namespace oak {
 		i64 count = 0;
 
 		template<i64 C>
-		static constexpr Slice<T> from_array(T const (&array)[C]) {
+		static constexpr Slice<T> from(T (&array)[C]) {
 			return { array, C };
 		}
 
