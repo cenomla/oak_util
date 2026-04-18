@@ -195,9 +195,9 @@ namespace {
 #endif // _WIN32
 	}
 
-	bool virtual_try_grow(void *addr, [[maybe_unused]] usize size, usize nSize) {
+	bool virtual_try_grow(void *addr, [[maybe_unused]] usize size, usize newSize) {
 #ifdef _WIN32
-		auto result = VirtualAlloc(addr, nSize, MEM_RESERVE, PAGE_READWRITE);
+		auto result = VirtualAlloc(addr, newSize, MEM_RESERVE, PAGE_READWRITE);
 		if (result == nullptr)
 			return false;
 		if (result != addr) {
@@ -208,11 +208,11 @@ namespace {
 		return true;
 #else
 		auto nAddr = add_ptr(addr, size);
-		auto result = mmap(nAddr, nSize - size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+		auto result = mmap(nAddr, newSize - size, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 		if (result == MAP_FAILED)
 			return false;
 		if (result != nAddr) {
-			munmap(result, nSize - size);
+			munmap(result, newSize - size);
 			return false;
 		}
 
@@ -396,9 +396,9 @@ namespace {
 #endif
 	}
 
-	void* memory_arena_realloc(MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment) {
+	void* memory_arena_realloc(MemoryArena *arena, void *addr, usize size, usize newSize, usize alignment) {
 		if (!addr)
-			return memory_arena_alloc(arena, nSize, alignment);
+			return memory_arena_alloc(arena, newSize, alignment);
 
 		auto header = bit_cast<MemoryArenaHeader*>(arena);
 
@@ -411,24 +411,24 @@ namespace {
 			auto alignedSize = align(size, header->alignSize);
 			auto offset = header->usedMemory - (alignedSize + ASAN_RED_ZONE_SIZE);
 			if (add_ptr(header, offset) == addr) {
-				if (offset + nSize > header->capacity)
+				if (offset + newSize > header->capacity)
 					return nullptr;
 
-				if (_memory_arena_ensure_commit_size(header, offset + nSize) != 0)
+				if (_memory_arena_ensure_commit_size(header, offset + newSize) != 0)
 					return nullptr;
 
-				header->usedMemory = offset + nSize + ASAN_RED_ZONE_SIZE;
-				header->requestedMemory += nSize - size;
+				header->usedMemory = offset + newSize + ASAN_RED_ZONE_SIZE;
+				header->requestedMemory += newSize - size;
 
 #if HAS_ASAN
-				__asan_unpoison_memory_region(add_ptr(header, offset), nSize);
+				__asan_unpoison_memory_region(add_ptr(header, offset), newSize);
 #endif
 
 				return add_ptr(header, offset);
 			}
 		}
 
-		auto nAddr = memory_arena_alloc(arena, nSize, alignment);
+		auto nAddr = memory_arena_alloc(arena, newSize, alignment);
 		if (!nAddr)
 			return nullptr;
 		memcpy(nAddr, addr, size);
@@ -531,8 +531,8 @@ namespace {
 #endif
 	}
 
-	void* memory_pool_realloc(MemoryArena*, void *addr, [[maybe_unused]] usize size, [[maybe_unused]] usize nSize, usize) {
-		assert(size == nSize);
+	void* memory_pool_realloc(MemoryArena*, void *addr, [[maybe_unused]] usize size, [[maybe_unused]] usize newSize, usize) {
+		assert(size == newSize);
 		return addr;
 	}
 
@@ -699,11 +699,11 @@ namespace {
 	}
 
 	void* memory_heap_realloc(
-			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment) {
+			MemoryArena *arena, void *addr, usize size, usize newSize, usize alignment) {
 		if (!addr)
-			return memory_heap_alloc(arena, nSize, alignment);
+			return memory_heap_alloc(arena, newSize, alignment);
 
-		if (!nSize) {
+		if (!newSize) {
 			memory_heap_free(arena, addr, size);
 			return nullptr;
 		}
@@ -713,24 +713,24 @@ namespace {
 
 		usize objectSize;
 		isize oldPoolIdx = _memory_heap_pool_idx(&objectSize, heapHeader, size, alignment);
-		isize newPoolIdx = _memory_heap_pool_idx(&objectSize, heapHeader, nSize, alignment);
+		isize newPoolIdx = _memory_heap_pool_idx(&objectSize, heapHeader, newSize, alignment);
 
-		[[maybe_unused]] usize nAlignedSize = align(nSize, sizeof(void*));
-		assert(nSize <= objectSize);
+		[[maybe_unused]] usize nAlignedSize = align(newSize, sizeof(void*));
+		assert(newSize <= objectSize);
 		if (oldPoolIdx == newPoolIdx) {
 			atomic_lock(&header->_lock);
 			SCOPE_EXIT(atomic_unlock(&header->_lock));
 #if HAS_ASAN
 			__asan_unpoison_memory_region(addr, nAlignedSize);
 #endif
-			header->requestedMemory += nSize - size;
+			header->requestedMemory += newSize - size;
 			return addr;
 		} else {
-			auto nAddr = memory_heap_alloc(arena, nSize, alignment);
+			auto nAddr = memory_heap_alloc(arena, newSize, alignment);
 			if (!nAddr)
 				return nullptr;
 
-			auto copySize = size <= nSize ? size : nSize;
+			auto copySize = size <= newSize ? size : newSize;
 			memcpy(nAddr, addr, copySize);
 			memory_heap_free(arena, addr, size);
 
@@ -819,12 +819,12 @@ namespace {
 	}
 
 	void* mt_memory_arena_realloc(
-			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment) {
+			MemoryArena *arena, void *addr, usize size, usize newSize, usize alignment) {
 		auto header = bit_cast<MTMemoryArenaHeader*>(arena);
 		auto localArena = _require_thread_local_arena(header);
 		if (!localArena)
 			return nullptr;
-		return memory_arena_realloc(localArena, addr, size, nSize, alignment);
+		return memory_arena_realloc(localArena, addr, size, newSize, alignment);
 	}
 
 	void mt_memory_arena_clear(MemoryArena *arena) {
@@ -925,21 +925,21 @@ namespace {
 	}
 
 	void* sys_realloc(
-			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment) {
+			MemoryArena *arena, void *addr, usize size, usize newSize, usize alignment) {
 		if (!addr)
-			return sys_alloc(arena, nSize, alignment);
+			return sys_alloc(arena, newSize, alignment);
 
 		auto header = bit_cast<MemoryArenaHeader*>(arena);
 		assert(alignment <= header->pageSize);
-		assert(nSize >= size);
-		assert(nSize);
+		assert(newSize >= size);
+		assert(newSize);
 
 		auto alignedSize = align(size, header->pageSize);
-		auto nAlignedSize = align(nSize, header->pageSize);
+		auto nAlignedSize = align(newSize, header->pageSize);
 		assert(nAlignedSize >= alignedSize);
-		if (alignedSize >= nSize) {
+		if (alignedSize >= newSize) {
 #if HAS_ASAN
-			__asan_unpoison_memory_region(addr, nSize);
+			__asan_unpoison_memory_region(addr, newSize);
 #endif
 			return addr;
 		}
@@ -948,25 +948,25 @@ namespace {
 			auto nAddr = add_ptr(addr, alignedSize);
 			isize dSize = nAlignedSize - alignedSize;
 			assert(dSize > 0);
-			assert(nSize >= size);
+			assert(newSize >= size);
 			if (commit_region(nAddr, dSize) == 0) {
 #ifndef NDEBUG
 				atomic_lock(&header->_lock);
 				header->usedMemory += dSize;
 				header->commitSize += dSize;
-				header->requestedMemory += nSize - size;
+				header->requestedMemory += newSize - size;
 				atomic_unlock(&header->_lock);
 #endif
 
 #if HAS_ASAN
-				__asan_unpoison_memory_region(addr, nSize);
+				__asan_unpoison_memory_region(addr, newSize);
 #endif
 				return addr;
 			}
 			virtual_free(nAddr, dSize);
 		}
 
-		auto nAddr = sys_alloc(arena, nSize, alignment);
+		auto nAddr = sys_alloc(arena, newSize, alignment);
 		if (!nAddr)
 			return nullptr;
 		memcpy(nAddr, addr, size);

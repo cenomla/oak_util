@@ -60,13 +60,13 @@ namespace oak {
 			return result;
 		}
 
-		void reserve(Allocator *allocator, i64 nCapacity) noexcept {
+		void reserve(Allocator *allocator, i64 newCapacity) noexcept {
 			// If the array is already big enough no need to resize
-			if (nCapacity <= capacity)
+			if (newCapacity <= capacity)
 				return;
 
-			data = reallocate<T>(allocator, data, capacity, nCapacity);
-			capacity = nCapacity;
+			data = reallocate<T>(allocator, data, capacity, newCapacity);
+			capacity = newCapacity;
 		}
 
 		FixedVector clone(Allocator *allocator, i64 minCapacity = 0) const noexcept {
@@ -135,18 +135,18 @@ namespace oak {
 			return result;
 		}
 
-		void reserve(Allocator *allocator, i64 nCapacity) noexcept {
+		void reserve(Allocator *allocator, i64 newCapacity) noexcept {
 			// If the array is already big enough no need to resize
-			if (nCapacity <= capacity)
+			if (newCapacity <= capacity)
 				return;
 
-			data = reallocate<T>(allocator, data, capacity, nCapacity);
-			capacity = nCapacity;
+			data = reallocate<T>(allocator, data, capacity, newCapacity);
+			capacity = newCapacity;
 		}
 
-		void resize(Allocator *allocator, i64 nCount) noexcept {
-			reserve(allocator, nCount);
-			count = nCount;
+		void resize(Allocator *allocator, i64 newCount) noexcept {
+			reserve(allocator, newCount);
+			count = newCount;
 		}
 
 		Vector clone(Allocator *allocator, i64 minCapacity = 0) const noexcept {

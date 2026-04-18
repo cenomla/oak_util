@@ -131,7 +131,7 @@ namespace oak::detail {
 namespace oak {
 
 	OAK_UTIL_API String to_str(
-			Allocator *allocator, char v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
+			Allocator *allocator, c8 v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
 	OAK_UTIL_API String to_str(
 			Allocator *allocator, u32 v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
 	OAK_UTIL_API String to_str(
@@ -149,13 +149,13 @@ namespace oak {
 	OAK_UTIL_API String to_str(
 			Allocator *allocator, f64 v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
 	OAK_UTIL_API String to_str(
-			Allocator *allocator, char const *v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
+			Allocator *allocator, c8 const *v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
 	OAK_UTIL_API String to_str(
-			Allocator *allocator, unsigned char const *v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
+			Allocator *allocator, u8 const *v, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
 	OAK_UTIL_API String to_str(
 			Allocator *allocator, String str, FmtKind = FmtKind::DEFAULT, i32 precision = -1);
 
-	OAK_UTIL_API i64 from_str(char *v, String str);
+	OAK_UTIL_API i64 from_str(c8 *v, String str);
 	OAK_UTIL_API i64 from_str(u8 *v, String str, i32 base = 0);
 	OAK_UTIL_API i64 from_str(u16 *v, String str, i32 base = 0);
 	OAK_UTIL_API i64 from_str(u32 *v, String str, i32 base = 0);
@@ -171,9 +171,9 @@ namespace oak {
 	template<typename T>
 	struct HasResizeMethod {
 		template<typename U, void (U::*)(u64)> struct SFINAE {};
-		template<typename U> static char test(SFINAE<U, &U::resize>*);
-		template<typename U> static int test(...);
-		static constexpr bool value = sizeof(test<T>(0)) == sizeof(char);
+		template<typename U> static c8 test(SFINAE<U, &U::resize>*);
+		template<typename U> static i32 test(...);
+		static constexpr bool value = sizeof(test<T>(0)) == sizeof(c8);
 	};
 
 	struct OAK_UTIL_API IBuffer {
@@ -196,7 +196,7 @@ namespace oak {
 		void resize(usize size);
 
 		Allocator *allocator = nullptr;
-		Slice<char> *buffer = nullptr;
+		FixedVector<c8> *buffer = nullptr;
 		u64 pos = 0;
 
 		IBuffer get_buffer_interface();
@@ -205,7 +205,7 @@ namespace oak {
 	struct OAK_UTIL_API SliceBuffer {
 		void write(void const *data, usize size);
 
-		Slice<char> *buffer = nullptr;
+		Slice<c8> *buffer = nullptr;
 		i64 capacity = 0;
 	};
 
@@ -218,7 +218,7 @@ namespace oak {
 
 		void write(void const *data, usize size);
 
-		char *buffer = nullptr;
+		c8 *buffer = nullptr;
 		i64 *count = nullptr;
 		i64 capacity = 0;
 	};
@@ -267,9 +267,9 @@ namespace oak {
 
 	template<typename... TArgs>
 	[[nodiscard]] String fmt(Allocator *allocator, String fmtStr, TArgs&&... args) {
-		Slice<char> string;
+		FixedVector<c8> string;
 		buffer_fmt(StringBuffer{ allocator, &string }, fmtStr, std::forward<TArgs>(args)...);
-		return string;
+		return slc(string);
 	}
 
 }

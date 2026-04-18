@@ -65,7 +65,7 @@ namespace oak {
 		MemoryArena *arena = nullptr;
 		void* (*allocFn)(MemoryArena *self, u64 size, u64 alignment) = nullptr;
 		void (*freeFn)(MemoryArena *self, void *ptr, u64 size) = nullptr;
-		void* (*reallocFn)(MemoryArena *self, void *ptr, u64 size, u64 nSize, u64 alignment) = nullptr;
+		void* (*reallocFn)(MemoryArena *self, void *ptr, u64 size, u64 newSize, u64 alignment) = nullptr;
 		void (*clearFn)(MemoryArena *self) = nullptr;
 
 		inline void* allocate(u64 size, u64 alignment) {
@@ -76,8 +76,8 @@ namespace oak {
 			(*freeFn)(arena, ptr, size);
 		}
 
-		inline void* realloc(void *ptr, u64 size, u64 nSize, u64 alignment) {
-			return (*reallocFn)(arena, ptr, size, nSize, alignment);
+		inline void* realloc(void *ptr, u64 size, u64 newSize, u64 alignment) {
+			return (*reallocFn)(arena, ptr, size, newSize, alignment);
 		}
 
 		inline void clear() {
@@ -86,7 +86,7 @@ namespace oak {
 	};
 
 	OAK_UTIL_API void* virtual_alloc(usize size);
-	OAK_UTIL_API bool virtual_try_grow(void *addr, usize size, usize nSize);
+	OAK_UTIL_API bool virtual_try_grow(void *addr, usize size, usize newSize);
 	OAK_UTIL_API void virtual_free(void *addr, usize size);
 	OAK_UTIL_API i32 commit_region(void *addr, usize size);
 	OAK_UTIL_API i32 decommit_region(void *addr, usize size);
@@ -98,7 +98,7 @@ namespace oak {
 	OAK_UTIL_API void* memory_arena_alloc(MemoryArena *arena, usize size, usize alignment);
 	OAK_UTIL_API void memory_arena_free(MemoryArena *arena, void *addr, usize size);
 	OAK_UTIL_API void* memory_arena_realloc(
-			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
+			MemoryArena *arena, void *addr, usize size, usize newSize, usize alignment);
 	OAK_UTIL_API void memory_arena_clear(MemoryArena *arena);
 
 	OAK_UTIL_API i32 memory_pool_init(MemoryArena **arena, usize size, usize objectSize);
@@ -106,7 +106,7 @@ namespace oak {
 	OAK_UTIL_API void* memory_pool_alloc(MemoryArena *arena, usize size, usize alignment);
 	OAK_UTIL_API void memory_pool_free(MemoryArena *arena, void *addr, usize size);
 	OAK_UTIL_API void* memory_pool_realloc(
-			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
+			MemoryArena *arena, void *addr, usize size, usize newSize, usize alignment);
 	OAK_UTIL_API void memory_pool_clear(MemoryArena *arena);
 	OAK_UTIL_API usize memory_pool_get_object_size(MemoryArena *arena);
 
@@ -114,7 +114,7 @@ namespace oak {
 	OAK_UTIL_API void* memory_heap_alloc(MemoryArena *arena, usize size, usize alignment);
 	OAK_UTIL_API void memory_heap_free(MemoryArena *arena, void *addr, usize size);
 	OAK_UTIL_API void* memory_heap_realloc(
-			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
+			MemoryArena *arena, void *addr, usize size, usize newSize, usize alignment);
 	OAK_UTIL_API void memory_heap_clear(MemoryArena *arena);
 
 	OAK_UTIL_API i32 mt_memory_arena_init(MemoryArena **arena, usize size);
@@ -122,7 +122,7 @@ namespace oak {
 	OAK_UTIL_API void* mt_memory_arena_alloc(MemoryArena *arena, usize size, usize alignment);
 	OAK_UTIL_API void mt_memory_arena_free(MemoryArena *arena, void *addr, usize size);
 	OAK_UTIL_API void* mt_memory_arena_realloc(
-			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
+			MemoryArena *arena, void *addr, usize size, usize newSize, usize alignment);
 	OAK_UTIL_API void mt_memory_arena_clear(MemoryArena *arena);
 
 	OAK_UTIL_API i32 sys_alloc_init(MemoryArena **arena);
@@ -130,7 +130,7 @@ namespace oak {
 	OAK_UTIL_API void* sys_alloc(MemoryArena *arena, usize size, usize alignment);
 	OAK_UTIL_API void sys_free(MemoryArena *arena, void *addr, usize size);
 	OAK_UTIL_API void* sys_realloc(
-			MemoryArena *arena, void *addr, usize size, usize nSize, usize alignment);
+			MemoryArena *arena, void *addr, usize size, usize newSize, usize alignment);
 	OAK_UTIL_API void sys_clear(MemoryArena *arena);
 
 	OAK_UTIL_API Allocator make_arena_allocator(usize size);
@@ -185,16 +185,16 @@ namespace oak {
 	}
 
 	template<typename T>
-	T* reallocate(Allocator *allocator, T *ptr, i64 count, i64 nCount) {
-		return static_cast<T*>(allocator->realloc(ptr, sizeof(T) * count, sizeof(T) * nCount, alignof(T)));
+	T* reallocate(Allocator *allocator, T *ptr, i64 count, i64 newCount) {
+		return static_cast<T*>(allocator->realloc(ptr, sizeof(T) * count, sizeof(T) * newCount, alignof(T)));
 	}
 
 	template<typename... types>
-	void* reallocate_soa(Allocator *allocator, void *ptr, i64 count, i64 nCount) {
+	void* reallocate_soa(Allocator *allocator, void *ptr, i64 count, i64 newCount) {
 		return allocator->realloc(
 				ptr,
 				soa_offset<sizeof...(types), types...>(count),
-				soa_offset<sizeof...(types), types...>(nCount),
+				soa_offset<sizeof...(types), types...>(newCount),
 				max_align<types...>());
 	}
 

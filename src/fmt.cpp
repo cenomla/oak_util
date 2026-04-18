@@ -21,8 +21,8 @@ namespace {
 		return base;
 	}
 
-	char const* choose_snprintf_float_fmt_string(FmtKind fmtKind) noexcept {
-		char const* str;
+	c8 const* choose_snprintf_float_fmt_string(FmtKind fmtKind) noexcept {
+		c8 const* str;
 		switch (fmtKind) {
 			case FmtKind::DEFAULT: str = "%.*g"; break;
 			case FmtKind::DEC: str = "%.*f"; break;
@@ -45,8 +45,8 @@ namespace {
 
 }
 
-	String to_str(Allocator *allocator, char v, FmtKind, i32) {
-		auto str = allocate<char>(allocator, 1);
+	String to_str(Allocator *allocator, c8 v, FmtKind, i32) {
+		auto str = allocate<c8>(allocator, 1);
 		str[0] = v;
 		return String{ str, 1 };
 	}
@@ -58,18 +58,18 @@ namespace {
 	String to_str(Allocator *allocator, u64 v, FmtKind fmtKind, i32 precision) {
 		auto base = choose_base(fmtKind);
 		auto letter = fmtKind == FmtKind::HEX_CAP ? 'A' : 'a';
-		auto str = allocate<char>(allocator, 66 + precision);
+		auto str = allocate<c8>(allocator, 66 + precision);
 		i64 idx = 0;
 		do {
-			auto c = static_cast<char>(v % base);
-			str[idx++] = static_cast<char>(c > 9 ? letter + c - 10 : '0' + c);
+			auto c = static_cast<c8>(v % base);
+			str[idx++] = static_cast<c8>(c > 9 ? letter + c - 10 : '0' + c);
 			v /= base;
 		} while (v > 0);
 
 		for (; idx < precision; ++idx)
 			str[idx] = '0';
 
-		Slice<char> string{ str, idx };
+		Slice<c8> string{ str, idx };
 		reverse(string);
 		return string;
 	}
@@ -87,7 +87,7 @@ namespace {
 	String to_str(Allocator *allocator, i64 v, FmtKind fmtKind, i32 precision) {
 		auto base = choose_base(fmtKind);
 		auto letter = fmtKind == FmtKind::HEX_CAP ? 'A' : 'a';
-		auto str = allocate<char>(allocator, 66);
+		auto str = allocate<c8>(allocator, 66);
 		bool neg = false;
 		if (v < 0) {
 			neg = true;
@@ -95,8 +95,8 @@ namespace {
 		}
 		i64 idx = 0;
 		do {
-			auto c = static_cast<char>(v % base);
-			str[idx++] = static_cast<char>(c > 9 ? letter + c - 10 : '0' + c);
+			auto c = static_cast<c8>(v % base);
+			str[idx++] = static_cast<c8>(c > 9 ? letter + c - 10 : '0' + c);
 			v /= base;
 		} while (v > 0);
 
@@ -107,14 +107,14 @@ namespace {
 			str[idx++] = '-';
 		}
 
-		Slice<char> string{ str, idx };
+		Slice<c8> string{ str, idx };
 		reverse(string);
 		return string;
 	}
 
 	String to_str(Allocator *allocator, f32 v, FmtKind fmtKind, i32 precision) {
 		constexpr usize bufSize = 32;
-		auto str = make<char>(allocator, bufSize);
+		auto str = make<c8>(allocator, bufSize);
 		snprintf(
 				str, bufSize, choose_snprintf_float_fmt_string(fmtKind), precision, static_cast<f64>(v));
 		return str;
@@ -122,25 +122,25 @@ namespace {
 
 	String to_str(Allocator *allocator, f64 v, FmtKind fmtKind, i32 precision) {
 		constexpr usize bufSize = 32;
-		auto str = make<char>(allocator, bufSize);
+		auto str = make<c8>(allocator, bufSize);
 		snprintf(
 				str, bufSize, choose_snprintf_float_fmt_string(fmtKind), precision, v);
 		return str;
 	}
 
-	String to_str(Allocator *allocator, char const *v, FmtKind fmtKind, i32) {
+	String to_str(Allocator *allocator, c8 const *v, FmtKind fmtKind, i32) {
 		return to_str(allocator, String{ v }, fmtKind);
 	}
 
-	String to_str(Allocator *allocator, unsigned char const *v, FmtKind fmtKind, i32) {
-		return to_str(allocator, String{ reinterpret_cast<char const *>(v) }, fmtKind);
+	String to_str(Allocator *allocator, u8 const *v, FmtKind fmtKind, i32) {
+		return to_str(allocator, String{ reinterpret_cast<c8 const *>(v) }, fmtKind);
 	}
 
 	String to_str(Allocator *allocator, String str, FmtKind fmtKind, i32) {
 		switch (fmtKind) {
 		case FmtKind::LOWER:
 			{
-				auto nstr = allocate<char>(allocator, str.count);
+				auto nstr = allocate<c8>(allocator, str.count);
 				for (i64 i = 0; i < str.count; ++i)
 					nstr[i] = to_lower(str[i]);
 				return String{ nstr, str.count };
@@ -148,7 +148,7 @@ namespace {
 			break;
 		case FmtKind::UPPER:
 			{
-				auto nstr = allocate<char>(allocator, str.count);
+				auto nstr = allocate<c8>(allocator, str.count);
 				for (i64 i = 0; i < str.count; ++i)
 					nstr[i] = to_upper(str[i]);
 				return String{ nstr, str.count };
@@ -161,7 +161,7 @@ namespace {
 		}
 	}
 
-	i64 from_str(char *v, String str) {
+	i64 from_str(c8 *v, String str) {
 		if (!str.count)
 			return -1;
 		*v = str[0];
@@ -172,7 +172,7 @@ namespace {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
-		char *end;
+		c8 *end;
 		*v = static_cast<u8>(strtoul(cstr, &end, base));
 
 		return end - cstr;
@@ -182,7 +182,7 @@ namespace {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
-		char *end;
+		c8 *end;
 		*v = static_cast<u16>(strtoul(cstr, &end, base));
 
 		return end - cstr;
@@ -192,7 +192,7 @@ namespace {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
-		char *end;
+		c8 *end;
 		*v = static_cast<u32>(strtoul(cstr, &end, base));
 
 		return end - cstr;
@@ -202,7 +202,7 @@ namespace {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
-		char *end;
+		c8 *end;
 		*v = strtoull(cstr, &end, base);
 
 		return end - cstr;
@@ -212,7 +212,7 @@ namespace {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
-		char *end;
+		c8 *end;
 		*v = static_cast<i8>(strtol(cstr, &end, base));
 
 		return end - cstr;
@@ -222,7 +222,7 @@ namespace {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
-		char *end;
+		c8 *end;
 		*v = static_cast<i16>(strtol(cstr, &end, base));
 
 		return end - cstr;
@@ -232,7 +232,7 @@ namespace {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
-		char *end;
+		c8 *end;
 		*v = static_cast<i32>(strtol(cstr, &end, base));
 
 		return end - cstr;
@@ -242,7 +242,7 @@ namespace {
 		TMP_ALLOC(66);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 66));
-		char *end;
+		c8 *end;
 		*v = strtoll(cstr, &end, base);
 
 		return end - cstr;
@@ -252,7 +252,7 @@ namespace {
 		TMP_ALLOC(32);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 32));
-		char *end;
+		c8 *end;
 		*v = strtof(cstr, &end);
 
 		return end - cstr;
@@ -262,7 +262,7 @@ namespace {
 		TMP_ALLOC(32);
 
 		auto cstr = as_c_str(&tmpAlloc, sub_slice(slc(str), 0, 32));
-		char *end;
+		c8 *end;
 		*v = strtod(cstr, &end);
 
 		return end - cstr;
@@ -287,20 +287,14 @@ namespace {
 	}
 
 	void StringBuffer::write(void const *data, usize size) {
-		assert(size <= buffer->count - pos);
+		assert(size <= buffer->capacity - pos);
 		memcpy(buffer->data + pos, data, size);
 		pos += size;
 	}
 
 	void StringBuffer::resize(usize size) {
 		size += pos;
-		auto ndata = make<char>(allocator, size);
-		if (buffer->data) {
-			memcpy(ndata, buffer->data, buffer->count);
-			deallocate(allocator, buffer->data, buffer->count);
-		}
-		buffer->data = ndata;
-		buffer->count = size;
+		buffer->reserve(allocator, size);
 	}
 
 	IBuffer StringBuffer::get_buffer_interface() {
