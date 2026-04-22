@@ -23,7 +23,7 @@ namespace oak {
 	};
 
 	struct FmtSpec {
-		FmtKind kind;
+		FmtKind kind = FmtKind::INVALID;
 		i64 start, end;
 		i32 precision;
 	};
@@ -35,6 +35,10 @@ namespace oak::detail {
 	void fmt_impl(Buffer&& buffer, String fmtStr, String const *strings, FmtSpec const *specs, i64 count) {
 		i64 pos = 0;
 		for (i32 i = 0; i < count; ++i) {
+			if (specs[i].kind == FmtKind::INVALID)
+				break;
+			assert(specs[i].start <= specs[i].end);
+			assert(specs[i].start >= pos);
 			if (auto const slice = sub_slice(slc(fmtStr), pos, specs[i].start); slice.count > 0) {
 				buffer.write(slice.data, slice.count);
 			}
@@ -85,12 +89,18 @@ namespace oak::detail {
 			case 'c': fmtKind = FmtKind::LOWER; break;
 			case 'C': fmtKind = FmtKind::UPPER; break;
 			case '.': precision = parse_fmt_precision(fmtStr, pos); break;
-			default: return false;
+			default:
+				// Failed to parse fmt spec, rewind to start but skip %
+				*pos = start + 1;
+				return false;
 			}
 		}
 
-		if (fmtKind == FmtKind::INVALID)
+		if (fmtKind == FmtKind::INVALID) {
+			// Failed to parse fmt spec, rewind to start but skip %
+			*pos = start + 1;
 			return false;
+		}
 
 		*fmtSpec = { fmtKind, start, *pos, precision };
 		return true;
@@ -104,6 +114,7 @@ namespace oak::detail {
 			if (pos != -1) {
 				if (FmtSpec spec{}; parse_fmt_spec(&spec, fmtStr, &pos))
 					specs[idx++] = spec;
+
 				start = pos;
 			} else {
 				start = fmtStr.count;
@@ -227,8 +238,8 @@ namespace oak {
 	void buffer_fmt(Buffer&& buffer, String fmtStr, TArgs&&... args) {
 		constexpr auto hasResize = HasResizeMethod<std::decay_t<Buffer>>::value;
 		if constexpr (sizeof...(args) > 0) {
-			FmtSpec fmtSpecs[sizeof...(args)]{};
-			String argStrings[sizeof...(args)]{};
+			FmtSpec fmtSpecs[sizeof...(args)] = {};
+			String argStrings[sizeof...(args)] = {};
 			detail::fmt_get_spec(fmtStr, fmtSpecs, sizeof...(args));
 			detail::fmt_get_strings(
 					temporaryAllocator,
