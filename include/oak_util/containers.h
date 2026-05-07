@@ -48,15 +48,22 @@ namespace oak {
 			FixedVector result;
 			result.reserve(allocator, capacity);
 			if (data)
-				memcpy(result.data, data, capacity*sizeof(T));
+				mem_copy(result.data, data, capacity);
 			return result;
 		}
 
 		template<isize C>
-		static FixedVector from_array(Allocator *allocator, T const (&array)[C]) {
+		static FixedVector from(Allocator *allocator, T const (&array)[C]) {
 			FixedVector result;
 			result.reserve(allocator, C);
-			memcpy(result.data, array, C*sizeof(T));
+			mem_copy(result.data, array, C);
+			return result;
+		}
+
+		static FixedVector from(Allocator *allocator, Slice<T> slc) {
+			FixedVector result;
+			result.reserve(allocator, slc.count);
+			mem_copy(result.data, slc.data, slc.count);
 			return result;
 		}
 
@@ -72,7 +79,7 @@ namespace oak {
 		FixedVector clone(Allocator *allocator, i64 minCapacity = 0) const noexcept {
 			FixedVector nVec;
 			nVec.reserve(allocator, capacity < minCapacity ? minCapacity : capacity);
-			memcpy(nVec.data, data, capacity*sizeof(T));
+			mem_copy(nVec.data, data, capacity);
 			return nVec;
 		}
 
@@ -153,7 +160,7 @@ namespace oak {
 			Vector nVec;
 			nVec.reserve(allocator, capacity < minCapacity ? minCapacity : capacity);
 			nVec.count = count;
-			memcpy(nVec.data, data, count * sizeof(T));
+			mem_copy(nVec.data, data, count);
 			return nVec;
 		}
 
