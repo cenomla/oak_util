@@ -1,9 +1,18 @@
 #pragma once
 
-#include <new>
-
 #include "types.h"
 #include "ptr.h"
+
+namespace oak {
+	struct NewTag{};
+}
+
+inline void* operator new(usize, oak::NewTag, void* ptr) noexcept {
+	return ptr;
+}
+
+inline void operator delete(void*, oak::NewTag, void*) noexcept {
+}
 
 namespace oak {
 
@@ -203,7 +212,7 @@ namespace oak {
 		auto result = allocate<T>(allocator, count);
 		if (result) {
 			for (i64 i = 0; i < count; ++i) {
-				new (result + i) T{ static_cast<TArgs&&>(args)... };
+				new (NewTag{}, result + i) T{ static_cast<TArgs&&>(args)... };
 			}
 		}
 		return result;
